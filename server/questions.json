@@ -1,0 +1,97 @@
+[
+  {
+    "id": 1,
+    "category": "Network Security",
+    "question": "Which cyber attack specifically targets OT (Operational Technology) & ICS networks to disrupt physical industrial equipment?",
+    "options": [
+      "A) Phishing Mail Scam",
+      "B) Stuxnet-style PLC Manipulation",
+      "C) SQL Injection Attack",
+      "D) Credential Stuffing"
+    ],
+    "correctAnswer": 1,
+    "explanation": "Stuxnet-style attacks specifically manipulate Programmable Logic Controllers (PLCs) in industrial OT/ICS environments to cause physical equipment disruption.",
+    "optionExplanations": [
+      "Phishing Mail Scams target human credentials via email, not direct physical OT/ICS machinery.",
+      "Stuxnet-style PLC Manipulation targets industrial controllers to physically alter OT equipment.",
+      "SQL Injection attacks target relational databases on web applications, not OT physical controllers.",
+      "Credential Stuffing automates login attempts using stolen password lists on web services."
+    ]
+  },
+  {
+    "id": 2,
+    "category": "Schneider Electric Tech",
+    "question": "What is Schneider Electric's flagship IoT-enabled open and interoperable system architecture platform?",
+    "options": [
+      "A) EcoStruxure",
+      "B) PowerLogic Cyber",
+      "C) Modicon Edge",
+      "D) Aveva Connect"
+    ],
+    "correctAnswer": 0,
+    "explanation": "EcoStruxure is Schneider Electric's IoT-enabled, open, and interoperable system architecture powering Connected Products, Edge Control, and Apps/Analytics.",
+    "optionExplanations": [
+      "EcoStruxure is Schneider's flagship IoT-enabled architecture covering Connected Products, Edge Control, and Apps.",
+      "PowerLogic is Schneider's brand for power monitoring hardware/software, not the overarching IoT architecture.",
+      "Modicon is Schneider's PLC brand family, representing specific automation hardware.",
+      "AVEVA Connect is an industrial cloud platform partner software, not the core EcoStruxure system architecture."
+    ]
+  },
+  {
+    "id": 3,
+    "category": "Zero Trust Security",
+    "question": "In a Zero Trust Architecture model, what is the core foundational principle?",
+    "options": [
+      "A) Trust internal network IPs by default",
+      "B) Never Trust, Always Verify",
+      "C) Verify once at login, trust forever",
+      "D) Encrypt only external emails"
+    ],
+    "correctAnswer": 1,
+    "explanation": "Zero Trust operates on the principle of 'Never Trust, Always Verify', requiring continuous authentication and explicit validation for every access request.",
+    "optionExplanations": [
+      "Traditional perimeter security trusted internal IPs, whereas Zero Trust explicitly distrusts all network locations.",
+      "'Never Trust, Always Verify' enforces strict identity verification and least privilege for every single request.",
+      "Zero Trust requires continuous evaluation of context and session, not just a single initial login check.",
+      "Zero Trust mandates end-to-end encryption across all data paths, internal and external."
+    ]
+  },
+  {
+    "id": 4,
+    "category": "Cyber Threat Intelligence",
+    "question": "What type of attack floods a target server with overwhelming traffic to cause service denial?",
+    "options": [
+      "A) Man-in-the-Middle (MitM)",
+      "B) Cross-Site Scripting (XSS)",
+      "C) Distributed Denial of Service (DDoS)",
+      "D) Zero-Day Exploit"
+    ],
+    "correctAnswer": 2,
+    "explanation": "DDoS attacks utilize botnets to flood target servers with mass traffic, overwhelming bandwidth and server resources to render services unavailable.",
+    "optionExplanations": [
+      "MitM attacks secretly intercept and tamper with communications between two parties without flooding traffic.",
+      "XSS injects malicious scripts into trusted websites to execute in user browsers.",
+      "DDoS uses distributed botnets to flood targets with excessive traffic, starving legitimate users of access.",
+      "Zero-Day exploits target undisclosed software vulnerabilities rather than flooding network bandwidth."
+    ]
+  },
+  {
+    "id": 5,
+    "category": "MSS Operations",
+    "question": "What does SIEM stand for in Managed Security Services SOC operations?",
+    "options": [
+      "A) System Integration and Emergency Management",
+      "B) Security Information and Event Management",
+      "C) Software Isolation and Threat Enforcement",
+      "D) Secure Infrastructure and Enterprise Monitoring"
+    ],
+    "correctAnswer": 1,
+    "explanation": "SIEM stands for Security Information and Event Management, aggregating logs and analyzing security events across enterprise infrastructure in real-time.",
+    "optionExplanations": [
+      "SIEM is specifically security log aggregation and correlation software, not general emergency management.",
+      "Security Information and Event Management (SIEM) combines SIM (log management) and SEM (real-time monitoring).",
+      "SIEM analyzes event telemetry and alerts SOC analysts rather than performing software isolation.",
+      "While SIEM monitors infrastructure, the exact standard cybersecurity acronym is Security Information and Event Management."
+    ]
+  }
+]
