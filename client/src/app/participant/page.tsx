@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getSocket } from '../../lib/socket';
-import { ShieldCheck, Timer, Zap, CheckCircle2, XCircle, Clock, Send, Lock, Volume2, UserCheck, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Timer, Zap, CheckCircle2, XCircle, Clock, Send, Lock, Volume2, UserCheck, AlertTriangle, Trophy } from 'lucide-react';
 
 function ParticipantComponent() {
   const searchParams = useSearchParams();
@@ -28,6 +28,7 @@ function ParticipantComponent() {
   const [answerResult, setAnswerResult] = useState<any>(null);
   const [revealResult, setRevealResult] = useState<any>(null);
   const [hasFailed, setHasFailed] = useState(false);
+  const [hasWon, setHasWon] = useState(false);
 
   useEffect(() => {
     const socket = getSocket();
@@ -43,6 +44,10 @@ function ParticipantComponent() {
       }
       if (roomData?.currentAnswerer) {
         setCurrentAnswerer(roomData.currentAnswerer);
+      }
+      if (roomData?.participants) {
+        const myP = roomData.participants.find((p: any) => p.socketId === socket.id);
+        if (myP && myP.isWinner) setHasWon(true);
       }
     });
 
@@ -128,6 +133,7 @@ function ParticipantComponent() {
         if (res.currentAnswerer) setCurrentAnswerer(res.currentAnswerer);
         if (res.hasBuzzed) setHasBuzzed(true);
         if (res.hasFailed) setHasFailed(true);
+        if (res.hasWon) setHasWon(true);
       } else {
         setError(res?.message || 'Failed to join room');
       }
@@ -136,7 +142,7 @@ function ParticipantComponent() {
 
   const handleBuzzerPress = () => {
     if (gameState !== 'BUZZER_UNLOCKED' && gameState !== 'ANSWERING') return;
-    if (hasBuzzed || hasFailed) return;
+    if (hasBuzzed || hasFailed || hasWon) return;
 
     const socket = getSocket();
     socket.emit('hit_buzzer', { roomPin: pin }, (res: any) => {
@@ -159,7 +165,9 @@ function ParticipantComponent() {
     socket.emit('submit_answer', { roomPin: pin, optionIndex: index }, (res: any) => {
       if (res?.success) {
         setAnswerResult(res);
-        if (!res.isCorrect) {
+        if (res.isCorrect || res.hasWon) {
+          setHasWon(true);
+        } else {
           setHasFailed(true);
         }
       } else {
@@ -314,7 +322,17 @@ function ParticipantComponent() {
 
                 {(gameState === 'BUZZER_UNLOCKED' || gameState === 'ANSWERING') && (
                   <div className="flex flex-col items-center">
-                    {!hasBuzzed && !hasFailed && (
+                    {hasWon ? (
+                      <div className="bg-amber-50 border-2 border-amber-300 p-5 rounded-2xl text-amber-900 w-full text-center shadow-md">
+                        <div className="flex items-center justify-center gap-2 font-black text-lg text-amber-700 mb-1">
+                          <Trophy className="w-7 h-7 text-amber-500" />
+                          <span>Question Winner!</span>
+                        </div>
+                        <p className="text-xs font-semibold text-amber-800">
+                          You won a question! You are now in View-Only spectator mode for remaining questions.
+                        </p>
+                      </div>
+                    ) : !hasBuzzed && !hasFailed ? (
                       <button
                         onClick={handleBuzzerPress}
                         className="w-40 h-40 rounded-full bg-gradient-to-b from-[#00E676] to-[#009639] text-white font-black text-2xl flex flex-col items-center justify-center shadow-xl shadow-green-200 transform active:scale-90 transition-all hover:brightness-110 animate-pulse"
@@ -322,9 +340,9 @@ function ParticipantComponent() {
                         <Zap className="w-10 h-10 mb-1" />
                         <span>BUZZ!</span>
                       </button>
-                    )}
+                    ) : null}
 
-                    {hasBuzzed && (
+                    {hasBuzzed && !hasWon && (
                       <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-green-800 w-full">
                         <div className="flex items-center justify-center gap-2 font-bold text-lg">
                           <CheckCircle2 className="w-6 h-6 text-[#009639]" />
@@ -336,7 +354,7 @@ function ParticipantComponent() {
                       </div>
                     )}
 
-                    {hasFailed && (
+                    {hasFailed && !hasWon && (
                       <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-red-700 w-full">
                         <div className="flex items-center justify-center gap-2 font-bold">
                           <XCircle className="w-5 h-5" />
@@ -347,6 +365,13 @@ function ParticipantComponent() {
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* HOST CONTROL BANNER FOR DOUBLE WRONG ATTEMPTS */}
+            {gameState === 'HOST_CONTROL' && (
+              <div className="p-4 rounded-xl text-center shadow-sm font-bold bg-amber-50 border border-amber-300 text-amber-800 text-sm">
+                Both top 2 attempts failed! Control passed to Host to reveal the answer.
               </div>
             )}
 

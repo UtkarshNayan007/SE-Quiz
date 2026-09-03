@@ -42,7 +42,10 @@ function broadcastRoomUpdate(roomPin) {
     const room = rooms.get(roomPin);
     if (!room) return;
 
-    const participantsList = Array.from(room.participants.values());
+    const participantsList = Array.from(room.participants.values()).map(p => ({
+      ...p,
+      isWinner: room.winners.has(p.socketId)
+    }));
     io.to(roomPin).emit('room_updated', {
       roomPin: room.roomPin,
       participantCount: participantsList.length,
@@ -82,7 +85,8 @@ io.on('connection', (socket) => {
       timerTimeout: null,
       buzzerQueue: [], // Array of { socketId, name, timeMs, timeFormatted }
       currentAnswererIndex: 0,
-      failedParticipants: new Set() // Set of socketIds who answered incorrectly
+      failedParticipants: new Set(), // Set of socketIds who answered incorrectly
+      winners: new Set() // Set of socketIds who correctly answered a question
     });
 
     socket.join(roomPin);
@@ -106,7 +110,8 @@ io.on('connection', (socket) => {
       room.participants.set(socket.id, {
         socketId: socket.id,
         name: name || `Player_${socket.id.slice(0, 4)}`,
-        score: 0
+        score: 0,
+        isWinner: room.winners.has(socket.id)
       });
       console.log(`Player ${name} (${socket.id}) joined room ${roomPin}`);
     }
@@ -134,7 +139,8 @@ io.on('connection', (socket) => {
       buzzerQueue: room.buzzerQueue,
       currentAnswerer: room.buzzerQueue[room.currentAnswererIndex] || null,
       hasBuzzed: room.buzzerQueue.some(b => b.socketId === socket.id),
-      hasFailed: room.failedParticipants.has(socket.id)
+      hasFailed: room.failedParticipants.has(socket.id),
+      hasWon: room.winners.has(socket.id)
     });
   });
 
@@ -197,6 +203,16 @@ io.on('connection', (socket) => {
 
     if (!room) {
       if (callback) callback({ success: false, message: 'Room not found' });
+      return;
+    }
+
+    if (room.winners.has(socket.id)) {
+      if (callback) callback({ success: false, message: 'You have already won a question! You are in View-Only spectator mode.' });
+      return;
+    }
+
+    if (room.failedParticipants.size >= 2) {
+      if (callback) callback({ success: false, message: 'Both top 2 attempts have been completed! Control passed to Host.' });
       return;
     }
 
@@ -286,12 +302,16 @@ io.on('connection', (socket) => {
     const optionExp = question.optionExplanations ? question.optionExplanations[optionIndex] : '';
 
     if (isCorrect) {
-      if (participant) participant.score += 100;
+      room.winners.add(socket.id);
+      if (participant) {
+        participant.score += 100;
+        participant.isWinner = true;
+      }
       room.gameState = 'REVEAL';
 
       const leaderboard = Array.from(room.participants.values())
         .sort((a, b) => b.score - a.score)
-        .map(p => ({ name: p.name, score: p.score }));
+        .map(p => ({ name: p.name, score: p.score, isWinner: room.winners.has(p.socketId) }));
 
       io.to(roomPin).emit('answer_revealed', {
         correctAnswerIndex: question.correctAnswer,
@@ -312,31 +332,48 @@ io.on('connection', (socket) => {
         success: true,
         isCorrect: true,
         explanation: question.explanation,
-        optionExplanation: optionExp
+        optionExplanation: optionExp,
+        hasWon: true
       });
     } else {
       // Wrong answer!
       room.failedParticipants.add(socket.id);
 
-      // Check if 2nd person (or next) is in buzzer queue
-      const nextIndex = room.currentAnswererIndex + 1;
       let nextAnswerer = null;
 
-      if (nextIndex < room.buzzerQueue.length) {
-        room.currentAnswererIndex = nextIndex;
-        nextAnswerer = room.buzzerQueue[nextIndex];
+      if (room.failedParticipants.size >= 2) {
+        // Both top 2 participants answered wrong! End turns and transfer control to Host.
+        room.gameState = 'HOST_CONTROL';
+        io.to(roomPin).emit('turn_passed', {
+          wrongAnswerer: currentAnswerer.name,
+          wrongOptionIndex: optionIndex,
+          nextAnswerer: null,
+          turnNumber: room.currentAnswererIndex + 1,
+          noMoreTurns: true,
+          gameState: 'HOST_CONTROL',
+          message: 'Both top 2 participants answered incorrectly! Control passed to host to reveal answer.'
+        });
       } else {
-        // Queue empty for next turn - return to BUZZER_UNLOCKED so others can buzz
-        room.gameState = 'BUZZER_UNLOCKED';
-      }
+        // 1st attempt failed -> check if 2nd person is in buzzer queue
+        const nextIndex = room.currentAnswererIndex + 1;
 
-      io.to(roomPin).emit('turn_passed', {
-        wrongAnswerer: currentAnswerer.name,
-        wrongOptionIndex: optionIndex,
-        nextAnswerer: nextAnswerer ? { name: nextAnswerer.name, socketId: nextAnswerer.socketId } : null,
-        turnNumber: room.currentAnswererIndex + 1,
-        gameState: room.gameState
-      });
+        if (nextIndex < room.buzzerQueue.length && nextIndex < 2) {
+          room.currentAnswererIndex = nextIndex;
+          nextAnswerer = room.buzzerQueue[nextIndex];
+          room.gameState = 'ANSWERING';
+        } else {
+          // Queue empty for 2nd turn - return to BUZZER_UNLOCKED so 2nd person can buzz
+          room.gameState = 'BUZZER_UNLOCKED';
+        }
+
+        io.to(roomPin).emit('turn_passed', {
+          wrongAnswerer: currentAnswerer.name,
+          wrongOptionIndex: optionIndex,
+          nextAnswerer: nextAnswerer ? { name: nextAnswerer.name, socketId: nextAnswerer.socketId } : null,
+          turnNumber: room.currentAnswererIndex + 1,
+          gameState: room.gameState
+        });
+      }
 
       broadcastRoomUpdate(roomPin);
 

@@ -33,7 +33,7 @@ function ProjectorComponent() {
   const roomPin = searchParams.get('pin');
 
   const [participantCount, setParticipantCount] = useState(0);
-  const [gameState, setGameState] = useState<'LOBBY' | 'READING' | 'BUZZER_UNLOCKED' | 'ANSWERING' | 'REVEAL'>('LOBBY');
+  const [gameState, setGameState] = useState<'LOBBY' | 'READING' | 'BUZZER_UNLOCKED' | 'ANSWERING' | 'REVEAL' | 'HOST_CONTROL'>('LOBBY');
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [countdown, setCountdown] = useState(10);
   
@@ -308,6 +308,14 @@ function ProjectorComponent() {
                   <UserCheck className="w-8 h-8" />
                   <span className="text-2xl font-black tracking-wider">
                     Turn #{buzzerQueue.length}: {currentAnswerer?.name} is Answering...
+                  </span>
+                </div>
+              )}
+
+              {gameState === 'HOST_CONTROL' && (
+                <div className="flex items-center gap-3 bg-amber-100 border-2 border-amber-500 rounded-2xl px-6 py-3 shadow-md text-amber-900 font-bold">
+                  <span className="text-2xl font-black tracking-wider uppercase">
+                    Both Attempts Incorrect — Host Control
                   </span>
                 </div>
               )}

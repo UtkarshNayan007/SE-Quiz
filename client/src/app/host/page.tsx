@@ -351,6 +351,7 @@ export default function HostDashboard() {
                 {gameState === 'READING' && '📖 10s Reading Time in progress...'}
                 {gameState === 'BUZZER_UNLOCKED' && '⚡ Buzzer is live! Waiting for participants to buzz in...'}
                 {gameState === 'ANSWERING' && `🎯 Turn: ${currentAnswerer?.name} is selecting an option on screen...`}
+                {gameState === 'HOST_CONTROL' && '⚠️ Both top 2 participants answered incorrectly! Control passed to host.'}
               </p>
 
               <button
@@ -411,7 +412,7 @@ export default function HostDashboard() {
             {turnInfo?.lastAnswererWrong && (
               <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{turnInfo.lastAnswererWrong} answered wrong. Turn passed to 2nd person!</span>
+                <span>{turnInfo.lastAnswererWrong} answered wrong. {turnInfo.noMoreTurns ? 'Both top 2 attempts failed! Control passed to host.' : 'Turn passed to 2nd person!'}</span>
               </div>
             )}
           </div>
@@ -453,6 +454,7 @@ export default function HostDashboard() {
                       <div key={idx} className="flex justify-between items-center bg-gray-50 p-2 rounded-lg text-sm">
                         <span className="font-medium text-gray-800 flex items-center gap-2">
                           <span className="text-gray-400 font-mono text-xs">{idx + 1}.</span> {player.name}
+                          {player.isWinner && <Trophy className="w-3.5 h-3.5 text-amber-500 inline" />}
                         </span>
                         <span className="font-bold text-[#009639]">{player.score} pts</span>
                       </div>
@@ -473,8 +475,11 @@ export default function HostDashboard() {
                 <p className="text-gray-400 italic text-sm">Waiting for players to join...</p>
               ) : (
                 participants.map((p, idx) => (
-                  <div key={idx} className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 border border-gray-200">
+                  <div key={idx} className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 border ${
+                    p.isWinner ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold' : 'bg-gray-100 text-gray-800 border-gray-200'
+                  }`}>
                     {p.name}
+                    {p.isWinner && <Trophy className="w-3.5 h-3.5 text-amber-500" />}
                     <span className="bg-[#009639] text-white text-xs px-2 py-0.5 rounded-full font-bold">
                       {p.score || 0}
                     </span>
