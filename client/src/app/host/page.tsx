@@ -16,10 +16,15 @@ import {
   Hash,
   AlertCircle,
   UserCheck,
-  HelpCircle
+  HelpCircle,
+  Lock
 } from 'lucide-react';
 
 export default function HostDashboard() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passcode, setPasscode] = useState('');
+  const [authError, setAuthError] = useState('');
+
   const [roomPin, setRoomPin] = useState('');
   const [participantCount, setParticipantCount] = useState(0);
   const [participants, setParticipants] = useState<any[]>([]);
@@ -38,20 +43,37 @@ export default function HostDashboard() {
   const [error, setError] = useState('');
   const roomCreatedRef = useRef(false);
 
-  useEffect(() => {
+  const attemptCreateRoom = (inputPasscode: string) => {
+    setLoading(true);
+    setAuthError('');
     const socket = getSocket();
-
-    if (!roomCreatedRef.current) {
-      roomCreatedRef.current = true;
-      socket.emit('create_room', (res: any) => {
-        if (res.success) {
-          setRoomPin(res.roomPin);
-          setTotalQuestions(res.totalQuestions || 5);
-        } else {
-          setError('Failed to create room');
+    socket.emit('create_room', { passcode: inputPasscode }, (res: any) => {
+      setLoading(false);
+      if (res && res.success) {
+        setIsAuthenticated(true);
+        setRoomPin(res.roomPin);
+        setTotalQuestions(res.totalQuestions || 5);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('se_host_passcode', inputPasscode);
         }
-      });
+      } else {
+        setIsAuthenticated(false);
+        setAuthError(res?.message || 'Access Denied: Invalid Admin Passcode');
+      }
+    });
+  };
+
+  useEffect(() => {
+    const savedPasscode = typeof window !== 'undefined' ? sessionStorage.getItem('se_host_passcode') : null;
+    if (savedPasscode && !roomCreatedRef.current) {
+      roomCreatedRef.current = true;
+      attemptCreateRoom(savedPasscode);
     }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const socket = getSocket();
 
     const handleRoomUpdated = (data: any) => {
       setParticipantCount(data.participantCount || data.participants?.length || 0);
@@ -152,6 +174,66 @@ export default function HostDashboard() {
       }
     });
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-8 space-y-6">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-[#009639]/20 border border-[#00E676] rounded-2xl flex items-center justify-center text-[#00E676] mb-4 shadow-lg">
+              <Lock className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-bold text-white">Admin Access Gate</h1>
+            <p className="text-sm text-slate-400 mt-1">SE Quiz Host Dashboard Protection</p>
+          </div>
+
+          {authError && (
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold p-3.5 rounded-xl text-center">
+              {authError}
+            </div>
+          )}
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!passcode.trim()) {
+                setAuthError('Please enter Admin Passcode');
+                return;
+              }
+              attemptCreateRoom(passcode.trim());
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Host Admin Passcode
+              </label>
+              <input
+                type="password"
+                placeholder="Enter passcode"
+                value={passcode}
+                onChange={(e) => { setPasscode(e.target.value); setAuthError(''); }}
+                className="w-full px-4 py-3.5 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono text-center text-lg tracking-widest focus:ring-2 focus:ring-[#00E676] focus:outline-none transition"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#009639] hover:bg-[#00E676] text-white font-bold py-3.5 rounded-xl text-base flex items-center justify-center gap-2 shadow-lg transition-colors disabled:opacity-50"
+            >
+              {loading ? (
+                <RefreshCw className="w-5 h-5 animate-spin" />
+              ) : (
+                <ShieldCheck className="w-5 h-5" />
+              )}
+              Unlock Host Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white text-gray-800 p-4 md:p-8">

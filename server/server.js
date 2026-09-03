@@ -26,6 +26,7 @@ try {
 
 // In-memory store for rooms
 const rooms = new Map();
+const HOST_PASSCODE = process.env.HOST_PASSCODE || 'SE2026!Admin';
 
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
@@ -56,8 +57,19 @@ function broadcastRoomUpdate(roomPin) {
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
+  socket.isHost = false;
 
-  socket.on('create_room', (callback) => {
+  socket.on('create_room', (data, callback) => {
+    let cb = typeof callback === 'function' ? callback : (typeof data === 'function' ? data : null);
+    let passcode = typeof data === 'object' && data !== null ? data.passcode : null;
+
+    if (!passcode || passcode !== HOST_PASSCODE) {
+      console.warn(`Unauthorized create_room attempt from ${socket.id}`);
+      if (cb) cb({ success: false, message: 'Unauthorized: Invalid Admin Passcode' });
+      return;
+    }
+
+    socket.isHost = true;
     const roomPin = Math.floor(100000 + Math.random() * 900000).toString();
     
     rooms.set(roomPin, {
@@ -74,9 +86,9 @@ io.on('connection', (socket) => {
     });
 
     socket.join(roomPin);
-    console.log(`Room created: ${roomPin} by host ${socket.id}`);
+    console.log(`Room created: ${roomPin} by authenticated host ${socket.id}`);
     
-    if (callback) callback({ success: true, roomPin, totalQuestions: questions.length });
+    if (cb) cb({ success: true, roomPin, totalQuestions: questions.length });
   });
 
   socket.on('join_room', (data, callback) => {
@@ -130,8 +142,8 @@ io.on('connection', (socket) => {
     const { roomPin, questionIndex } = data;
     const room = rooms.get(roomPin);
 
-    if (!room || room.hostSocketId !== socket.id) {
-      if (callback) callback({ success: false, message: 'Unauthorized or room not found' });
+    if (!socket.isHost || !room || room.hostSocketId !== socket.id) {
+      if (callback) callback({ success: false, message: 'Unauthorized: Host privilege required' });
       return;
     }
 
@@ -341,8 +353,8 @@ io.on('connection', (socket) => {
     const { roomPin } = data;
     const room = rooms.get(roomPin);
 
-    if (!room || room.hostSocketId !== socket.id) {
-      if (callback) callback({ success: false, message: 'Unauthorized or room not found' });
+    if (!socket.isHost || !room || room.hostSocketId !== socket.id) {
+      if (callback) callback({ success: false, message: 'Unauthorized: Host privilege required' });
       return;
     }
 
