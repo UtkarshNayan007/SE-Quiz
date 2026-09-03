@@ -31,20 +31,27 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-function broadcastRoomUpdate(roomPin) {
-  const room = rooms.get(roomPin);
-  if (!room) return;
+const updateTimers = new Map();
 
-  const participantsList = Array.from(room.participants.values());
-  io.to(roomPin).emit('room_updated', {
-    roomPin: room.roomPin,
-    participantCount: participantsList.length,
-    participants: participantsList,
-    gameState: room.gameState,
-    currentQuestionIndex: room.currentQuestionIndex,
-    buzzerQueue: room.buzzerQueue,
-    currentAnswerer: room.buzzerQueue[room.currentAnswererIndex] || null
-  });
+function broadcastRoomUpdate(roomPin) {
+  if (updateTimers.has(roomPin)) return;
+
+  updateTimers.set(roomPin, setTimeout(() => {
+    updateTimers.delete(roomPin);
+    const room = rooms.get(roomPin);
+    if (!room) return;
+
+    const participantsList = Array.from(room.participants.values());
+    io.to(roomPin).emit('room_updated', {
+      roomPin: room.roomPin,
+      participantCount: participantsList.length,
+      participants: participantsList,
+      gameState: room.gameState,
+      currentQuestionIndex: room.currentQuestionIndex,
+      buzzerQueue: room.buzzerQueue,
+      currentAnswerer: room.buzzerQueue[room.currentAnswererIndex] || null
+    });
+  }, 200));
 }
 
 io.on('connection', (socket) => {

@@ -159,13 +159,37 @@ function ProjectorComponent() {
     };
   }, [roomPin]);
 
+  const [inputPin, setInputPin] = useState('');
+
   if (!roomPin) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center font-sans p-6">
-        <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full text-center">
-          <AlertOctagon className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Room PIN Missing</h2>
-          <p className="text-slate-400 text-sm">Please provide a room PIN in the URL parameters (?pin=123456).</p>
+        <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full text-center shadow-2xl">
+          <div className="p-3 bg-[#00E676]/20 rounded-2xl w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <Zap className="w-10 h-10 text-[#00E676]" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2 text-white">Projector Display</h2>
+          <p className="text-slate-400 text-sm mb-6">Enter the 6-digit Room PIN created on the Host Dashboard to launch the big screen view.</p>
+
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (inputPin) window.location.href = `/projector?pin=${inputPin.trim()}`;
+          }} className="space-y-4">
+            <input
+              type="text"
+              value={inputPin}
+              onChange={(e) => setInputPin(e.target.value.toUpperCase())}
+              placeholder="e.g. 123456"
+              maxLength={6}
+              className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-[#00E676] font-mono text-center text-3xl font-black tracking-widest outline-none focus:border-[#00E676]"
+            />
+            <button
+              type="submit"
+              className="w-full bg-[#009639] hover:bg-[#00E676] text-white font-bold py-3.5 rounded-xl transition-all shadow-lg"
+            >
+              Launch Projector Screen
+            </button>
+          </form>
         </div>
       </div>
     );
