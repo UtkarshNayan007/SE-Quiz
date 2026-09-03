@@ -55,7 +55,7 @@ function broadcastRoomUpdate(roomPin) {
       buzzerQueue: room.buzzerQueue,
       currentAnswerer: room.buzzerQueue[room.currentAnswererIndex] || null
     });
-  }, 200));
+  }, 50));
 }
 
 io.on('connection', (socket) => {
@@ -73,11 +73,46 @@ io.on('connection', (socket) => {
     }
 
     socket.isHost = true;
+    let targetPin = typeof data === 'object' && data !== null ? data.roomPin : null;
+    
+    // Check if host is reconnecting to an existing room
+    if (targetPin && rooms.has(targetPin)) {
+      const existingRoom = rooms.get(targetPin);
+      if (existingRoom.hostDisconnectTimeout) {
+        clearTimeout(existingRoom.hostDisconnectTimeout);
+        existingRoom.hostDisconnectTimeout = null;
+      }
+      existingRoom.hostDisconnected = false;
+      existingRoom.hostSocketId = socket.id;
+      socket.join(targetPin);
+      console.log(`Host reconnected to existing room ${targetPin} (${socket.id})`);
+
+      const participantsList = Array.from(existingRoom.participants.values()).map(p => ({
+        ...p,
+        isWinner: existingRoom.winners.has(p.socketId)
+      }));
+
+      if (cb) cb({
+        success: true,
+        roomPin: targetPin,
+        totalQuestions: questions.length,
+        participantCount: participantsList.length,
+        participants: participantsList,
+        buzzerQueue: existingRoom.buzzerQueue,
+        gameState: existingRoom.gameState,
+        currentAnswerer: existingRoom.buzzerQueue[existingRoom.currentAnswererIndex] || null
+      });
+      broadcastRoomUpdate(targetPin);
+      return;
+    }
+
     const roomPin = Math.floor(100000 + Math.random() * 900000).toString();
     
     rooms.set(roomPin, {
       roomPin,
       hostSocketId: socket.id,
+      hostDisconnected: false,
+      hostDisconnectTimeout: null,
       participants: new Map(), // socketId -> { socketId, name, score }
       currentQuestionIndex: -1,
       gameState: 'LOBBY', // LOBBY | READING | BUZZER_UNLOCKED | ANSWERING | REVEAL
@@ -92,7 +127,16 @@ io.on('connection', (socket) => {
     socket.join(roomPin);
     console.log(`Room created: ${roomPin} by authenticated host ${socket.id}`);
     
-    if (cb) cb({ success: true, roomPin, totalQuestions: questions.length });
+    if (cb) cb({
+      success: true,
+      roomPin,
+      totalQuestions: questions.length,
+      participantCount: 0,
+      participants: [],
+      buzzerQueue: [],
+      gameState: 'LOBBY',
+      currentAnswerer: null
+    });
   });
 
   socket.on('join_room', (data, callback) => {
@@ -428,10 +472,17 @@ io.on('connection', (socket) => {
     
     for (const [roomPin, room] of rooms.entries()) {
       if (room.hostSocketId === socket.id) {
-        console.log(`Host disconnected, destroying room ${roomPin}`);
-        if (room.timerTimeout) clearTimeout(room.timerTimeout);
-        io.to(roomPin).emit('room_destroyed', { message: 'Host left the game' });
-        rooms.delete(roomPin);
+        console.log(`Host disconnected from room ${roomPin}. Starting 120s grace period before room cleanup...`);
+        room.hostDisconnected = true;
+        if (room.hostDisconnectTimeout) clearTimeout(room.hostDisconnectTimeout);
+        room.hostDisconnectTimeout = setTimeout(() => {
+          if (room.hostDisconnected) {
+            console.log(`Host grace period expired for room ${roomPin}. Destroying room.`);
+            if (room.timerTimeout) clearTimeout(room.timerTimeout);
+            io.to(roomPin).emit('room_destroyed', { message: 'Host left the game' });
+            rooms.delete(roomPin);
+          }
+        }, 120000);
       } else if (room.participants.has(socket.id)) {
         console.log(`Participant ${socket.id} disconnected from room ${roomPin}`);
         room.participants.delete(socket.id);

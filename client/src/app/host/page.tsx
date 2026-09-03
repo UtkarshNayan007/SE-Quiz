@@ -47,12 +47,18 @@ export default function HostDashboard() {
     setLoading(true);
     setAuthError('');
     const socket = getSocket();
-    socket.emit('create_room', { passcode: inputPasscode }, (res: any) => {
+    socket.emit('create_room', { passcode: inputPasscode, roomPin }, (res: any) => {
       setLoading(false);
       if (res && res.success) {
         setIsAuthenticated(true);
         setRoomPin(res.roomPin);
         setTotalQuestions(res.totalQuestions || 5);
+        if (res.participants) setParticipants(res.participants);
+        if (res.participantCount !== undefined) setParticipantCount(res.participantCount);
+        if (res.buzzerQueue) setBuzzerQueue(res.buzzerQueue);
+        if (res.gameState) setGameState(res.gameState);
+        if (res.currentAnswerer) setCurrentAnswerer(res.currentAnswerer);
+        
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('se_host_passcode', inputPasscode);
         }
@@ -72,15 +78,14 @@ export default function HostDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
     const socket = getSocket();
 
     const handleRoomUpdated = (data: any) => {
-      setParticipantCount(data.participantCount || data.participants?.length || 0);
-      setParticipants(data.participants || []);
-      if (data.gameState) setGameState(data.gameState);
-      if (data.buzzerQueue) setBuzzerQueue(data.buzzerQueue);
-      if (data.currentAnswerer) setCurrentAnswerer(data.currentAnswerer);
+      if (data?.participantCount !== undefined) setParticipantCount(data.participantCount);
+      if (data?.participants) setParticipants(data.participants);
+      if (data?.gameState) setGameState(data.gameState);
+      if (data?.buzzerQueue) setBuzzerQueue(data.buzzerQueue);
+      if (data?.currentAnswerer !== undefined) setCurrentAnswerer(data.currentAnswerer);
     };
 
     const handleBuzzerHitRecorded = (data: any) => {
