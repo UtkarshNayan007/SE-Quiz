@@ -3,7 +3,8 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getSocket } from '../../lib/socket';
-import { ShieldCheck, Timer, Zap, CheckCircle2, XCircle, Clock, Send, Lock, Volume2, UserCheck, AlertTriangle, Trophy } from 'lucide-react';
+import { ShieldCheck, Timer, Zap, CheckCircle2, XCircle, Clock, Send, Lock, Volume2, UserCheck, AlertTriangle, Trophy, Crown, Sparkles, Award } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 function ParticipantComponent() {
   const searchParams = useSearchParams();
@@ -12,8 +13,9 @@ function ParticipantComponent() {
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState('');
   
-  // Game States: 'LOBBY', 'READING', 'BUZZER_UNLOCKED', 'ANSWERING', 'REVEAL'
+  // Game States: 'LOBBY', 'READING', 'BUZZER_UNLOCKED', 'ANSWERING', 'REVEAL', 'HOST_CONTROL', 'QUIZ_ENDED', 'RESULTS_PUBLISHED'
   const [gameState, setGameState] = useState('LOBBY');
+  const [totalQuestions, setTotalQuestions] = useState(10);
   const [activeQuestion, setActiveQuestion] = useState<any>(null);
   const [countdown, setCountdown] = useState(10);
   
@@ -28,7 +30,20 @@ function ParticipantComponent() {
   const [answerResult, setAnswerResult] = useState<any>(null);
   const [revealResult, setRevealResult] = useState<any>(null);
   const [hasFailed, setHasFailed] = useState(false);
-  const [hasWon, setHasWon] = useState(false);
+  const [hasWonThisQuestion, setHasWonThisQuestion] = useState(false);
+  const [myScore, setMyScore] = useState(0);
+  const [publishedResults, setPublishedResults] = useState<any>(null);
+
+  const triggerConfettiExplosion = () => {
+    const duration = 3 * 1000;
+    const end = Date.now() + duration;
+    const frame = () => {
+      confetti({ particleCount: 7, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#00E676', '#009639', '#FFFFFF', '#FFD700'] });
+      confetti({ particleCount: 7, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#00E676', '#009639', '#FFFFFF', '#FFD700'] });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    };
+    frame();
+  };
 
   useEffect(() => {
     const socket = getSocket();
@@ -39,20 +54,17 @@ function ParticipantComponent() {
       if (roomData?.gameState) {
         setGameState(roomData.gameState);
       }
-      if (roomData?.buzzerQueue) {
-        setBuzzerQueue(roomData.buzzerQueue);
-      }
       if (roomData?.currentAnswerer) {
         setCurrentAnswerer(roomData.currentAnswerer);
       }
-      if (roomData?.participants) {
-        const myP = roomData.participants.find((p: any) => p.socketId === socket.id);
-        if (myP && myP.isWinner) setHasWon(true);
+      if (roomData?.totalQuestions) {
+        setTotalQuestions(roomData.totalQuestions);
       }
     });
 
     socket.on('question_pushed', (data) => {
       setActiveQuestion(data);
+      if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
       setCountdown(data.durationSeconds || 10);
       setHasBuzzed(false);
       setBuzzedPosition(null);
@@ -63,7 +75,12 @@ function ParticipantComponent() {
       setAnswerResult(null);
       setRevealResult(null);
       setHasFailed(false);
+      setHasWonThisQuestion(false);
       setGameState('READING');
+    });
+
+    socket.on('question_limit_updated', (data: any) => {
+      if (data?.totalQuestions) setTotalQuestions(data.totalQuestions);
     });
 
     socket.on('buzzer_unlocked', () => {
@@ -94,17 +111,30 @@ function ParticipantComponent() {
       setGameState('REVEAL');
     });
 
+    socket.on('quiz_ended', () => {
+      setGameState('QUIZ_ENDED');
+    });
+
+    socket.on('quiz_results_published', (data) => {
+      setGameState('RESULTS_PUBLISHED');
+      setPublishedResults(data);
+      triggerConfettiExplosion();
+    });
+
     return () => {
       socket.off('room_updated');
       socket.off('question_pushed');
+      socket.off('question_limit_updated');
       socket.off('buzzer_unlocked');
       socket.off('buzzer_hit_recorded');
       socket.off('turn_passed');
       socket.off('answer_revealed');
+      socket.off('quiz_ended');
+      socket.off('quiz_results_published');
     };
   }, []);
 
-  // Countdown timer for 30s reading phase
+  // Countdown timer for 10s reading phase
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (gameState === 'READING' && countdown > 0) {
@@ -129,11 +159,16 @@ function ParticipantComponent() {
         setJoined(true);
         if (res.gameState) setGameState(res.gameState);
         if (res.activeQuestion) setActiveQuestion(res.activeQuestion);
+        if (res.totalQuestions) setTotalQuestions(res.totalQuestions);
         if (res.buzzerQueue) setBuzzerQueue(res.buzzerQueue);
         if (res.currentAnswerer) setCurrentAnswerer(res.currentAnswerer);
         if (res.hasBuzzed) setHasBuzzed(true);
         if (res.hasFailed) setHasFailed(true);
-        if (res.hasWon) setHasWon(true);
+        if (res.myStats?.score !== undefined) setMyScore(res.myStats.score);
+        if (res.resultsPublished && res.finalResults) {
+          setGameState('RESULTS_PUBLISHED');
+          setPublishedResults(res.finalResults);
+        }
       } else {
         setError(res?.message || 'Failed to join room');
       }
@@ -142,7 +177,7 @@ function ParticipantComponent() {
 
   const handleBuzzerPress = () => {
     if (gameState !== 'BUZZER_UNLOCKED' && gameState !== 'ANSWERING') return;
-    if (hasBuzzed || hasFailed || hasWon) return;
+    if (hasBuzzed || hasFailed) return;
 
     const socket = getSocket();
     socket.emit('hit_buzzer', { roomPin: pin }, (res: any) => {
@@ -165,8 +200,9 @@ function ParticipantComponent() {
     socket.emit('submit_answer', { roomPin: pin, optionIndex: index }, (res: any) => {
       if (res?.success) {
         setAnswerResult(res);
-        if (res.isCorrect || res.hasWon) {
-          setHasWon(true);
+        if (res.currentScore !== undefined) setMyScore(res.currentScore);
+        if (res.isCorrect || res.hasWonThisQuestion) {
+          setHasWonThisQuestion(true);
         } else {
           setHasFailed(true);
         }
@@ -241,6 +277,10 @@ function ParticipantComponent() {
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Player</p>
             <p className="font-bold text-gray-900 text-lg">{name}</p>
           </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Score</p>
+            <p className="font-bold text-amber-600 text-xl">{myScore} <span className="text-xs font-medium text-gray-400">pts</span></p>
+          </div>
           <div className="text-right">
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Room</p>
             <p className="font-mono font-bold text-[#009639] text-xl">{pin}</p>
@@ -261,20 +301,201 @@ function ParticipantComponent() {
               <Zap className="w-16 h-16 text-[#009639]" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">You are in the Lobby!</h2>
-            <p className="text-gray-500 text-sm">Waiting for the host to push the first question...</p>
+            <p className="text-gray-500 text-sm mb-4">Waiting for the host to push the first question...</p>
+            <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-2 rounded-xl text-xs font-bold">
+              <Sparkles className="w-4 h-4 text-emerald-600" />
+              <span>{totalQuestions} Questions in this round</span>
+            </div>
+          </div>
+        )}
+
+        {/* QUIZ_ENDED Waiting Screen */}
+        {gameState === 'QUIZ_ENDED' && (
+          <div className="bg-white rounded-2xl shadow-sm p-8 text-center border border-gray-100 space-y-4">
+            <div className="w-16 h-16 mx-auto bg-amber-50 rounded-full flex items-center justify-center animate-bounce">
+              <Trophy className="w-8 h-8 text-amber-500" />
+            </div>
+            <h2 className="text-2xl font-black text-gray-900">Quiz Completed!</h2>
+            <p className="text-gray-500 text-sm max-w-xs mx-auto">
+              Great effort! The host is reviewing the scores and response times. Official results will be published shortly...
+            </p>
+            <div className="pt-4 border-t border-gray-100 flex justify-around">
+              <div>
+                <p className="text-xs text-gray-400 uppercase font-semibold">Your Final Score</p>
+                <p className="text-2xl font-black text-[#009639]">{myScore} pts</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* RESULTS_PUBLISHED State */}
+        {gameState === 'RESULTS_PUBLISHED' && publishedResults && (
+          <div className="space-y-5 animate-in fade-in duration-500">
+            {/* Grand Champion Banner */}
+            <div className="bg-gradient-to-br from-amber-500 via-yellow-500 to-amber-600 rounded-3xl p-6 text-white text-center shadow-xl relative overflow-hidden">
+              <div className="absolute top-2 right-3 opacity-20">
+                <Crown className="w-24 h-24" />
+              </div>
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider mb-3">
+                <Sparkles className="w-4 h-4 text-yellow-200" />
+                <span>
+                  Official Champion • Ranked by Score & Speed Tie-Breaker
+                </span>
+              </div>
+              <h2 className="text-3xl font-black mb-1 drop-shadow-sm">
+                {publishedResults.grandChampion ? publishedResults.grandChampion.name : (publishedResults.champion?.name || 'Grand Champion')}
+              </h2>
+              <p className="text-white/90 text-sm font-semibold">
+                {publishedResults.grandChampion?.score ?? publishedResults.champion?.score ?? 0} pts • {publishedResults.grandChampion?.correctCount ?? publishedResults.champion?.correctCount ?? 0} Correct • Total Speed {publishedResults.grandChampion?.totalTimeFormatted || publishedResults.champion?.totalTimeFormatted || '--'}
+              </p>
+
+              {(publishedResults.grandChampion?.tieBrokenByTime || publishedResults.champion?.tieBrokenByTime) && (
+                <div className="mt-2 inline-flex items-center gap-1.5 bg-white/25 px-3 py-0.5 rounded-full text-xs font-bold text-white">
+                  <Zap className="w-3.5 h-3.5 text-yellow-200" />
+                  <span>⚡ Won tie-breaker via faster response time!</span>
+                </div>
+              )}
+
+              {(publishedResults.grandChampion?.name || publishedResults.champion?.name)?.toLowerCase() === name?.toLowerCase() && (
+                <div className="mt-4 inline-block bg-white text-amber-700 font-black px-4 py-2 rounded-xl text-sm shadow-md animate-bounce">
+                  🎉 YOU ARE THE CHAMPION! 🎉
+                </div>
+              )}
+            </div>
+
+            {/* My Performance Card */}
+            {(() => {
+              const activeList = publishedResults.leaderboard || publishedResults.leaderboardByScore || [];
+              const myRank = activeList.findIndex(
+                (p: any) => p.name?.toLowerCase() === name?.toLowerCase()
+              ) + 1;
+              const myData = activeList.find(
+                (p: any) => p.name?.toLowerCase() === name?.toLowerCase()
+              );
+
+              return (
+                <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                    Your Performance Summary
+                  </h3>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="p-3 bg-green-50 rounded-xl border border-green-100">
+                      <p className="text-xs text-gray-500 font-medium">Final Score</p>
+                      <p className="text-xl font-black text-[#009639]">{myData?.score ?? myScore} pts</p>
+                    </div>
+                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
+                      <p className="text-xs text-gray-500 font-medium">Final Rank</p>
+                      <p className="text-xl font-black text-amber-600">
+                        {myRank > 0 ? `#${myRank}` : '-'}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                      <p className="text-xs text-gray-500 font-medium">Total Speed</p>
+                      <p className="text-sm font-black text-blue-600 mt-1">
+                        {myData?.totalTimeFormatted || '--'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Winners by Question Breakdown */}
+            {publishedResults.questionWinners && publishedResults.questionWinners.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 space-y-3">
+                <div className="flex items-center gap-2 border-b pb-2">
+                  <Award className="w-5 h-5 text-[#009639]" />
+                  <h3 className="font-bold text-gray-900 text-sm">Winners by Question</h3>
+                </div>
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {publishedResults.questionWinners.map((w: any, idx: number) => {
+                    const winnerName = w.winner?.name || w.winnerName;
+                    const timeFormatted = w.winner?.timeFormatted || w.timeFormatted;
+                    return (
+                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-[10px]">
+                            Q{w.questionIndex + 1}
+                          </span>
+                          <span className="font-bold text-gray-800">{winnerName || 'Unclaimed'}</span>
+                        </div>
+                        {timeFormatted && (
+                          <span className="font-mono text-emerald-600 font-semibold">{timeFormatted}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Top Leaderboard */}
+            <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 space-y-3">
+              <div className="flex items-center justify-between border-b pb-2">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-amber-500" />
+                  <h3 className="font-bold text-gray-900 text-sm">Official Leaderboard</h3>
+                </div>
+                <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                  Ranked by Score • Tie-breaker: Faster Time
+                </span>
+              </div>
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {(publishedResults.leaderboard || publishedResults.leaderboardByScore)?.slice(0, 10).map((player: any, idx: number) => {
+                  const isMe = player.name?.toLowerCase() === name?.toLowerCase();
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-center justify-between p-3 rounded-xl border text-xs font-semibold ${
+                        isMe 
+                          ? 'bg-green-50 border-[#009639] text-[#009639]' 
+                          : idx === 0 
+                            ? 'bg-amber-50 border-amber-200 text-amber-900' 
+                            : 'bg-gray-50 border-gray-100 text-gray-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
+                          idx === 0 ? 'bg-amber-400 text-white' : idx === 1 ? 'bg-gray-300 text-gray-800' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-600'
+                        }`}>
+                          {idx + 1}
+                        </span>
+                        <span>{player.name} {isMe && '(You)'}</span>
+                        {player.tieBrokenByTime && (
+                          <span className="text-[9px] bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded font-bold">
+                            ⚡ Faster Time
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right font-mono">
+                        <span className="font-bold text-gray-900">{player.score} pts</span>
+                        <span className="text-[10px] text-gray-400 ml-2">
+                          {player.totalTimeFormatted || ''}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 
         {/* Active Question Flow */}
-        {gameState !== 'LOBBY' && activeQuestion && (
+        {gameState !== 'LOBBY' && gameState !== 'QUIZ_ENDED' && gameState !== 'RESULTS_PUBLISHED' && activeQuestion && (
           <div className="space-y-5">
             
             {/* Question Info Card */}
             <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 relative overflow-hidden">
               <div className="flex justify-between items-center mb-3">
-                <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-bold uppercase tracking-wider rounded-full">
-                  {activeQuestion.category}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-[#009639] text-white text-xs font-black uppercase tracking-wider rounded-full shadow-sm">
+                    Question {activeQuestion.questionIndex + 1} of {activeQuestion.totalQuestions || totalQuestions}
+                  </span>
+                  <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-bold uppercase tracking-wider rounded-full">
+                    {activeQuestion.category}
+                  </span>
+                </div>
                 
                 {gameState === 'READING' && (
                   <div className="flex items-center gap-1.5 text-amber-600 font-bold bg-amber-50 px-3 py-1 rounded-full text-sm">
@@ -322,14 +543,14 @@ function ParticipantComponent() {
 
                 {(gameState === 'BUZZER_UNLOCKED' || gameState === 'ANSWERING') && (
                   <div className="flex flex-col items-center">
-                    {hasWon ? (
-                      <div className="bg-amber-50 border-2 border-amber-300 p-5 rounded-2xl text-amber-900 w-full text-center shadow-md">
-                        <div className="flex items-center justify-center gap-2 font-black text-lg text-amber-700 mb-1">
+                    {hasWonThisQuestion ? (
+                      <div className="bg-green-50 border-2 border-[#009639] p-5 rounded-2xl text-green-900 w-full text-center shadow-md">
+                        <div className="flex items-center justify-center gap-2 font-black text-lg text-[#009639] mb-1">
                           <Trophy className="w-7 h-7 text-amber-500" />
                           <span>Question Winner!</span>
                         </div>
-                        <p className="text-xs font-semibold text-amber-800">
-                          You won a question! You are now in View-Only spectator mode for remaining questions.
+                        <p className="text-xs font-semibold text-green-800">
+                          You answered correctly first! +100 Points added to your total score. Get ready for the next question!
                         </p>
                       </div>
                     ) : !hasBuzzed && !hasFailed ? (
@@ -342,7 +563,7 @@ function ParticipantComponent() {
                       </button>
                     ) : null}
 
-                    {hasBuzzed && !hasWon && (
+                    {hasBuzzed && !hasWonThisQuestion && (
                       <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-green-800 w-full">
                         <div className="flex items-center justify-center gap-2 font-bold text-lg">
                           <CheckCircle2 className="w-6 h-6 text-[#009639]" />
@@ -354,7 +575,7 @@ function ParticipantComponent() {
                       </div>
                     )}
 
-                    {hasFailed && !hasWon && (
+                    {hasFailed && !hasWonThisQuestion && (
                       <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-red-700 w-full">
                         <div className="flex items-center justify-center gap-2 font-bold">
                           <XCircle className="w-5 h-5" />
@@ -469,7 +690,9 @@ function ParticipantComponent() {
                   ) : (
                     <>
                       <XCircle className="w-5 h-5 text-red-600" />
-                      <span>INCORRECT ANSWER</span>
+                      <span>
+                        INCORRECT ANSWER {answerResult.pointsDeducted > 0 ? `(-${answerResult.pointsDeducted} Points)` : '(0 pts deducted - score cannot be negative)'}
+                      </span>
                     </>
                   )}
                 </div>

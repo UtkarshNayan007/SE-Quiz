@@ -4,19 +4,26 @@ let socket: Socket | null = null;
 
 export const getSocket = (): Socket => {
   if (!socket) {
-    // Dynamically detect server host so local Wi-Fi IP (e.g. 192.168.x.x) works seamlessly
-    let serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+    // Dynamically detect server host so local Wi-Fi IP works seamlessly, and fallback to Render in production
+    let serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
     
-    if (!process.env.NEXT_PUBLIC_SOCKET_URL && typeof window !== 'undefined') {
+    if (!serverUrl && typeof window !== 'undefined') {
       const hostname = window.location.hostname;
-      serverUrl = `http://${hostname}:4000`;
+      const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.');
+      if (isLocal) {
+        serverUrl = `http://${hostname}:4000`;
+      } else {
+        serverUrl = 'https://se-quiz-server.onrender.com';
+      }
+    } else if (!serverUrl) {
+      serverUrl = 'http://localhost:4000';
     }
 
     socket = io(serverUrl, {
       autoConnect: true,
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: 15,
       reconnectionDelay: 1000,
     });
 

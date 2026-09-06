@@ -1,97 +1,422 @@
 [
   {
     "id": 1,
-    "category": "Network Security",
-    "question": "Which cyber attack specifically targets OT (Operational Technology) & ICS networks to disrupt physical industrial equipment?",
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "You are working at a local coffee shop and need to access Schneider Electric’s internal network to check a customer configuration file. What is the most secure action?",
     "options": [
-      "A) Phishing Mail Scam",
-      "B) Stuxnet-style PLC Manipulation",
-      "C) SQL Injection Attack",
-      "D) Credential Stuffing"
+      "A) Connect to the café’s Wi-Fi and access the file quickly before logging out.",
+      "B) Connect to the café's Wi-Fi and use an Incognito/Private browsing window.",
+      "C) Connect using your mobile hotspot and initialize the corporate VPN.",
+      "D) Download the file to your local drive beforehand so you don't need internet."
     ],
-    "correctAnswer": 1,
-    "explanation": "Stuxnet-style attacks specifically manipulate Programmable Logic Controllers (PLCs) in industrial OT/ICS environments to cause physical equipment disruption.",
-    "optionExplanations": [
-      "Phishing Mail Scams target human credentials via email, not direct physical OT/ICS machinery.",
-      "Stuxnet-style PLC Manipulation targets industrial controllers to physically alter OT equipment.",
-      "SQL Injection attacks target relational databases on web applications, not OT physical controllers.",
-      "Credential Stuffing automates login attempts using stolen password lists on web services."
-    ]
+    "correctAnswer": 2,
+    "explanation": "Public Wi-Fi networks are easily spoofed or monitored. Always use a secure mobile hotspot and the corporate VPN to encrypt your traffic when handling sensitive customer data.",
+    "optionExplanations": []
   },
   {
     "id": 2,
-    "category": "Schneider Electric Tech",
-    "question": "What is Schneider Electric's flagship IoT-enabled open and interoperable system architecture platform?",
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "A colleague from another department asks to borrow your corporate access badge because they forgot theirs at home. What should you do?",
     "options": [
-      "A) EcoStruxure",
-      "B) PowerLogic Cyber",
-      "C) Modicon Edge",
-      "D) Aveva Connect"
+      "A) Lend them the badge but ask them to return it before the lunch break.",
+      "B) Scan them in yourself so you can vouch for their identity.",
+      "C) Direct them to the front desk or security office to get a temporary visitor badge.",
+      "D) Escort them to their desk and leave them there."
     ],
-    "correctAnswer": 0,
-    "explanation": "EcoStruxure is Schneider Electric's IoT-enabled, open, and interoperable system architecture powering Connected Products, Edge Control, and Apps/Analytics.",
-    "optionExplanations": [
-      "EcoStruxure is Schneider's flagship IoT-enabled architecture covering Connected Products, Edge Control, and Apps.",
-      "PowerLogic is Schneider's brand for power monitoring hardware/software, not the overarching IoT architecture.",
-      "Modicon is Schneider's PLC brand family, representing specific automation hardware.",
-      "AVEVA Connect is an industrial cloud platform partner software, not the core EcoStruxure system architecture."
-    ]
+    "correctAnswer": 2,
+    "explanation": "Badge sharing or tailgating compromises physical security logs. Every individual must be authenticated by the front desk to maintain a secure facility.",
+    "optionExplanations": []
   },
   {
     "id": 3,
-    "category": "Zero Trust Security",
-    "question": "In a Zero Trust Architecture model, what is the core foundational principle?",
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "You receive an email claiming to be from \"Schneider IT Support\" asking you to click a link to update your password, but the sender email is `support@se-updates-portal.com`. What is your immediate next step?",
     "options": [
-      "A) Trust internal network IPs by default",
-      "B) Never Trust, Always Verify",
-      "C) Verify once at login, trust forever",
-      "D) Encrypt only external emails"
+      "A) Reply to the email asking for verification of their employee ID.",
+      "B) Click the link but only enter your old password to see if it's legitimate.",
+      "C) Forward the email to a colleague to ask for their opinion.",
+      "D) Do not click anything and report it using the corporate PhishAlarm/Report button."
     ],
-    "correctAnswer": 1,
-    "explanation": "Zero Trust operates on the principle of 'Never Trust, Always Verify', requiring continuous authentication and explicit validation for every access request.",
-    "optionExplanations": [
-      "Traditional perimeter security trusted internal IPs, whereas Zero Trust explicitly distrusts all network locations.",
-      "'Never Trust, Always Verify' enforces strict identity verification and least privilege for every single request.",
-      "Zero Trust requires continuous evaluation of context and session, not just a single initial login check.",
-      "Zero Trust mandates end-to-end encryption across all data paths, internal and external."
-    ]
+    "correctAnswer": 3,
+    "explanation": "Lookalike domains (`se-updates-portal.com`) are common in phishing. Never forward or interact with malicious emails; use the dedicated reporting tool so the SOC can block the sender globally.",
+    "optionExplanations": []
   },
   {
     "id": 4,
-    "category": "Cyber Threat Intelligence",
-    "question": "What type of attack floods a target server with overwhelming traffic to cause service denial?",
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "You find a USB drive on the floor of the Schneider Electric cafeteria labeled \"Q3 Bonus Payouts.\" What should you do?",
     "options": [
-      "A) Man-in-the-Middle (MitM)",
-      "B) Cross-Site Scripting (XSS)",
-      "C) Distributed Denial of Service (DDoS)",
-      "D) Zero-Day Exploit"
+      "A) Plug it into your corporate laptop but run a virus scan immediately.",
+      "B) Plug it into a non-corporate, personal device to safely check who it belongs to.",
+      "C) Hand it over to the local IT or Physical Security team without plugging it in.",
+      "D) Throw it in the trash to protect the network."
     ],
     "correctAnswer": 2,
-    "explanation": "DDoS attacks utilize botnets to flood target servers with mass traffic, overwhelming bandwidth and server resources to render services unavailable.",
-    "optionExplanations": [
-      "MitM attacks secretly intercept and tamper with communications between two parties without flooding traffic.",
-      "XSS injects malicious scripts into trusted websites to execute in user browsers.",
-      "DDoS uses distributed botnets to flood targets with excessive traffic, starving legitimate users of access.",
-      "Zero-Day exploits target undisclosed software vulnerabilities rather than flooding network bandwidth."
-    ]
+    "explanation": "\"Baiting\" is a social engineering tactic where attackers leave infected USBs in public spaces. Plugging it in can deploy malware bypassing perimeter defenses.",
+    "optionExplanations": []
   },
   {
     "id": 5,
-    "category": "MSS Operations",
-    "question": "What does SIEM stand for in Managed Security Services SOC operations?",
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "While discussing a highly confidential new OT software architecture, you leave your desk to grab a coffee. What is the mandatory policy you must follow?",
     "options": [
-      "A) System Integration and Emergency Management",
-      "B) Security Information and Event Management",
-      "C) Software Isolation and Threat Enforcement",
-      "D) Secure Infrastructure and Enterprise Monitoring"
+      "A) Close the laptop lid but leave the documents on the desk.",
+      "B) Lock your computer screen (`Win + L` or `Cmd + Ctrl + Q`) and clear sensitive papers.",
+      "C) Turn the laptop screen away from the walkway.",
+      "D) Ask the person sitting next to you to watch your laptop."
     ],
     "correctAnswer": 1,
-    "explanation": "SIEM stands for Security Information and Event Management, aggregating logs and analyzing security events across enterprise infrastructure in real-time.",
-    "optionExplanations": [
-      "SIEM is specifically security log aggregation and correlation software, not general emergency management.",
-      "Security Information and Event Management (SIEM) combines SIM (log management) and SEM (real-time monitoring).",
-      "SIEM analyzes event telemetry and alerts SOC analysts rather than performing software isolation.",
-      "While SIEM monitors infrastructure, the exact standard cybersecurity acronym is Security Information and Event Management."
-    ]
+    "explanation": "The Clear Desk and Clear Screen policies prevent unauthorized personnel or visitors from viewing sensitive intellectual property or credentials while you are away.",
+    "optionExplanations": []
+  },
+  {
+    "id": 6,
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "You need a new productivity app to manage your daily tasks, and you find a free one online. It requires access to your corporate email to \"sync your calendar.\" What should you do?",
+    "options": [
+      "A) Install it but deny it access to your contacts.",
+      "B) Check if the app is on the IT-approved software list before installing.",
+      "C) Install it on your phone instead of your corporate laptop.",
+      "D) Create a fake corporate account to use the app safely."
+    ],
+    "correctAnswer": 1,
+    "explanation": "Installing unapproved software (\"Shadow IT\") introduces massive risks. Third-party apps that request corporate email access can lead to unauthorized data exfiltration.",
+    "optionExplanations": []
+  },
+  {
+    "id": 7,
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "A vendor requests the technical specifications of a Schneider Electric customer’s industrial control environment to provide a quote. How should you proceed?",
+    "options": [
+      "A) Send the specs via a standard email since they are a known vendor.",
+      "B) Ensure a Non-Disclosure Agreement (NDA) is signed and use encrypted file transfer.",
+      "C) Upload the specs to a public cloud storage link and share the URL.",
+      "D) Take a photo of the specs and send it via WhatsApp for end-to-end encryption."
+    ],
+    "correctAnswer": 1,
+    "explanation": "Customer OT environments are highly sensitive. NDAs are legally required, and data must be transmitted through approved, encrypted corporate channels—not consumer messaging apps.",
+    "optionExplanations": []
+  },
+  {
+    "id": 8,
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "You receive an MFA (Multi-Factor Authentication) push notification on your phone at 11:00 PM while you are watching TV. You are not trying to log in. What should you do?",
+    "options": [
+      "A) Accept it; it’s probably just a background sync for your email.",
+      "B) Ignore it and go to sleep; the prompt will expire.",
+      "C) Deny the request and immediately reset your corporate password.",
+      "D) Accept it but check your recent login activity the next morning."
+    ],
+    "correctAnswer": 2,
+    "explanation": "An unsolicited MFA prompt means an attacker already has your correct username and password. Denying the prompt stops the current attack, but resetting your password secures the compromised credentials.",
+    "optionExplanations": []
+  },
+  {
+    "id": 9,
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "You are working on a piece of code for a new product and decide to paste a snippet into a public Generative AI tool (like ChatGPT) to find a bug. Why is this a security violation?",
+    "options": [
+      "A) The AI might fix the bug incorrectly.",
+      "B) Public AI tools train on user inputs, meaning you just leaked proprietary source code.",
+      "C) The AI tool requires a paid subscription for corporate use.",
+      "D) The AI will claim copyright over your code."
+    ],
+    "correctAnswer": 1,
+    "explanation": "Anything pasted into public, unapproved LLMs becomes part of their dataset. This leads to accidental data leakage of intellectual property or customer data.",
+    "optionExplanations": []
+  },
+  {
+    "id": 10,
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "An individual calls your desk phone claiming to be from the internal Helpdesk. They say they need your password to fix a critical update failing on your machine. What is the reality?",
+    "options": [
+      "A) The Helpdesk will only ask for your password over the phone, never over email.",
+      "B) The Helpdesk uses temporary passwords, so giving them yours is safe.",
+      "C) The Helpdesk never needs your password to perform administrative tasks.",
+      "D) You should give them the password, then change it immediately after the call."
+    ],
+    "correctAnswer": 2,
+    "explanation": "This is a \"Vishing\" (Voice Phishing) attempt. IT and Helpdesk staff have administrative tools that do not require your personal password. Never share your password with anyone.",
+    "optionExplanations": []
+  },
+  {
+    "id": 11,
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "You take a selfie on your first day in the new office and plan to post it on LinkedIn. Your corporate badge is visible in the photo. What is the risk?",
+    "options": [
+      "A) Attackers can clone the visual design of the badge to bypass physical security.",
+      "B) The barcode on the badge will trigger spam emails.",
+      "C) LinkedIn’s algorithm will block the post for privacy reasons.",
+      "D) HR policy prohibits taking photos in the lobby."
+    ],
+    "correctAnswer": 0,
+    "explanation": "High-resolution photos of ID badges allow malicious actors to print identical fake badges, enabling them to blend in and bypass visual security checks at physical locations.",
+    "optionExplanations": []
+  },
+  {
+    "id": 12,
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "What is the safest way to store your passwords for various corporate portals?",
+    "options": [
+      "A) In a hidden Excel file on your desktop named \"Data.xlsx\".",
+      "B) Written in a notebook locked inside your desk drawer.",
+      "C) Saved directly in your browser's auto-fill without a master password.",
+      "D) In the corporate-approved, encrypted password manager."
+    ],
+    "correctAnswer": 3,
+    "explanation": "Password managers generate and store complex, unique passwords using strong encryption, eliminating the risk of physical theft (notebooks) or clear-text digital theft (Excel files).",
+    "optionExplanations": []
+  },
+  {
+    "id": 13,
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "You are traveling for work, and your corporate laptop is stolen from your rental car. What is the most critical first step?",
+    "options": [
+      "A) File a police report and wait 24 hours to see if it is recovered.",
+      "B) Call your manager to request a replacement laptop.",
+      "C) Immediately report the theft to the corporate SOC/IT team so they can remotely wipe the device.",
+      "D) Change your email password from your personal phone."
+    ],
+    "correctAnswer": 2,
+    "explanation": "Time is critical. The SOC can issue a remote wipe command to destroy the data before the thief attempts to bypass the disk encryption.",
+    "optionExplanations": []
+  },
+  {
+    "id": 14,
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "When setting a new passphrase, which of the following is the strongest and most compliant approach?",
+    "options": [
+      "A) Schneider2026! (Using the company name, year, and a symbol).",
+      "B) P@$$w0rd123 (Using common letter-to-number substitutions).",
+      "C) Blue$Ocean#Bicycle99 (A long combination of unrelated words and symbols).",
+      "D) MyDogMax! (Easy to remember and contains a symbol)."
+    ],
+    "correctAnswer": 2,
+    "explanation": "Length is often more secure than complexity. Using a \"passphrase\" of multiple unrelated words with symbols creates a high-entropy password that is easy to remember but mathematically nearly impossible to brute-force.",
+    "optionExplanations": []
+  },
+  {
+    "id": 15,
+    "category": "Cyber Awareness & Corporate Security",
+    "question": "A customer accidentally emails you a spreadsheet containing unencrypted Personally Identifiable Information (PII) of their employees. How should you handle it?",
+    "options": [
+      "A) Reply to the customer, delete the email, and inform the Data Privacy Officer/Security team.",
+      "B) Save the file to your desktop just in case you need it later.",
+      "C) Forward the email to your entire team so everyone is aware of the error.",
+      "D) Encrypt the file yourself and send it back to the customer."
+    ],
+    "correctAnswer": 0,
+    "explanation": "Retaining unencrypted PII violates privacy regulations (like GDPR). You must delete the data from your systems and notify the appropriate internal privacy teams to log the data spillage.",
+    "optionExplanations": []
+  },
+  {
+    "id": 16,
+    "category": "MSS, SOC, & OT Security",
+    "question": "In traditional IT security, the CIA triad prioritizes Confidentiality. In OT (Operational Technology) security, how is the CIA triad typically re-prioritized?",
+    "options": [
+      "A) Confidentiality, Availability, Integrity.",
+      "B) Availability, Integrity, Confidentiality.",
+      "C) Integrity, Confidentiality, Availability.",
+      "D) Confidentiality, Integrity, Availability (It remains the same)."
+    ],
+    "correctAnswer": 1,
+    "explanation": "In OT environments (like power grids or manufacturing), Availability (uptime) and Integrity (correct telemetry) are prioritized over Confidentiality because systems shutting down can cause physical danger or massive production halts.",
+    "optionExplanations": []
+  },
+  {
+    "id": 17,
+    "category": "MSS, SOC, & OT Security",
+    "question": "What is the primary function of the Purdue Enterprise Reference Architecture in OT environments?",
+    "options": [
+      "A) To encrypt all data leaving the factory floor.",
+      "B) To provide a standard model for network segmentation between IT and OT systems.",
+      "C) To identify malware signatures on Programmable Logic Controllers (PLCs).",
+      "D) To manage user passwords across the enterprise."
+    ],
+    "correctAnswer": 1,
+    "explanation": "The Purdue Model segments industrial networks into hierarchical levels (Levels 0-5), ensuring that a compromise in the corporate IT network (Level 4/5) cannot easily pivot down to the physical control systems (Level 0/1).",
+    "optionExplanations": []
+  },
+  {
+    "id": 18,
+    "category": "MSS, SOC, & OT Security",
+    "question": "A SOC Analyst receives an alert for \"High Volume of Failed Logins.\" Upon investigation, they discover it was just an employee who forgot their password after a long weekend. How is this alert classified?",
+    "options": [
+      "A) True Positive",
+      "B) False Negative",
+      "C) False Positive",
+      "D) True Negative"
+    ],
+    "correctAnswer": 2,
+    "explanation": "A False Positive occurs when a security tool triggers an alert for benign, non-malicious activity. Reducing false positives is a major focus for MSS teams to prevent Alert Fatigue.",
+    "optionExplanations": []
+  },
+  {
+    "id": 19,
+    "category": "MSS, SOC, & OT Security",
+    "question": "What is the primary purpose of a SIEM (Security Information and Event Management) tool in a Managed Security Services (MSS) environment?",
+    "options": [
+      "A) To automatically block all incoming phishing emails.",
+      "B) To aggregate, correlate, and analyze log data from across the entire network in real-time.",
+      "C) To act as a firewall between the IT and OT networks.",
+      "D) To perform physical security checks on data center doors."
+    ],
+    "correctAnswer": 1,
+    "explanation": "A SIEM ingests logs from firewalls, endpoints, and servers, using correlation rules to connect isolated events into a coherent picture of a potential cyber attack.",
+    "optionExplanations": []
+  },
+  {
+    "id": 20,
+    "category": "MSS, SOC, & OT Security",
+    "question": "Why is vulnerability patching significantly more difficult in an OT environment (e.g., updating a PLC) compared to an IT environment?",
+    "options": [
+      "A) OT devices do not have internal memory to hold updates.",
+      "B) PLCs run on proprietary code that cannot be altered by humans.",
+      "C) Patching requires scheduled downtime, which can disrupt continuous 24/7 physical processes.",
+      "D) OT vendors do not release software updates."
+    ],
+    "correctAnswer": 2,
+    "explanation": "Unlike an IT server that can be rebooted at 2 AM, OT systems control continuous physical processes. Patching requires extensive testing and planned maintenance windows to ensure safety and availability.",
+    "optionExplanations": []
+  },
+  {
+    "id": 21,
+    "category": "MSS, SOC, & OT Security",
+    "question": "During the Incident Response process, what is the critical difference between the \"Containment\" and \"Eradication\" phases?",
+    "options": [
+      "A) Containment stops the bleeding; Eradication removes the threat from the environment.",
+      "B) Containment deletes the malware; Eradication restores the backups.",
+      "C) Containment is done by the user; Eradication is done by the SOC.",
+      "D) They are two words for the exact same phase."
+    ],
+    "correctAnswer": 0,
+    "explanation": "Containment isolates the infected machine (e.g., taking it offline) to prevent lateral movement. Eradication involves actively deleting the malware, wiping the system, or removing the attacker's backdoors.",
+    "optionExplanations": []
+  },
+  {
+    "id": 22,
+    "category": "MSS, SOC, & OT Security",
+    "question": "What is \"Spear-Phishing\" compared to traditional Phishing?",
+    "options": [
+      "A) Phishing via SMS text messages.",
+      "B) A highly targeted email attack aimed at a specific individual or department using customized information.",
+      "C) A mass email sent to millions of random addresses hoping someone clicks.",
+      "D) An attack that only targets the CEO."
+    ],
+    "correctAnswer": 1,
+    "explanation": "Spear-phishing requires reconnaissance. Attackers use details from LinkedIn or previous breaches to craft highly convincing, personalized emails, making them much harder to detect than generic spam.",
+    "optionExplanations": []
+  },
+  {
+    "id": 23,
+    "category": "MSS, SOC, & OT Security",
+    "question": "A threat actor compromises a network and steals sensitive data before deploying ransomware to encrypt the machines. They threaten to leak the data online if the ransom isn't paid. What is this tactic called?",
+    "options": [
+      "A) Distributed Denial of Service (DDoS)",
+      "B) Zero-Day Exploitation",
+      "C) Double Extortion",
+      "D) Man-in-the-Middle Attack"
+    ],
+    "correctAnswer": 2,
+    "explanation": "Double Extortion ransomware attacks both Availability (encrypting systems) and Confidentiality (stealing and threatening to leak data). This forces companies to pay even if they have perfect offline backups.",
+    "optionExplanations": []
+  },
+  {
+    "id": 24,
+    "category": "MSS, SOC, & OT Security",
+    "question": "In the context of a SOC, what is \"Threat Hunting\"?",
+    "options": [
+      "A) Waiting for the SIEM to generate an alert and then responding to it.",
+      "B) Proactively searching through networks and datasets to find advanced threats that bypassed automated security tools.",
+      "C) Using physical security cameras to find intruders in the building.",
+      "D) Automatically updating antivirus signatures."
+    ],
+    "correctAnswer": 1,
+    "explanation": "Threat Hunting assumes a state of compromise. Analysts do not wait for alerts; they use threat intelligence and behavioral hypothesis to manually dig for hidden adversaries already inside the network.",
+    "optionExplanations": []
+  },
+  {
+    "id": 25,
+    "category": "MSS, SOC, & OT Security",
+    "question": "Which of the following describes an attack on an \"Air-Gapped\" OT network?",
+    "options": [
+      "A) An attacker brute-forcing an internet-facing RDP server.",
+      "B) An attacker exploiting a vulnerability in a cloud storage bucket.",
+      "C) An insider manually carrying an infected USB drive across the facility and plugging it into an isolated engineering workstation.",
+      "D) An attacker intercepting traffic on a public Wi-Fi network."
+    ],
+    "correctAnswer": 2,
+    "explanation": "Air-gapped networks are physically disconnected from the internet. They can only be compromised through physical proximity, bridging devices (like USBs, laptops, or rogue access points), or supply chain poisoning.",
+    "optionExplanations": []
+  },
+  {
+    "id": 26,
+    "category": "MSS, SOC, & OT Security",
+    "question": "What is a core principle of the \"Zero Trust\" architecture heavily utilized in modern MSS?",
+    "options": [
+      "A) Trust everything inside the corporate firewall, verify everything outside.",
+      "B) Never trust, always verify—regardless of whether the user is inside or outside the network perimeter.",
+      "C) Trust users only if they are using a company-issued laptop.",
+      "D) Disable all passwords and rely entirely on biometric data."
+    ],
+    "correctAnswer": 1,
+    "explanation": "Zero Trust eliminates the concept of a \"trusted internal network.\" Every access request is strongly authenticated, authorized within policy constraints, and inspected for anomalies before granting access.",
+    "optionExplanations": []
+  },
+  {
+    "id": 27,
+    "category": "MSS, SOC, & OT Security",
+    "question": "A common challenge in OT Security is the presence of \"Legacy Systems\" (e.g., Windows XP). If a system cannot be updated or replaced, what is the best security approach?",
+    "options": [
+      "A) Connect it directly to the internet so it can auto-update.",
+      "B) Implement Compensating Controls (like strict network isolation and application whitelisting) around the asset.",
+      "C) Ignore it, as hackers don't target old operating systems anymore.",
+      "D) Install modern Next-Gen Antivirus, even if it crashes the machine."
+    ],
+    "correctAnswer": 1,
+    "explanation": "When legacy systems cannot be patched due to operational constraints, compensating controls act as a protective wrapper, restricting what the system can communicate with and what software it can execute.",
+    "optionExplanations": []
+  },
+  {
+    "id": 28,
+    "category": "MSS, SOC, & OT Security",
+    "question": "What is \"Alert Fatigue\" in a Security Operations Center (SOC)?",
+    "options": [
+      "A) When analysts fall asleep on the night shift.",
+      "B) The desensitization of analysts due to an overwhelming volume of false-positive alerts, leading to missed critical threats.",
+      "C) When the SIEM runs out of storage space for new logs.",
+      "D) A type of malware that rapidly opens command prompt windows."
+    ],
+    "correctAnswer": 1,
+    "explanation": "If a SOC constantly fires off low-priority or inaccurate alerts, analysts suffer from alert fatigue. Tuning the SIEM to produce high-fidelity alerts is critical to maintaining a strong defense.",
+    "optionExplanations": []
+  },
+  {
+    "id": 29,
+    "category": "MSS, SOC, & OT Security",
+    "question": "An attacker uses a compromised corporate email account to send fraudulent invoices to customers, asking them to wire money to a new bank account. What is this attack called?",
+    "options": [
+      "A) Business Email Compromise (BEC)",
+      "B) SQL Injection",
+      "C) Cross-Site Scripting (XSS)",
+      "D) Ransomware"
+    ],
+    "correctAnswer": 0,
+    "explanation": "BEC relies on impersonation and trust rather than complex malware. Because the email comes from a legitimate, compromised corporate account, it easily bypasses spam filters and manipulates victims into authorizing payments.",
+    "optionExplanations": []
+  },
+  {
+    "id": 30,
+    "category": "MSS, SOC, & OT Security",
+    "question": "An attacker repeatedly triggers login requests, causing the victim's phone to buzz with MFA approval prompts 50 times in a row, hoping the victim hits \"Approve\" just to make it stop. What is this called?",
+    "options": [
+      "A) MFA Bypassing",
+      "B) Token Hijacking",
+      "C) Push Bombing / MFA Fatigue",
+      "D) SIM Swapping"
+    ],
+    "correctAnswer": 2,
+    "explanation": "MFA Fatigue (Push Bombing) exploits human psychology rather than technology. To combat this, modern systems use \"Number Matching,\" requiring the user to type a 2-digit code shown on the screen into their phone.",
+    "optionExplanations": []
   }
 ]
