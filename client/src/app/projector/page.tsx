@@ -194,9 +194,11 @@ function ProjectorComponent() {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center font-sans p-6">
         <div className="bg-white border border-slate-200 p-8 rounded-3xl max-w-md w-full text-center shadow-xl">
-          <div className="p-3 bg-[#00E676]/20 rounded-2xl w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <Zap className="w-10 h-10 text-[#009639]" />
-          </div>
+          <img
+            src="/se-logo.png"
+            alt="Schneider Electric"
+            className="w-16 h-16 object-contain mx-auto mb-4 drop-shadow-sm"
+          />
           <h2 className="text-2xl font-black mb-2 text-slate-900">Projector Display</h2>
           <p className="text-slate-600 text-sm mb-6">Enter the 6-digit Room PIN created on the Host Dashboard to launch the stage screen view.</p>
 
@@ -231,9 +233,11 @@ function ProjectorComponent() {
       {/* SCHNEIDER ELECTRIC BRANDED HEADER */}
       <header className="flex items-center justify-between p-5 bg-white border-b-4 border-[#00E676] shadow-sm shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#009639] flex items-center justify-center text-white font-black text-xl shadow-md">
-            SE
-          </div>
+          <img
+            src="/se-logo.png"
+            alt="Schneider Electric"
+            className="w-11 h-11 object-contain drop-shadow-sm"
+          />
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
               Schneider <span className="text-[#009639]">Electric</span>

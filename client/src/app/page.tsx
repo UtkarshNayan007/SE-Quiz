@@ -33,9 +33,11 @@ export default function LandingPage() {
       <header className="w-full bg-white border-b border-slate-200 py-4 px-6 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-lg bg-schneider-brand flex items-center justify-center text-white font-black text-xl shadow-md">
-              SE
-            </div>
+            <img
+              src="/se-logo.png"
+              alt="Schneider Electric"
+              className="w-10 h-10 object-contain drop-shadow-sm"
+            />
             <div>
               <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
                 Schneider <span className="text-schneider-brand">Electric</span>

@@ -221,7 +221,11 @@ function ParticipantComponent() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
           <div className="flex flex-col items-center mb-8">
-            <ShieldCheck className="w-16 h-16 text-[#009639] mb-4" />
+            <img
+              src="/se-logo.png"
+              alt="Schneider Electric"
+              className="w-16 h-16 object-contain mb-4 drop-shadow-sm"
+            />
             <h1 className="text-2xl font-bold text-gray-900">Join Quiz Session</h1>
             <p className="text-sm text-gray-500 mt-1">Schneider Electric MSS Quiz</p>
           </div>
@@ -273,9 +277,16 @@ function ParticipantComponent() {
         
         {/* Top Player Info Header */}
         <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-between border border-gray-100">
-          <div>
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Player</p>
-            <p className="font-bold text-gray-900 text-lg">{name}</p>
+          <div className="flex items-center gap-3">
+            <img
+              src="/se-logo.png"
+              alt="Schneider Electric"
+              className="w-9 h-9 object-contain drop-shadow-sm"
+            />
+            <div>
+              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Player</p>
+              <p className="font-bold text-gray-900 text-lg leading-tight">{name}</p>
+            </div>
           </div>
           <div className="text-center">
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Score</p>

@@ -4,6 +4,9 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Schneider Electric MSS - Fastest Finger First',
   description: 'Real-Time Cybersecurity MCQ Quiz Application for Schneider Electric Managed Security Services Team',
+  icons: {
+    icon: '/se-logo.png',
+  },
 };
 
 export default function RootLayout({

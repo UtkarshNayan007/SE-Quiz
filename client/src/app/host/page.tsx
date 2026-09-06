@@ -414,9 +414,11 @@ export default function HostDashboard() {
       {/* Header Bar */}
       <header className="flex flex-col md:flex-row justify-between items-center bg-white border-b-4 border-[#00E676] p-4 md:px-8 mb-6 rounded-2xl shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#009639] flex items-center justify-center text-white font-black text-xl shadow-md">
-            SE
-          </div>
+          <img
+            src="/se-logo.png"
+            alt="Schneider Electric"
+            className="w-10 h-10 object-contain drop-shadow-sm"
+          />
           <div>
             <h1 className="text-xl font-bold text-[#009639]">Schneider Electric MSS</h1>
             <p className="text-xs text-gray-500 font-semibold">Fastest Finger First • Host Control Center</p>
