@@ -1,13 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { ShieldCheck, Monitor, UserCheck, Play, ArrowRight, Lock } from 'lucide-react';
 
 export default function LandingPage() {
-  const router = useRouter();
   const [pin, setPin] = useState('');
-
   const [name, setName] = useState('');
   const [error, setError] = useState('');
 
@@ -21,15 +18,13 @@ export default function LandingPage() {
       setError('Please enter your Name');
       return;
     }
-    router.push(`/participant?pin=${pin.trim()}&name=${encodeURIComponent(name.trim())}`);
+    const url = `/participant?pin=${pin.trim()}&name=${encodeURIComponent(name.trim())}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleLaunchProjector = () => {
-    if (!pin.trim() || pin.length < 6) {
-      setError('Enter Room PIN to launch Projector view');
-      return;
-    }
-    router.push(`/projector?pin=${pin.trim()}`);
+    const url = pin.trim() && pin.length >= 6 ? `/projector?pin=${pin.trim()}` : '/projector';
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -155,12 +150,14 @@ export default function LandingPage() {
                   <p className="text-xs text-slate-600 mt-1 mb-3">
                     Generates Room PIN, pushes questions, and validates participant answers.
                   </p>
-                  <button
-                    onClick={() => router.push('/host')}
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg text-sm transition"
+                  <a
+                    href="/host"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg text-sm transition text-center block cursor-pointer"
                   >
                     Open Host Dashboard
-                  </button>
+                  </a>
                 </div>
 
                 <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
@@ -172,8 +169,9 @@ export default function LandingPage() {
                     Main big-screen display with live QR code, 30s timer, Top-5 queue & confetti.
                   </p>
                   <button
+                    type="button"
                     onClick={handleLaunchProjector}
-                    className="w-full bg-schneider-brand hover:bg-schneider-darkgreen text-white font-bold py-2.5 rounded-lg text-sm transition"
+                    className="w-full bg-schneider-brand hover:bg-schneider-darkgreen text-white font-bold py-2.5 rounded-lg text-sm transition cursor-pointer"
                   >
                     Launch Projector Display
                   </button>
