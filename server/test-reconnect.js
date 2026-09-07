@@ -253,6 +253,49 @@ async function runTests() {
     });
   });
 
+  // 10. TEST HOST RECONNECTION
+  console.log('\n  🔄 Test Scenario: Host dashboard refreshes / reconnects to existing room');
+  hostSock.disconnect();
+  await sleep(300);
+
+  const hostSock2 = createSocket();
+  await connectSocket(hostSock2);
+
+  await new Promise(resolve => {
+    hostSock2.emit('create_room', { passcode: HOST_PASSCODE, roomPin }, res => {
+      assert(res.success === true, 'Host reconnected to existing room successfully without crash');
+      assert(res.roomPin === roomPin, `Reconnected to correct room PIN: ${res.roomPin}`);
+      assert(res.gameState === 'REVEAL', `Room state preserved on host reconnect: ${res.gameState}`);
+      assert(Array.isArray(res.leaderboardByScore), 'leaderboardByScore is defined in host reconnection response');
+      assert(res.championByScore !== undefined, 'championByScore is defined in host reconnection response');
+      resolve();
+    });
+  });
+
+  // 11. TEST PARTICIPANT SCANNING A NEW QR CODE FOR A NEW ROOM
+  console.log('\n  📱 Test Scenario: Participant scans new QR code for a fresh new game');
+  let roomPin2 = null;
+  await new Promise(resolve => {
+    hostSock2.emit('create_room', { passcode: HOST_PASSCODE, questionCount: 5 }, res => {
+      assert(res.success && res.roomPin, `New second room created: ${res.roomPin}`);
+      roomPin2 = res.roomPin;
+      resolve();
+    });
+  });
+
+  const aliceSock4 = createSocket();
+  await connectSocket(aliceSock4);
+
+  await new Promise(resolve => {
+    // Joining roomPin2 with clean participantId (simulating new QR scan clearing old participantId)
+    aliceSock4.emit('join_room', { roomPin: roomPin2, name: 'Alice', role: 'participant' }, res => {
+      assert(res.success === true, 'Alice joined new second room successfully');
+      assert(res.gameState === 'LOBBY', 'Alice is in LOBBY of new room, not stuck in old room results');
+      assert(res.myStats && res.myStats.score === 0, 'Alice score is reset to 0 in new room');
+      resolve();
+    });
+  });
+
   await sleep(200);
 
   console.log('\n------------------------------------------------------------');
@@ -260,8 +303,9 @@ async function runTests() {
   console.log('------------------------------------------------------------\n');
 
   aliceSock3.disconnect();
+  aliceSock4.disconnect();
   bobSock2.disconnect();
-  hostSock.disconnect();
+  hostSock2.disconnect();
   serverProc.kill('SIGTERM');
 
   if (passedTests === totalTests) {

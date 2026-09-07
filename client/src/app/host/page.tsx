@@ -26,11 +26,13 @@ import {
   PowerOff,
   Sparkles,
   Crown,
-  SlidersHorizontal
+  SlidersHorizontal,
+  LogOut
 } from 'lucide-react';
 
 export default function HostDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(true);
   const [passcode, setPasscode] = useState('');
   const [authError, setAuthError] = useState('');
 
@@ -65,10 +67,25 @@ export default function HostDashboard() {
     setLoading(true);
     setAuthError('');
     const socket = getSocket();
-    const pinToUse = targetPin !== undefined ? targetPin : (roomPin || (typeof window !== 'undefined' ? sessionStorage.getItem('se_host_room_pin') || '' : ''));
-    
-    socket.emit('create_room', { passcode: inputPasscode, roomPin: pinToUse }, (res: any) => {
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const urlPin = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('pin') || '' : '';
+    const savedPin = typeof window !== 'undefined' ? (localStorage.getItem('se_host_room_pin') || sessionStorage.getItem('se_host_room_pin') || '') : '';
+    const pinToUse = targetPin !== undefined ? targetPin : (roomPin || urlPin || savedPin);
+
+    // Timeout safety so loading never spins infinitely
+    const timeout = setTimeout(() => {
       setLoading(false);
+      setIsRestoring(false);
+      setAuthError('Connection timed out. Please check if the server is online and try again.');
+    }, 10000);
+
+    socket.emit('create_room', { passcode: inputPasscode, roomPin: pinToUse }, (res: any) => {
+      clearTimeout(timeout);
+      setLoading(false);
+      setIsRestoring(false);
       if (res && res.success) {
         setIsAuthenticated(true);
         setRoomPin(res.roomPin);
@@ -87,6 +104,8 @@ export default function HostDashboard() {
         if (res.resultsPublished !== undefined) setResultsPublished(res.resultsPublished);
         
         if (typeof window !== 'undefined') {
+          localStorage.setItem('se_host_passcode', inputPasscode);
+          localStorage.setItem('se_host_room_pin', res.roomPin);
           sessionStorage.setItem('se_host_passcode', inputPasscode);
           sessionStorage.setItem('se_host_room_pin', res.roomPin);
           const url = new URL(window.location.href);
@@ -96,18 +115,26 @@ export default function HostDashboard() {
       } else {
         setIsAuthenticated(false);
         setAuthError(res?.message || 'Access Denied: Invalid Admin Passcode');
+        if (typeof window !== 'undefined' && res?.message?.includes('Invalid Admin Passcode')) {
+          localStorage.removeItem('se_host_passcode');
+          sessionStorage.removeItem('se_host_passcode');
+        }
       }
     });
   };
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !roomCreatedRef.current) {
-      const savedPasscode = sessionStorage.getItem('se_host_passcode');
-      const urlPin = new URLSearchParams(window.location.search).get('pin');
-      const savedPin = urlPin || sessionStorage.getItem('se_host_room_pin') || '';
+      const savedPasscode = localStorage.getItem('se_host_passcode') || sessionStorage.getItem('se_host_passcode') || '';
+      const urlPin = new URLSearchParams(window.location.search).get('pin') || '';
+      const savedPin = urlPin || localStorage.getItem('se_host_room_pin') || sessionStorage.getItem('se_host_room_pin') || '';
       if (savedPasscode) {
         roomCreatedRef.current = true;
+        setIsRestoring(true);
+        setPasscode(savedPasscode);
         attemptCreateRoom(savedPasscode, savedPin);
+      } else {
+        setIsRestoring(false);
       }
     }
   }, []);
@@ -205,6 +232,16 @@ export default function HostDashboard() {
       if (data.approvedCriteria) setApprovedCriteria(data.approvedCriteria);
     };
 
+    const handleConnect = () => {
+      if (typeof window !== 'undefined') {
+        const savedPass = localStorage.getItem('se_host_passcode') || sessionStorage.getItem('se_host_passcode');
+        const activePin = roomPin || (new URLSearchParams(window.location.search).get('pin') || '') || localStorage.getItem('se_host_room_pin') || sessionStorage.getItem('se_host_room_pin');
+        if (savedPass) {
+          socket.emit('create_room', { passcode: savedPass, roomPin: activePin || undefined }, () => {});
+        }
+      }
+    };
+
     socket.on('room_updated', handleRoomUpdated);
     socket.on('host_room_updated', handleHostRoomUpdated);
     socket.on('buzzer_hit_recorded', handleBuzzerHitRecorded);
@@ -215,6 +252,7 @@ export default function HostDashboard() {
     socket.on('question_limit_updated', handleQuestionLimitUpdated);
     socket.on('host_quiz_review', handleHostQuizReview);
     socket.on('quiz_results_published', handleQuizResultsPublished);
+    socket.on('connect', handleConnect);
 
     return () => {
       socket.off('room_updated', handleRoomUpdated);
@@ -227,6 +265,7 @@ export default function HostDashboard() {
       socket.off('question_limit_updated', handleQuestionLimitUpdated);
       socket.off('host_quiz_review', handleHostQuizReview);
       socket.off('quiz_results_published', handleQuizResultsPublished);
+      socket.off('connect', handleConnect);
     };
   }, []);
 
@@ -314,12 +353,36 @@ export default function HostDashboard() {
 
   const handleResetSession = () => {
     if (typeof window !== 'undefined') {
+      localStorage.removeItem('se_host_room_pin');
       sessionStorage.removeItem('se_host_room_pin');
       window.location.href = '/host';
     }
   };
 
+  const handleHostLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('se_host_passcode');
+      localStorage.removeItem('se_host_room_pin');
+      sessionStorage.removeItem('se_host_passcode');
+      sessionStorage.removeItem('se_host_room_pin');
+      setIsAuthenticated(false);
+      setRoomPin('');
+      window.location.href = '/host';
+    }
+  };
+
   if (!isAuthenticated) {
+    if (isRestoring) {
+      return (
+        <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <RefreshCw className="w-10 h-10 text-[#00E676] animate-spin" />
+            <p className="text-base font-semibold text-slate-300">Restoring Host Dashboard...</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-8 space-y-6">
@@ -344,7 +407,8 @@ export default function HostDashboard() {
                 setAuthError('Please enter Admin Passcode');
                 return;
               }
-              attemptCreateRoom(passcode.trim());
+              const urlPin = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('pin') || '' : '';
+              attemptCreateRoom(passcode.trim(), urlPin || undefined);
             }}
             className="space-y-4"
           >
@@ -438,10 +502,18 @@ export default function HostDashboard() {
           <button
             onClick={handleResetSession}
             title="Start New Session (Generates fresh room code)"
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-600 bg-gray-100 hover:bg-red-50 rounded-xl border border-gray-200 transition"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-600 hover:text-red-600 bg-gray-100 hover:bg-red-50 rounded-xl border border-gray-200 transition"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Room</span>
+          </button>
+          <button
+            onClick={handleHostLogout}
+            title="Log out of Admin Dashboard"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-600 bg-gray-100 hover:bg-red-50 rounded-xl border border-gray-200 transition"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Logout</span>
           </button>
         </div>
       </header>

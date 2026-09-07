@@ -169,63 +169,76 @@ io.on('connection', (socket) => {
     
     // Check if host is reconnecting to an existing room
     if (targetPin && rooms.has(targetPin)) {
-      const existingRoom = rooms.get(targetPin);
-      if (existingRoom.hostDisconnectTimeout) {
-        clearTimeout(existingRoom.hostDisconnectTimeout);
-        existingRoom.hostDisconnectTimeout = null;
-      }
-      existingRoom.hostDisconnected = false;
-      existingRoom.hostSocketId = socket.id;
-      socket.join(targetPin);
-      console.log(`Host reconnected to existing room ${targetPin} (${socket.id})`);
+      try {
+        const existingRoom = rooms.get(targetPin);
+        if (existingRoom.hostDisconnectTimeout) {
+          clearTimeout(existingRoom.hostDisconnectTimeout);
+          existingRoom.hostDisconnectTimeout = null;
+        }
+        existingRoom.hostDisconnected = false;
+        existingRoom.hostSocketId = socket.id;
+        if (!existingRoom.socketToParticipantId) {
+          existingRoom.socketToParticipantId = new Map();
+        }
+        socket.join(targetPin);
+        console.log(`Host reconnected to existing room ${targetPin} (${socket.id})`);
 
-      const participantsList = Array.from(existingRoom.participants.values()).map(p => ({
-        participantId: p.participantId || p.socketId,
-        socketId: p.socketId,
-        name: p.name,
-        score: p.score,
-        correctCount: p.correctCount,
-        connected: p.connected !== false,
-        fastestTimeFormatted: p.fastestTimeMs === Infinity ? '--' : (p.fastestTimeMs / 1000).toFixed(3) + 's',
-        totalTimeFormatted: (p.totalTimeMs / 1000).toFixed(3) + 's'
-      }));
+        const { leaderboard, leaderboardByScore, grandChampion, top3 } = calculateLeaderboards(existingRoom);
+        const leaderboardByTime = leaderboardByScore;
+        const championByScore = grandChampion;
+        const championByTime = grandChampion;
 
-      let activeQuestion = null;
-      const totalQ = existingRoom.configuredQuestionCount || questions.length;
-      if (existingRoom.currentQuestionIndex >= 0 && questions[existingRoom.currentQuestionIndex]) {
-        const q = questions[existingRoom.currentQuestionIndex];
-        activeQuestion = {
-          questionIndex: existingRoom.currentQuestionIndex,
+        const participantsList = Array.from(existingRoom.participants.values()).map(p => ({
+          participantId: p.participantId || p.socketId,
+          socketId: p.socketId,
+          name: p.name,
+          score: p.score,
+          correctCount: p.correctCount,
+          connected: p.connected !== false,
+          fastestTimeFormatted: p.fastestTimeMs === Infinity ? '--' : (p.fastestTimeMs / 1000).toFixed(3) + 's',
+          totalTimeFormatted: (p.totalTimeMs / 1000).toFixed(3) + 's'
+        }));
+
+        let activeQuestion = null;
+        const totalQ = existingRoom.configuredQuestionCount || questions.length;
+        if (existingRoom.currentQuestionIndex >= 0 && questions[existingRoom.currentQuestionIndex]) {
+          const q = questions[existingRoom.currentQuestionIndex];
+          activeQuestion = {
+            questionIndex: existingRoom.currentQuestionIndex,
+            totalQuestions: totalQ,
+            question: q.question,
+            options: q.options,
+            category: q.category,
+            durationSeconds: 10
+          };
+        }
+
+        if (cb) cb({
+          success: true,
+          roomPin: targetPin,
           totalQuestions: totalQ,
-          question: q.question,
-          options: q.options,
-          category: q.category,
-          durationSeconds: 10
-        };
+          configuredQuestionCount: totalQ,
+          participantCount: participantsList.length,
+          participants: participantsList,
+          buzzerQueue: existingRoom.buzzerQueue,
+          gameState: existingRoom.gameState,
+          currentQuestionIndex: existingRoom.currentQuestionIndex,
+          activeQuestion,
+          currentAnswerer: existingRoom.buzzerQueue[existingRoom.currentAnswererIndex] || null,
+          questionWinners: existingRoom.questionWinners || [],
+          finalResults: existingRoom.finalResults || null,
+          approvedCriteria: existingRoom.approvedCriteria || null,
+          resultsPublished: existingRoom.resultsPublished || false,
+          leaderboardByScore,
+          leaderboardByTime,
+          championByScore,
+          championByTime
+        });
+        broadcastRoomUpdate(targetPin);
+      } catch (err) {
+        console.error('Error during host reconnection to room:', err);
+        if (cb) cb({ success: false, message: 'Server error during host reconnection: ' + err.message });
       }
-
-      if (cb) cb({
-        success: true,
-        roomPin: targetPin,
-        totalQuestions: totalQ,
-        configuredQuestionCount: totalQ,
-        participantCount: participantsList.length,
-        participants: participantsList,
-        buzzerQueue: existingRoom.buzzerQueue,
-        gameState: existingRoom.gameState,
-        currentQuestionIndex: existingRoom.currentQuestionIndex,
-        activeQuestion,
-        currentAnswerer: existingRoom.buzzerQueue[existingRoom.currentAnswererIndex] || null,
-        questionWinners: existingRoom.questionWinners || [],
-        finalResults: existingRoom.finalResults || null,
-        approvedCriteria: existingRoom.approvedCriteria || null,
-        resultsPublished: existingRoom.resultsPublished || false,
-        leaderboardByScore,
-        leaderboardByTime,
-        championByScore,
-        championByTime
-      });
-      broadcastRoomUpdate(targetPin);
       return;
     }
 

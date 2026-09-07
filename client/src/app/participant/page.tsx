@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getSocket } from '../../lib/socket';
-import { ShieldCheck, Timer, Zap, CheckCircle2, XCircle, Clock, Send, Lock, Volume2, UserCheck, AlertTriangle, Trophy, Crown, Sparkles, Award, LogOut } from 'lucide-react';
+import { ShieldCheck, Timer, Zap, CheckCircle2, XCircle, Clock, Send, Lock, Volume2, UserCheck, AlertTriangle, Trophy, Crown, Sparkles, Award, LogOut, RotateCcw } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const STORAGE_PIN = 'se_quiz_pin';
@@ -12,8 +12,10 @@ const STORAGE_PARTICIPANT_ID = 'se_quiz_participant_id';
 
 function ParticipantComponent() {
   const searchParams = useSearchParams();
-  const [pin, setPin] = useState(searchParams?.get('pin') || '');
-  const [name, setName] = useState(searchParams?.get('name') || '');
+  const urlPin = searchParams?.get('pin') || '';
+  const urlName = searchParams?.get('name') || '';
+  const [pin, setPin] = useState(urlPin);
+  const [name, setName] = useState(urlName);
   const [participantId, setParticipantId] = useState('');
   const [joined, setJoined] = useState(false);
   const [isAutoConnecting, setIsAutoConnecting] = useState(true);
@@ -53,12 +55,35 @@ function ParticipantComponent() {
     frame();
   };
 
+  const resetQuizState = () => {
+    setGameState('LOBBY');
+    setTotalQuestions(10);
+    setActiveQuestion(null);
+    setCountdown(10);
+    setHasBuzzed(false);
+    setBuzzedPosition(null);
+    setBuzzedTime('');
+    setBuzzerQueue([]);
+    setCurrentAnswerer(null);
+    setSelectedOption(null);
+    setAnswerResult(null);
+    setRevealResult(null);
+    setHasFailed(false);
+    setHasWonThisQuestion(false);
+    setMyScore(0);
+    setPublishedResults(null);
+    setError('');
+  };
+
   const performJoin = (roomPinToUse: string, nameToUse: string, pIdToUse?: string) => {
     if (!roomPinToUse || !nameToUse) {
       setIsAutoConnecting(false);
       return;
     }
     const socket = getSocket();
+    if (!socket.connected) {
+      socket.connect();
+    }
     socket.emit('join_room', {
       roomPin: roomPinToUse,
       name: nameToUse,
@@ -119,8 +144,8 @@ function ParticipantComponent() {
       } else {
         if (typeof window !== 'undefined') {
           localStorage.removeItem(STORAGE_PIN);
-          localStorage.removeItem(STORAGE_NAME);
           localStorage.removeItem(STORAGE_PARTICIPANT_ID);
+          // Preserve STORAGE_NAME so user doesn't need to retype their name
         }
         setJoined(false);
         setError(res?.message || 'Room not found or session expired');
@@ -128,23 +153,40 @@ function ParticipantComponent() {
     });
   };
 
-  // Restore session from localStorage on initial page load / refresh
+  // Synchronize session or switch rooms when a new QR code is scanned
   useEffect(() => {
-    if (initialMountDone.current) return;
-    initialMountDone.current = true;
+    if (typeof window === 'undefined') return;
 
-    let savedPin = '';
-    let savedName = '';
-    let savedPid = '';
+    const savedPin = localStorage.getItem(STORAGE_PIN) || '';
+    const savedName = localStorage.getItem(STORAGE_NAME) || '';
+    const savedPid = localStorage.getItem(STORAGE_PARTICIPANT_ID) || '';
 
-    if (typeof window !== 'undefined') {
-      savedPin = localStorage.getItem(STORAGE_PIN) || '';
-      savedName = localStorage.getItem(STORAGE_NAME) || '';
-      savedPid = localStorage.getItem(STORAGE_PARTICIPANT_ID) || '';
+    // If urlPin is present and DIFFERENT from savedPin -> NEW ROOM from QR scan!
+    if (urlPin && urlPin !== savedPin) {
+      console.log(`[QR SCAN] Switching to new room PIN ${urlPin} (clearing old room ${savedPin})`);
+      localStorage.removeItem(STORAGE_PARTICIPANT_ID);
+      localStorage.setItem(STORAGE_PIN, urlPin);
+      if (urlName) localStorage.setItem(STORAGE_NAME, urlName);
+
+      setPin(urlPin);
+      if (urlName) setName(urlName);
+      else if (savedName) setName(savedName);
+      setParticipantId('');
+      setJoined(false);
+      resetQuizState();
+
+      const effectiveName = urlName || savedName;
+      if (effectiveName) {
+        performJoin(urlPin, effectiveName, undefined);
+      } else {
+        setIsAutoConnecting(false);
+      }
+      return;
     }
 
-    const urlPin = searchParams?.get('pin') || '';
-    const urlName = searchParams?.get('name') || '';
+    // Normal mount / refresh flow
+    if (initialMountDone.current) return;
+    initialMountDone.current = true;
 
     const effectivePin = urlPin || savedPin;
     const effectiveName = urlName || savedName;
@@ -154,11 +196,11 @@ function ParticipantComponent() {
     if (savedPid) setParticipantId(savedPid);
 
     if (effectivePin && effectiveName) {
-      performJoin(effectivePin, effectiveName, savedPid);
+      performJoin(effectivePin, effectiveName, savedPid || undefined);
     } else {
       setIsAutoConnecting(false);
     }
-  }, []);
+  }, [urlPin, urlName]);
 
   // Socket event listeners and connection recovery
   useEffect(() => {
@@ -239,21 +281,24 @@ function ParticipantComponent() {
     const handleRoomDestroyed = (data: any) => {
       if (typeof window !== 'undefined') {
         localStorage.removeItem(STORAGE_PIN);
-        localStorage.removeItem(STORAGE_NAME);
         localStorage.removeItem(STORAGE_PARTICIPANT_ID);
       }
       setJoined(false);
+      resetQuizState();
       setError(data?.message || 'Session ended by host');
     };
 
     // Auto re-join when socket reconnects (after network drop, phone call, background wake)
     const handleConnect = () => {
       if (typeof window !== 'undefined') {
+        const currentUrlPin = new URLSearchParams(window.location.search).get('pin') || '';
         const savedP = localStorage.getItem(STORAGE_PIN);
         const savedN = localStorage.getItem(STORAGE_NAME);
         const savedId = localStorage.getItem(STORAGE_PARTICIPANT_ID);
-        if (savedP && savedN) {
-          performJoin(savedP, savedN, savedId || undefined);
+        const targetPin = currentUrlPin || savedP;
+        if (targetPin && savedN) {
+          const pidToUse = (targetPin === savedP) ? (savedId || undefined) : undefined;
+          performJoin(targetPin, savedN, pidToUse);
         }
       }
     };
@@ -293,11 +338,14 @@ function ParticipantComponent() {
         socket.connect();
       }
       if (typeof window !== 'undefined') {
+        const currentUrlPin = new URLSearchParams(window.location.search).get('pin') || '';
         const savedP = localStorage.getItem(STORAGE_PIN);
         const savedN = localStorage.getItem(STORAGE_NAME);
         const savedId = localStorage.getItem(STORAGE_PARTICIPANT_ID);
-        if (savedP && savedN) {
-          performJoin(savedP, savedN, savedId || undefined);
+        const targetPin = currentUrlPin || savedP;
+        if (targetPin && savedN) {
+          const pidToUse = (targetPin === savedP) ? (savedId || undefined) : undefined;
+          performJoin(targetPin, savedN, pidToUse);
         }
       }
     };
@@ -348,7 +396,6 @@ function ParticipantComponent() {
     socket.emit('leave_room', { roomPin: pin }, () => {});
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_PIN);
-      localStorage.removeItem(STORAGE_NAME);
       localStorage.removeItem(STORAGE_PARTICIPANT_ID);
       const url = new URL(window.location.href);
       url.searchParams.delete('pin');
@@ -356,14 +403,8 @@ function ParticipantComponent() {
     }
     setJoined(false);
     setPin('');
-    setName('');
     setParticipantId('');
-    setGameState('LOBBY');
-    setActiveQuestion(null);
-    setHasBuzzed(false);
-    setHasFailed(false);
-    setHasWonThisQuestion(false);
-    setMyScore(0);
+    resetQuizState();
   };
 
   const handleBuzzerPress = () => {
@@ -709,6 +750,17 @@ function ParticipantComponent() {
                   );
                 })}
               </div>
+            </div>
+
+            {/* Join Another Game Option */}
+            <div className="pt-2">
+              <button
+                onClick={handleLeaveRoom}
+                className="w-full py-3.5 px-4 bg-gray-900 hover:bg-black text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-md transition active:scale-95 text-sm"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Join Another Game / Scan New QR</span>
+              </button>
             </div>
           </div>
         )}
