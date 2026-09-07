@@ -45,6 +45,37 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
+app.get('/', (req, res) => {
+  res.status(200).send(`
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>SE Quiz Backend Server</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 1rem; box-sizing: border-box; }
+          .card { background: #1e293b; padding: 2.5rem 2rem; border-radius: 1.5rem; border: 1px solid #334155; text-align: center; max-width: 460px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+          .badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(0, 230, 118, 0.15); color: #00E676; border: 1px solid rgba(0, 230, 118, 0.4); padding: 0.4rem 1rem; border-radius: 9999px; font-weight: 700; font-size: 0.85rem; margin-bottom: 1.5rem; }
+          .dot { width: 8px; height: 8px; background: #00E676; border-radius: 50%; box-shadow: 0 0 10px #00E676; display: inline-block; }
+          h1 { margin: 0 0 0.75rem 0; font-size: 1.4rem; font-weight: 800; color: #ffffff; }
+          p { color: #94a3b8; font-size: 0.95rem; line-height: 1.5; margin: 0 0 1.75rem 0; }
+          a { display: inline-block; background: #009639; color: white; text-decoration: none; padding: 0.85rem 1.75rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.95rem; transition: background 0.2s; box-shadow: 0 4px 12px rgba(0, 150, 57, 0.3); }
+          a:hover { background: #00b344; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="badge"><span class="dot"></span> Backend Active & Online</div>
+          <h1>Schneider Electric MSS Quiz Server</h1>
+          <p>This backend provides real-time Socket.io and WebSocket communication for the live quiz sessions.</p>
+          <a href="https://se-quiz-ten.vercel.app">Go to SE Quiz Application &rarr;</a>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
 // Helper: Calculate Leaderboards and Champions
 function calculateLeaderboards(room) {
   const participants = Array.from(room.participants.values());
