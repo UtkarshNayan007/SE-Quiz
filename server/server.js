@@ -76,9 +76,49 @@ app.get('/', (req, res) => {
   `);
 });
 
+// Helper: Get unique participants deduplicated by lowercase name, merging highest scores
+function getUniqueParticipants(room, cleanupRoom = false) {
+  if (!room || !room.participants) return [];
+  const mapByName = new Map();
+  const duplicatesToDelete = [];
+
+  for (const p of room.participants.values()) {
+    const key = (p.name || '').toLowerCase().trim();
+    if (!key) continue;
+    if (!mapByName.has(key)) {
+      mapByName.set(key, p);
+    } else {
+      const existing = mapByName.get(key);
+      // Keep whichever record has higher score, or more correct answers, or currently connected
+      const isPBetter = (p.score > existing.score) ||
+        (p.score === existing.score && (p.correctCount || 0) > (existing.correctCount || 0)) ||
+        (p.score === existing.score && (p.correctCount || 0) === (existing.correctCount || 0) && p.connected && !existing.connected);
+
+      if (isPBetter) {
+        duplicatesToDelete.push(existing);
+        mapByName.set(key, p);
+      } else {
+        duplicatesToDelete.push(p);
+      }
+    }
+  }
+
+  if (cleanupRoom && duplicatesToDelete.length > 0) {
+    for (const dup of duplicatesToDelete) {
+      if (dup.disconnectTimeout) clearTimeout(dup.disconnectTimeout);
+      if (dup.socketId && room.socketToParticipantId && room.socketToParticipantId.get(dup.socketId) === dup.participantId) {
+        room.socketToParticipantId.delete(dup.socketId);
+      }
+      room.participants.delete(dup.participantId);
+    }
+  }
+
+  return Array.from(mapByName.values());
+}
+
 // Helper: Calculate Leaderboards and Champions
 function calculateLeaderboards(room) {
-  const participants = Array.from(room.participants.values());
+  const participants = getUniqueParticipants(room, true);
 
   // Leaderboard ranked by Score (descending), tie-broken by Speed (ascending time)
   const leaderboard = [...participants]
@@ -142,10 +182,13 @@ function broadcastRoomUpdate(roomPin) {
     const room = rooms.get(roomPin);
     if (!room) return;
 
+    const uniqueParticipants = getUniqueParticipants(room, true);
+    const participantCount = uniqueParticipants.length;
+
     // Send lightweight metadata to room (participants & projector)
     io.to(roomPin).emit('room_updated', {
       roomPin: room.roomPin,
-      participantCount: room.participants.size,
+      participantCount: participantCount,
       gameState: room.gameState,
       currentQuestionIndex: room.currentQuestionIndex,
       totalQuestions: room.configuredQuestionCount || questions.length,
@@ -157,7 +200,7 @@ function broadcastRoomUpdate(roomPin) {
 
     // Send full participant list ONLY to Host socket
     if (room.hostSocketId) {
-      const participantsList = Array.from(room.participants.values()).map(p => ({
+      const participantsList = uniqueParticipants.map(p => ({
         participantId: p.participantId || p.socketId,
         socketId: p.socketId,
         name: p.name,
@@ -219,7 +262,8 @@ io.on('connection', (socket) => {
         const championByScore = grandChampion;
         const championByTime = grandChampion;
 
-        const participantsList = Array.from(existingRoom.participants.values()).map(p => ({
+        const uniqueParticipants = getUniqueParticipants(existingRoom, true);
+        const participantsList = uniqueParticipants.map(p => ({
           participantId: p.participantId || p.socketId,
           socketId: p.socketId,
           name: p.name,
@@ -295,6 +339,8 @@ io.on('connection', (socket) => {
       buzzerQueue: [], // Array of { participantId, socketId, name, timeMs, timeFormatted }
       currentAnswererIndex: 0,
       failedParticipants: new Set(), // participantIds / socketIds who answered incorrectly on CURRENT question
+      failedParticipantNames: new Set(), // lowercase names of participants who answered incorrectly on CURRENT question
+      failedAttemptCount: 0, // Count of distinct contenders who failed on CURRENT question (max 2)
       questionWinners: [], // Array of { questionIndex, questionText, category, winner }
       resultsPublished: false,
       approvedCriteria: null,
@@ -340,24 +386,41 @@ io.on('connection', (socket) => {
 
     if (role === 'participant') {
       const sanitizedName = (name && typeof name === 'string') ? name.trim() : `Player_${socket.id.slice(0, 4)}`;
+      const lowerName = sanitizedName.toLowerCase();
 
-      // 1. Check if participantId exists in room
-      if (participantId && room.participants.has(participantId)) {
-        participant = room.participants.get(participantId);
-      } 
-      // 2. Fallback: match by name if participant was disconnected (e.g. storage cleared)
-      else if (sanitizedName) {
-        const existingByName = Array.from(room.participants.values()).find(
-          p => p.name.toLowerCase() === sanitizedName.toLowerCase() && !p.connected
-        );
-        if (existingByName) {
-          participant = existingByName;
-          participantId = existingByName.participantId;
+      // Find any existing participant entries matching either participantId or sanitizedName
+      const matchingEntries = [];
+      for (const p of room.participants.values()) {
+        const pLower = (p.name || '').toLowerCase().trim();
+        if ((participantId && p.participantId === participantId) || (pLower && pLower === lowerName)) {
+          matchingEntries.push(p);
         }
       }
 
-      if (participant) {
-        // Reconnection of existing participant
+      if (matchingEntries.length > 0) {
+        // Sort to pick the best existing entry: highest score, then most correct answers, then currently connected
+        matchingEntries.sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          if ((b.correctCount || 0) !== (a.correctCount || 0)) return (b.correctCount || 0) - (a.correctCount || 0);
+          if (a.connected !== b.connected) return a.connected ? -1 : 1;
+          return 0;
+        });
+
+        participant = matchingEntries[0];
+        participantId = participant.participantId;
+
+        // Prune any duplicate participant records in room.participants
+        for (let i = 1; i < matchingEntries.length; i++) {
+          const dup = matchingEntries[i];
+          console.log(`Pruning duplicate participant record for ${dup.name} (${dup.participantId}) in room ${roomPin}`);
+          if (dup.disconnectTimeout) clearTimeout(dup.disconnectTimeout);
+          if (dup.socketId && room.socketToParticipantId && room.socketToParticipantId.get(dup.socketId) === dup.participantId) {
+            room.socketToParticipantId.delete(dup.socketId);
+          }
+          room.participants.delete(dup.participantId);
+        }
+
+        // Reconnect existing participant
         if (participant.disconnectTimeout) {
           clearTimeout(participant.disconnectTimeout);
           participant.disconnectTimeout = null;
@@ -372,14 +435,23 @@ io.on('connection', (socket) => {
         if (sanitizedName) participant.name = sanitizedName;
         room.socketToParticipantId.set(socket.id, participant.participantId);
 
-        // Update socket ID on any buzzerQueue entries
-        room.buzzerQueue.forEach(b => {
-          if (b.participantId === participant.participantId || b.name === participant.name) {
+        // Update socket ID on any buzzerQueue entries and deduplicate queue
+        const seenInQueue = new Set();
+        room.buzzerQueue = room.buzzerQueue.filter(b => {
+          const isMatch = (b.participantId && b.participantId === participant.participantId) ||
+                          (b.name && b.name.toLowerCase().trim() === lowerName);
+          if (isMatch) {
+            if (seenInQueue.has(participant.participantId)) return false;
+            seenInQueue.add(participant.participantId);
             b.socketId = socket.id;
+            b.participantId = participant.participantId;
+            b.name = participant.name;
+            return true;
           }
+          return true;
         });
 
-        console.log(`Player ${participant.name} (${participant.participantId}) reconnected with socket ${socket.id} to room ${roomPin}`);
+        console.log(`Player ${participant.name} (${participant.participantId}) reconnected with socket ${socket.id} to room ${roomPin} (Score: ${participant.score})`);
       } else {
         // New participant
         if (!participantId) {
@@ -429,18 +501,25 @@ io.on('connection', (socket) => {
 
     const effectivePId = participant ? participant.participantId : (room.socketToParticipantId.get(socket.id) || socket.id);
     const myStats = participant || room.participants.get(effectivePId) || room.participants.get(socket.id) || null;
+    const nameKey = (myStats?.name || '').toLowerCase().trim();
 
-    const buzzerEntry = room.buzzerQueue.find(b => (b.participantId && b.participantId === effectivePId) || b.socketId === socket.id);
+    const buzzerEntry = room.buzzerQueue.find(b => 
+      (b.participantId && b.participantId === effectivePId) || 
+      b.socketId === socket.id ||
+      (b.name && nameKey && b.name.toLowerCase().trim() === nameKey)
+    );
     const buzzedPosition = buzzerEntry ? room.buzzerQueue.indexOf(buzzerEntry) + 1 : null;
     const buzzedTime = buzzerEntry ? buzzerEntry.timeFormatted : '';
     const hasBuzzed = !!buzzerEntry;
-    const hasFailed = room.failedParticipants.has(effectivePId) || room.failedParticipants.has(socket.id);
+    const hasFailed = room.failedParticipants.has(effectivePId) || 
+                      room.failedParticipants.has(socket.id) ||
+                      (nameKey && room.failedParticipantNames && room.failedParticipantNames.has(nameKey));
 
     const currentQWinner = room.questionWinners ? room.questionWinners.find(qw => qw.questionIndex === room.currentQuestionIndex) : null;
     const hasWonThisQuestion = currentQWinner && currentQWinner.winner && (
       (currentQWinner.winner.participantId && currentQWinner.winner.participantId === effectivePId) ||
       currentQWinner.winner.socketId === socket.id ||
-      (myStats && currentQWinner.winner.name === myStats.name)
+      (myStats && currentQWinner.winner.name && currentQWinner.winner.name.toLowerCase().trim() === nameKey)
     );
 
     if (callback) callback({
@@ -496,6 +575,8 @@ io.on('connection', (socket) => {
     room.buzzerQueue = [];
     room.currentAnswererIndex = 0;
     room.failedParticipants.clear();
+    if (room.failedParticipantNames) room.failedParticipantNames.clear();
+    room.failedAttemptCount = 0;
     
     if (room.timerTimeout) {
       clearTimeout(room.timerTimeout);
@@ -544,7 +625,7 @@ io.on('connection', (socket) => {
 
     // NOTE: Game is open to all candidates for all questions! No lockout from previous rounds.
 
-    if (room.failedParticipants.size >= 2) {
+    if ((room.failedAttemptCount || 0) >= 2) {
       if (callback) callback({ success: false, message: 'Both top 2 attempts have been completed! Control passed to Host.' });
       return;
     }
@@ -563,13 +644,18 @@ io.on('connection', (socket) => {
     }
 
     const pId = participant.participantId || socket.id;
+    const nameKey = (participant.name || '').toLowerCase().trim();
 
-    if (room.failedParticipants.has(pId) || room.failedParticipants.has(socket.id)) {
+    if (room.failedParticipants.has(pId) || room.failedParticipants.has(socket.id) || (nameKey && room.failedParticipantNames && room.failedParticipantNames.has(nameKey))) {
       if (callback) callback({ success: false, message: 'You already attempted this question and answered incorrectly!' });
       return;
     }
 
-    const alreadyInQueue = room.buzzerQueue.some(b => (b.participantId && b.participantId === pId) || b.socketId === socket.id);
+    const alreadyInQueue = room.buzzerQueue.some(b => 
+      (b.participantId && b.participantId === pId) || 
+      b.socketId === socket.id ||
+      (b.name && nameKey && b.name.toLowerCase().trim() === nameKey)
+    );
     if (alreadyInQueue) {
       if (callback) callback({ success: false, message: 'You have already pressed the buzzer!' });
       return;
@@ -593,7 +679,10 @@ io.on('connection', (socket) => {
       room.gameState = 'ANSWERING';
       const firstValidIdx = room.buzzerQueue.findIndex(b => {
         const idToCheck = b.participantId || b.socketId;
-        return !room.failedParticipants.has(idToCheck) && !room.failedParticipants.has(b.socketId);
+        const bNameKey = (b.name || '').toLowerCase().trim();
+        return !room.failedParticipants.has(idToCheck) && 
+               !room.failedParticipants.has(b.socketId) && 
+               (!bNameKey || !room.failedParticipantNames || !room.failedParticipantNames.has(bNameKey));
       });
       room.currentAnswererIndex = firstValidIdx >= 0 ? firstValidIdx : 0;
     }
@@ -654,7 +743,8 @@ io.on('connection', (socket) => {
 
     const isMatch = currentAnswerer && (
       (currentAnswerer.participantId && currentAnswerer.participantId === pId) ||
-      currentAnswerer.socketId === socket.id
+      currentAnswerer.socketId === socket.id ||
+      (participant && currentAnswerer.name && participant.name && currentAnswerer.name.toLowerCase().trim() === participant.name.toLowerCase().trim())
     );
 
     if (!isMatch) {
@@ -752,13 +842,18 @@ io.on('connection', (socket) => {
           pointsDelta: -pointsDeducted
         });
         room.failedParticipants.add(pId);
+        if (participant.name) {
+          if (!room.failedParticipantNames) room.failedParticipantNames = new Set();
+          room.failedParticipantNames.add(participant.name.toLowerCase().trim());
+        }
       }
 
       room.failedParticipants.add(socket.id);
+      room.failedAttemptCount = (room.failedAttemptCount || 0) + 1;
 
       let nextAnswerer = null;
 
-      if (room.failedParticipants.size >= 2) {
+      if ((room.failedAttemptCount || 0) >= 2) {
         // Both top 2 participants answered wrong! End turns and transfer control to Host.
         room.gameState = 'HOST_CONTROL';
         io.to(roomPin).emit('turn_passed', {
@@ -892,7 +987,7 @@ io.on('connection', (socket) => {
       champion: grandChampion,
       championByScore: grandChampion,
       top3,
-      participantCount: room.participants.size
+      participantCount: getUniqueParticipants(room, true).length
     };
 
     room.finalResults = reviewPayload;
@@ -938,7 +1033,7 @@ io.on('connection', (socket) => {
       questionWinners: room.questionWinners,
       leaderboard: leaderboard.slice(0, 20),
       leaderboardByScore: leaderboard.slice(0, 20),
-      participantCount: room.participants.size
+      participantCount: getUniqueParticipants(room, true).length
     };
 
     room.finalResults = publishedData;

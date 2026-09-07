@@ -162,7 +162,7 @@ function ParticipantComponent() {
     const savedPid = localStorage.getItem(STORAGE_PARTICIPANT_ID) || '';
 
     // If urlPin is present and DIFFERENT from savedPin -> NEW ROOM from QR scan!
-    if (urlPin && urlPin !== savedPin) {
+    if (urlPin && savedPin && urlPin !== savedPin) {
       console.log(`[QR SCAN] Switching to new room PIN ${urlPin} (clearing old room ${savedPin})`);
       localStorage.removeItem(STORAGE_PARTICIPANT_ID);
       localStorage.setItem(STORAGE_PIN, urlPin);

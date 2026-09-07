@@ -30,6 +30,27 @@ import {
   LogOut
 } from 'lucide-react';
 
+const deduplicateParticipants = (list: any[]) => {
+  if (!Array.isArray(list)) return [];
+  const map = new Map<string, any>();
+  for (const p of list) {
+    const key = (p.name || '').toLowerCase().trim();
+    if (!key) continue;
+    if (!map.has(key)) {
+      map.set(key, p);
+    } else {
+      const existing = map.get(key);
+      const isPBetter = (p.score > existing.score) ||
+        (p.score === existing.score && (p.correctCount || 0) > (existing.correctCount || 0)) ||
+        (p.score === existing.score && (p.correctCount || 0) === (existing.correctCount || 0) && p.connected && !existing.connected);
+      if (isPBetter) {
+        map.set(key, p);
+      }
+    }
+  }
+  return Array.from(map.values());
+};
+
 export default function HostDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true);
@@ -91,7 +112,7 @@ export default function HostDashboard() {
         setRoomPin(res.roomPin);
         setTotalQuestions(res.totalQuestions || 10);
         setConfiguredQuestionCount(res.configuredQuestionCount || res.totalQuestions || 10);
-        if (res.participants) setParticipants(res.participants);
+        if (res.participants) setParticipants(deduplicateParticipants(res.participants));
         if (res.participantCount !== undefined) setParticipantCount(res.participantCount);
         if (res.buzzerQueue) setBuzzerQueue(res.buzzerQueue);
         if (res.gameState) setGameState(res.gameState);
@@ -154,7 +175,7 @@ export default function HostDashboard() {
 
     const handleHostRoomUpdated = (data: any) => {
       if (data?.participantCount !== undefined) setParticipantCount(data.participantCount);
-      if (data?.participants) setParticipants(data.participants);
+      if (data?.participants) setParticipants(deduplicateParticipants(data.participants));
       if (data?.buzzerQueue) setBuzzerQueue(data.buzzerQueue);
       if (data?.gameState) setGameState(data.gameState);
       if (data?.currentQuestionIndex !== undefined) setCurrentQIndex(data.currentQuestionIndex);
