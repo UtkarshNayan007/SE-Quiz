@@ -70,11 +70,13 @@ function calculateLeaderboards(room) {
 
       return {
         rank: idx + 1,
+        participantId: p.participantId || p.socketId,
         socketId: p.socketId,
         name: p.name,
         score: p.score,
         correctCount: p.correctCount,
         wrongCount: p.wrongCount || 0,
+        connected: p.connected !== false,
         totalTimeMs: p.totalTimeMs,
         totalTimeFormatted: (p.totalTimeMs / 1000).toFixed(3) + 's',
         fastestTimeMs: p.fastestTimeMs === Infinity ? 0 : p.fastestTimeMs,
@@ -125,10 +127,12 @@ function broadcastRoomUpdate(roomPin) {
     // Send full participant list ONLY to Host socket
     if (room.hostSocketId) {
       const participantsList = Array.from(room.participants.values()).map(p => ({
+        participantId: p.participantId || p.socketId,
         socketId: p.socketId,
         name: p.name,
         score: p.score,
         correctCount: p.correctCount,
+        connected: p.connected !== false,
         fastestTimeFormatted: p.fastestTimeMs === Infinity ? '--' : (p.fastestTimeMs / 1000).toFixed(3) + 's',
         totalTimeFormatted: (p.totalTimeMs / 1000).toFixed(3) + 's'
       }));
@@ -175,8 +179,16 @@ io.on('connection', (socket) => {
       socket.join(targetPin);
       console.log(`Host reconnected to existing room ${targetPin} (${socket.id})`);
 
-      const { leaderboardByScore, leaderboardByTime, championByScore, championByTime } = calculateLeaderboards(existingRoom);
-      const participantsList = Array.from(existingRoom.participants.values());
+      const participantsList = Array.from(existingRoom.participants.values()).map(p => ({
+        participantId: p.participantId || p.socketId,
+        socketId: p.socketId,
+        name: p.name,
+        score: p.score,
+        correctCount: p.correctCount,
+        connected: p.connected !== false,
+        fastestTimeFormatted: p.fastestTimeMs === Infinity ? '--' : (p.fastestTimeMs / 1000).toFixed(3) + 's',
+        totalTimeFormatted: (p.totalTimeMs / 1000).toFixed(3) + 's'
+      }));
 
       let activeQuestion = null;
       const totalQ = existingRoom.configuredQuestionCount || questions.length;
@@ -228,14 +240,17 @@ io.on('connection', (socket) => {
       hostDisconnected: false,
       hostDisconnectTimeout: null,
       configuredQuestionCount: initialQuestionCount,
-      participants: new Map(), // socketId -> participant details
+      participants: new Map(), // participantId -> participant details
+      socketToParticipantId: new Map(), // socketId -> participantId
       currentQuestionIndex: -1,
       gameState: 'LOBBY', // LOBBY | READING | BUZZER_UNLOCKED | ANSWERING | REVEAL | HOST_CONTROL | QUIZ_ENDED | RESULTS_PUBLISHED
       unlockTime: null,
       timerTimeout: null,
-      buzzerQueue: [], // Array of { socketId, name, timeMs, timeFormatted }
+      readingEndTime: null,
+      currentRevealResult: null,
+      buzzerQueue: [], // Array of { participantId, socketId, name, timeMs, timeFormatted }
       currentAnswererIndex: 0,
-      failedParticipants: new Set(), // socketIds who answered incorrectly on CURRENT question
+      failedParticipants: new Set(), // participantIds / socketIds who answered incorrectly on CURRENT question
       questionWinners: [], // Array of { questionIndex, questionText, category, winner }
       resultsPublished: false,
       approvedCriteria: null,
@@ -270,22 +285,81 @@ io.on('connection', (socket) => {
       return;
     }
 
+    if (!room.socketToParticipantId) {
+      room.socketToParticipantId = new Map();
+    }
+
     socket.join(roomPin);
 
+    let participantId = data.participantId;
+    let participant = null;
+
     if (role === 'participant') {
-      if (!room.participants.has(socket.id)) {
-        room.participants.set(socket.id, {
+      const sanitizedName = (name && typeof name === 'string') ? name.trim() : `Player_${socket.id.slice(0, 4)}`;
+
+      // 1. Check if participantId exists in room
+      if (participantId && room.participants.has(participantId)) {
+        participant = room.participants.get(participantId);
+      } 
+      // 2. Fallback: match by name if participant was disconnected (e.g. storage cleared)
+      else if (sanitizedName) {
+        const existingByName = Array.from(room.participants.values()).find(
+          p => p.name.toLowerCase() === sanitizedName.toLowerCase() && !p.connected
+        );
+        if (existingByName) {
+          participant = existingByName;
+          participantId = existingByName.participantId;
+        }
+      }
+
+      if (participant) {
+        // Reconnection of existing participant
+        if (participant.disconnectTimeout) {
+          clearTimeout(participant.disconnectTimeout);
+          participant.disconnectTimeout = null;
+        }
+        if (participant.socketId && room.socketToParticipantId.has(participant.socketId)) {
+          room.socketToParticipantId.delete(participant.socketId);
+        }
+
+        participant.socketId = socket.id;
+        participant.connected = true;
+        participant.disconnectedAt = null;
+        if (sanitizedName) participant.name = sanitizedName;
+        room.socketToParticipantId.set(socket.id, participant.participantId);
+
+        // Update socket ID on any buzzerQueue entries
+        room.buzzerQueue.forEach(b => {
+          if (b.participantId === participant.participantId || b.name === participant.name) {
+            b.socketId = socket.id;
+          }
+        });
+
+        console.log(`Player ${participant.name} (${participant.participantId}) reconnected with socket ${socket.id} to room ${roomPin}`);
+      } else {
+        // New participant
+        if (!participantId) {
+          participantId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        }
+        participant = {
+          participantId,
           socketId: socket.id,
-          name: name || `Player_${socket.id.slice(0, 4)}`,
+          name: sanitizedName,
           score: 0,
           correctCount: 0,
+          wrongCount: 0,
           totalTimeMs: 0,
           fastestTimeMs: Infinity,
           averageTimeMs: 0,
-          answers: []
-        });
+          answers: [],
+          connected: true,
+          disconnectedAt: null,
+          disconnectTimeout: null
+        };
+        room.participants.set(participantId, participant);
+        room.socketToParticipantId.set(socket.id, participantId);
+        console.log(`New player ${participant.name} (${participantId}, ${socket.id}) joined room ${roomPin}`);
       }
-      console.log(`Player ${name} (${socket.id}) joined room ${roomPin}`);
     }
 
     broadcastRoomUpdate(roomPin);
@@ -304,20 +378,45 @@ io.on('connection', (socket) => {
       };
     }
 
-    const myStats = room.participants.get(socket.id) || null;
+    let remainingReadingSeconds = 0;
+    if (room.gameState === 'READING' && room.readingEndTime) {
+      remainingReadingSeconds = Math.max(0, Math.ceil((room.readingEndTime - Date.now()) / 1000));
+    }
+
+    const effectivePId = participant ? participant.participantId : (room.socketToParticipantId.get(socket.id) || socket.id);
+    const myStats = participant || room.participants.get(effectivePId) || room.participants.get(socket.id) || null;
+
+    const buzzerEntry = room.buzzerQueue.find(b => (b.participantId && b.participantId === effectivePId) || b.socketId === socket.id);
+    const buzzedPosition = buzzerEntry ? room.buzzerQueue.indexOf(buzzerEntry) + 1 : null;
+    const buzzedTime = buzzerEntry ? buzzerEntry.timeFormatted : '';
+    const hasBuzzed = !!buzzerEntry;
+    const hasFailed = room.failedParticipants.has(effectivePId) || room.failedParticipants.has(socket.id);
+
+    const currentQWinner = room.questionWinners ? room.questionWinners.find(qw => qw.questionIndex === room.currentQuestionIndex) : null;
+    const hasWonThisQuestion = currentQWinner && currentQWinner.winner && (
+      (currentQWinner.winner.participantId && currentQWinner.winner.participantId === effectivePId) ||
+      currentQWinner.winner.socketId === socket.id ||
+      (myStats && currentQWinner.winner.name === myStats.name)
+    );
 
     if (callback) callback({
       success: true,
+      participantId: effectivePId,
       roomPin,
       gameState: room.gameState,
       currentQuestionIndex: room.currentQuestionIndex,
       totalQuestions: totalQ,
       configuredQuestionCount: totalQ,
       activeQuestion,
+      remainingReadingSeconds,
       buzzerQueue: room.buzzerQueue.slice(0, 10),
       currentAnswerer: room.buzzerQueue[room.currentAnswererIndex] || null,
-      hasBuzzed: room.buzzerQueue.some(b => b.socketId === socket.id),
-      hasFailed: room.failedParticipants.has(socket.id),
+      hasBuzzed,
+      buzzedPosition,
+      buzzedTime,
+      hasFailed,
+      hasWonThisQuestion: !!hasWonThisQuestion,
+      revealResult: room.currentRevealResult || null,
       resultsPublished: room.resultsPublished || false,
       finalResults: room.finalResults || null,
       questionWinners: room.questionWinners || [],
@@ -348,6 +447,8 @@ io.on('connection', (socket) => {
     room.currentQuestionIndex = questionIndex;
     room.gameState = 'READING';
     room.unlockTime = null;
+    room.readingEndTime = Date.now() + 10000;
+    room.currentRevealResult = null;
     room.buzzerQueue = [];
     room.currentAnswererIndex = 0;
     room.failedParticipants.clear();
@@ -379,6 +480,7 @@ io.on('connection', (socket) => {
     room.timerTimeout = setTimeout(() => {
       room.gameState = 'BUZZER_UNLOCKED';
       room.unlockTime = Date.now();
+      room.readingEndTime = null;
       
       io.to(roomPin).emit('buzzer_unlocked', {
         unlockTime: room.unlockTime
@@ -408,20 +510,24 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if (room.failedParticipants.has(socket.id)) {
+    const participantId = room.socketToParticipantId?.get(socket.id);
+    const participant = participantId ? room.participants.get(participantId) : (room.participants.get(socket.id) || null);
+
+    if (!participant) {
+      if (callback) callback({ success: false, message: 'Participant not found' });
+      return;
+    }
+
+    const pId = participant.participantId || socket.id;
+
+    if (room.failedParticipants.has(pId) || room.failedParticipants.has(socket.id)) {
       if (callback) callback({ success: false, message: 'You already attempted this question and answered incorrectly!' });
       return;
     }
 
-    const alreadyInQueue = room.buzzerQueue.some(b => b.socketId === socket.id);
+    const alreadyInQueue = room.buzzerQueue.some(b => (b.participantId && b.participantId === pId) || b.socketId === socket.id);
     if (alreadyInQueue) {
       if (callback) callback({ success: false, message: 'You have already pressed the buzzer!' });
-      return;
-    }
-
-    const participant = room.participants.get(socket.id);
-    if (!participant) {
-      if (callback) callback({ success: false, message: 'Participant not found' });
       return;
     }
 
@@ -429,6 +535,7 @@ io.on('connection', (socket) => {
     const timeFormatted = (timeMs / 1000).toFixed(3) + 's';
 
     const buzzerEntry = {
+      participantId: pId,
       socketId: socket.id,
       name: participant.name,
       timeMs,
@@ -440,7 +547,10 @@ io.on('connection', (socket) => {
     // If transitioning from BUZZER_UNLOCKED, find first unfailed participant
     if (room.gameState === 'BUZZER_UNLOCKED') {
       room.gameState = 'ANSWERING';
-      const firstValidIdx = room.buzzerQueue.findIndex(b => !room.failedParticipants.has(b.socketId));
+      const firstValidIdx = room.buzzerQueue.findIndex(b => {
+        const idToCheck = b.participantId || b.socketId;
+        return !room.failedParticipants.has(idToCheck) && !room.failedParticipants.has(b.socketId);
+      });
       room.currentAnswererIndex = firstValidIdx >= 0 ? firstValidIdx : 0;
     }
 
@@ -468,12 +578,14 @@ io.on('connection', (socket) => {
 
     broadcastRoomUpdate(roomPin);
 
+    const isYourTurn = activeAnswerer && ((activeAnswerer.participantId && activeAnswerer.participantId === pId) || activeAnswerer.socketId === socket.id);
+
     if (callback) callback({
       success: true,
       timeMs,
       timeFormatted,
       position: room.buzzerQueue.length,
-      isYourTurn: activeAnswerer?.socketId === socket.id
+      isYourTurn: !!isYourTurn
     });
   });
 
@@ -492,14 +604,22 @@ io.on('connection', (socket) => {
     }
 
     const currentAnswerer = room.buzzerQueue[room.currentAnswererIndex];
-    if (!currentAnswerer || currentAnswerer.socketId !== socket.id) {
+    const participantId = room.socketToParticipantId?.get(socket.id);
+    const participant = participantId ? room.participants.get(participantId) : (room.participants.get(socket.id) || null);
+    const pId = participant ? (participant.participantId || socket.id) : socket.id;
+
+    const isMatch = currentAnswerer && (
+      (currentAnswerer.participantId && currentAnswerer.participantId === pId) ||
+      currentAnswerer.socketId === socket.id
+    );
+
+    if (!isMatch) {
       if (callback) callback({ success: false, message: 'It is not your turn to answer!' });
       return;
     }
 
     const question = questions[room.currentQuestionIndex];
     const isCorrect = optionIndex === question.correctAnswer;
-    const participant = room.participants.get(socket.id);
 
     const optionExp = question.optionExplanations ? question.optionExplanations[optionIndex] : '';
 
@@ -524,6 +644,7 @@ io.on('connection', (socket) => {
       room.gameState = 'REVEAL';
 
       const winnerData = {
+        participantId: pId,
         name: currentAnswerer.name,
         socketId: currentAnswerer.socketId,
         timeMs: currentAnswerer.timeMs,
@@ -548,7 +669,7 @@ io.on('connection', (socket) => {
       const { leaderboardByScore, leaderboardByTime } = calculateLeaderboards(room);
 
       const totalQ = room.configuredQuestionCount || questions.length;
-      io.to(roomPin).emit('answer_revealed', {
+      room.currentRevealResult = {
         correctAnswerIndex: question.correctAnswer,
         correctOptionText: question.options[question.correctAnswer],
         explanation: question.explanation,
@@ -556,7 +677,9 @@ io.on('connection', (socket) => {
         leaderboard: leaderboardByScore.slice(0, 10),
         questionIndex: room.currentQuestionIndex,
         isLastQuestion: room.currentQuestionIndex >= totalQ - 1
-      });
+      };
+
+      io.to(roomPin).emit('answer_revealed', room.currentRevealResult);
 
       broadcastRoomUpdate(roomPin);
 
@@ -584,6 +707,7 @@ io.on('connection', (socket) => {
           isCorrect: false,
           pointsDelta: -pointsDeducted
         });
+        room.failedParticipants.add(pId);
       }
 
       room.failedParticipants.add(socket.id);
@@ -679,7 +803,7 @@ io.on('connection', (socket) => {
     const { leaderboardByScore } = calculateLeaderboards(room);
 
     const totalQ = room.configuredQuestionCount || questions.length;
-    io.to(roomPin).emit('answer_revealed', {
+    room.currentRevealResult = {
       correctAnswerIndex: question.correctAnswer,
       correctOptionText: question.options[question.correctAnswer],
       explanation: question.explanation,
@@ -687,7 +811,9 @@ io.on('connection', (socket) => {
       leaderboard: leaderboardByScore.slice(0, 10),
       questionIndex: room.currentQuestionIndex,
       isLastQuestion: room.currentQuestionIndex >= totalQ - 1
-    });
+    };
+
+    io.to(roomPin).emit('answer_revealed', room.currentRevealResult);
 
     broadcastRoomUpdate(roomPin);
     if (callback) callback({ success: true });
@@ -826,12 +952,63 @@ io.on('connection', (socket) => {
             rooms.delete(roomPin);
           }
         }, 120000);
+      } else if (room.socketToParticipantId && room.socketToParticipantId.has(socket.id)) {
+        const participantId = room.socketToParticipantId.get(socket.id);
+        room.socketToParticipantId.delete(socket.id);
+        const participant = room.participants.get(participantId);
+        if (participant) {
+          console.log(`Participant ${participant.name} (${participantId}) disconnected from room ${roomPin}. 15-minute grace period active.`);
+          participant.connected = false;
+          participant.disconnectedAt = Date.now();
+          if (participant.disconnectTimeout) clearTimeout(participant.disconnectTimeout);
+          participant.disconnectTimeout = setTimeout(() => {
+            if (!participant.connected) {
+              console.log(`Participant grace period expired for ${participant.name} (${participantId}) in room ${roomPin}. Removing.`);
+              room.participants.delete(participantId);
+              broadcastRoomUpdate(roomPin);
+            }
+          }, 15 * 60 * 1000);
+          broadcastRoomUpdate(roomPin);
+        }
       } else if (room.participants.has(socket.id)) {
-        console.log(`Participant ${socket.id} disconnected from room ${roomPin}`);
-        room.participants.delete(socket.id);
+        const participant = room.participants.get(socket.id);
+        console.log(`Participant ${participant?.name || socket.id} disconnected from room ${roomPin}. 15-minute grace period active.`);
+        participant.connected = false;
+        participant.disconnectedAt = Date.now();
+        if (participant.disconnectTimeout) clearTimeout(participant.disconnectTimeout);
+        participant.disconnectTimeout = setTimeout(() => {
+          if (!participant.connected) {
+            room.participants.delete(socket.id);
+            broadcastRoomUpdate(roomPin);
+          }
+        }, 15 * 60 * 1000);
         broadcastRoomUpdate(roomPin);
       }
     }
+  });
+
+  socket.on('leave_room', (data, callback) => {
+    const { roomPin } = data || {};
+    const room = roomPin ? rooms.get(roomPin) : null;
+    if (room) {
+      let participantId = null;
+      if (room.socketToParticipantId && room.socketToParticipantId.has(socket.id)) {
+        participantId = room.socketToParticipantId.get(socket.id);
+        room.socketToParticipantId.delete(socket.id);
+      } else if (room.participants.has(socket.id)) {
+        participantId = socket.id;
+      }
+
+      if (participantId && room.participants.has(participantId)) {
+        const participant = room.participants.get(participantId);
+        if (participant && participant.disconnectTimeout) clearTimeout(participant.disconnectTimeout);
+        room.participants.delete(participantId);
+        socket.leave(roomPin);
+        console.log(`Player ${participant?.name || participantId} explicitly left room ${roomPin}`);
+        broadcastRoomUpdate(roomPin);
+      }
+    }
+    if (callback) callback({ success: true });
   });
 });
 

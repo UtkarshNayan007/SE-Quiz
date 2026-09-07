@@ -23,8 +23,10 @@ export const getSocket = (): Socket => {
       autoConnect: true,
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 15,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
     socket.on('connect', () => {

@@ -1,16 +1,22 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getSocket } from '../../lib/socket';
-import { ShieldCheck, Timer, Zap, CheckCircle2, XCircle, Clock, Send, Lock, Volume2, UserCheck, AlertTriangle, Trophy, Crown, Sparkles, Award } from 'lucide-react';
+import { ShieldCheck, Timer, Zap, CheckCircle2, XCircle, Clock, Send, Lock, Volume2, UserCheck, AlertTriangle, Trophy, Crown, Sparkles, Award, LogOut } from 'lucide-react';
 import confetti from 'canvas-confetti';
+
+const STORAGE_PIN = 'se_quiz_pin';
+const STORAGE_NAME = 'se_quiz_name';
+const STORAGE_PARTICIPANT_ID = 'se_quiz_participant_id';
 
 function ParticipantComponent() {
   const searchParams = useSearchParams();
   const [pin, setPin] = useState(searchParams?.get('pin') || '');
   const [name, setName] = useState(searchParams?.get('name') || '');
+  const [participantId, setParticipantId] = useState('');
   const [joined, setJoined] = useState(false);
+  const [isAutoConnecting, setIsAutoConnecting] = useState(true);
   const [error, setError] = useState('');
   
   // Game States: 'LOBBY', 'READING', 'BUZZER_UNLOCKED', 'ANSWERING', 'REVEAL', 'HOST_CONTROL', 'QUIZ_ENDED', 'RESULTS_PUBLISHED'
@@ -34,6 +40,8 @@ function ParticipantComponent() {
   const [myScore, setMyScore] = useState(0);
   const [publishedResults, setPublishedResults] = useState<any>(null);
 
+  const initialMountDone = useRef(false);
+
   const triggerConfettiExplosion = () => {
     const duration = 3 * 1000;
     const end = Date.now() + duration;
@@ -45,24 +53,131 @@ function ParticipantComponent() {
     frame();
   };
 
+  const performJoin = (roomPinToUse: string, nameToUse: string, pIdToUse?: string) => {
+    if (!roomPinToUse || !nameToUse) {
+      setIsAutoConnecting(false);
+      return;
+    }
+    const socket = getSocket();
+    socket.emit('join_room', {
+      roomPin: roomPinToUse,
+      name: nameToUse,
+      participantId: pIdToUse || undefined,
+      role: 'participant'
+    }, (res: any) => {
+      setIsAutoConnecting(false);
+      if (res?.success) {
+        setJoined(true);
+        setPin(roomPinToUse);
+        setName(nameToUse);
+        setError('');
+
+        const effectivePid = res.participantId || pIdToUse;
+        if (effectivePid) {
+          setParticipantId(effectivePid);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(STORAGE_PARTICIPANT_ID, effectivePid);
+            localStorage.setItem(STORAGE_PIN, roomPinToUse);
+            localStorage.setItem(STORAGE_NAME, nameToUse);
+            const url = new URL(window.location.href);
+            url.searchParams.set('pin', roomPinToUse);
+            window.history.replaceState({}, '', url.toString());
+          }
+        }
+
+        if (res.gameState) setGameState(res.gameState);
+        if (res.activeQuestion) setActiveQuestion(res.activeQuestion);
+        if (res.totalQuestions) setTotalQuestions(res.totalQuestions);
+        if (res.remainingReadingSeconds !== undefined && res.remainingReadingSeconds > 0) {
+          setCountdown(res.remainingReadingSeconds);
+        }
+        if (res.buzzerQueue) setBuzzerQueue(res.buzzerQueue);
+        if (res.currentAnswerer) setCurrentAnswerer(res.currentAnswerer);
+
+        if (res.hasBuzzed) {
+          setHasBuzzed(true);
+          if (res.buzzedPosition) setBuzzedPosition(res.buzzedPosition);
+          if (res.buzzedTime) setBuzzedTime(res.buzzedTime);
+        } else {
+          setHasBuzzed(false);
+          setBuzzedPosition(null);
+          setBuzzedTime('');
+        }
+
+        if (res.hasFailed) setHasFailed(true);
+        if (res.hasWonThisQuestion) setHasWonThisQuestion(true);
+        if (res.myStats?.score !== undefined) setMyScore(res.myStats.score);
+
+        if (res.revealResult) {
+          setRevealResult(res.revealResult);
+        }
+
+        if (res.resultsPublished && res.finalResults) {
+          setGameState('RESULTS_PUBLISHED');
+          setPublishedResults(res.finalResults);
+        }
+      } else {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(STORAGE_PIN);
+          localStorage.removeItem(STORAGE_NAME);
+          localStorage.removeItem(STORAGE_PARTICIPANT_ID);
+        }
+        setJoined(false);
+        setError(res?.message || 'Room not found or session expired');
+      }
+    });
+  };
+
+  // Restore session from localStorage on initial page load / refresh
+  useEffect(() => {
+    if (initialMountDone.current) return;
+    initialMountDone.current = true;
+
+    let savedPin = '';
+    let savedName = '';
+    let savedPid = '';
+
+    if (typeof window !== 'undefined') {
+      savedPin = localStorage.getItem(STORAGE_PIN) || '';
+      savedName = localStorage.getItem(STORAGE_NAME) || '';
+      savedPid = localStorage.getItem(STORAGE_PARTICIPANT_ID) || '';
+    }
+
+    const urlPin = searchParams?.get('pin') || '';
+    const urlName = searchParams?.get('name') || '';
+
+    const effectivePin = urlPin || savedPin;
+    const effectiveName = urlName || savedName;
+
+    if (effectivePin) setPin(effectivePin);
+    if (effectiveName) setName(effectiveName);
+    if (savedPid) setParticipantId(savedPid);
+
+    if (effectivePin && effectiveName) {
+      performJoin(effectivePin, effectiveName, savedPid);
+    } else {
+      setIsAutoConnecting(false);
+    }
+  }, []);
+
+  // Socket event listeners and connection recovery
   useEffect(() => {
     const socket = getSocket();
 
-    socket.on('room_updated', (roomData) => {
-      setJoined(true);
+    const handleRoomUpdated = (roomData: any) => {
       setError('');
       if (roomData?.gameState) {
         setGameState(roomData.gameState);
       }
-      if (roomData?.currentAnswerer) {
+      if (roomData?.currentAnswerer !== undefined) {
         setCurrentAnswerer(roomData.currentAnswerer);
       }
       if (roomData?.totalQuestions) {
         setTotalQuestions(roomData.totalQuestions);
       }
-    });
+    };
 
-    socket.on('question_pushed', (data) => {
+    const handleQuestionPushed = (data: any) => {
       setActiveQuestion(data);
       if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
       setCountdown(data.durationSeconds || 10);
@@ -77,26 +192,26 @@ function ParticipantComponent() {
       setHasFailed(false);
       setHasWonThisQuestion(false);
       setGameState('READING');
-    });
+    };
 
-    socket.on('question_limit_updated', (data: any) => {
+    const handleQuestionLimitUpdated = (data: any) => {
       if (data?.totalQuestions) setTotalQuestions(data.totalQuestions);
-    });
+    };
 
-    socket.on('buzzer_unlocked', () => {
+    const handleBuzzerUnlocked = () => {
       setGameState('BUZZER_UNLOCKED');
       setCountdown(0);
-    });
+    };
 
-    socket.on('buzzer_hit_recorded', (data) => {
+    const handleBuzzerHitRecorded = (data: any) => {
       setBuzzerQueue(data.buzzerQueue || []);
       setCurrentAnswerer(data.activeAnswerer || null);
       if (data.activeAnswerer) {
         setGameState('ANSWERING');
       }
-    });
+    };
 
-    socket.on('turn_passed', (data) => {
+    const handleTurnPassed = (data: any) => {
       if (data.nextAnswerer) {
         setCurrentAnswerer(data.nextAnswerer);
         setGameState('ANSWERING');
@@ -104,33 +219,105 @@ function ParticipantComponent() {
         setCurrentAnswerer(null);
         setGameState(data.gameState || 'BUZZER_UNLOCKED');
       }
-    });
+    };
 
-    socket.on('answer_revealed', (data) => {
+    const handleAnswerRevealed = (data: any) => {
       setRevealResult(data);
       setGameState('REVEAL');
-    });
+    };
 
-    socket.on('quiz_ended', () => {
+    const handleQuizEnded = () => {
       setGameState('QUIZ_ENDED');
-    });
+    };
 
-    socket.on('quiz_results_published', (data) => {
+    const handleQuizResultsPublished = (data: any) => {
       setGameState('RESULTS_PUBLISHED');
       setPublishedResults(data);
       triggerConfettiExplosion();
-    });
+    };
+
+    const handleRoomDestroyed = (data: any) => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(STORAGE_PIN);
+        localStorage.removeItem(STORAGE_NAME);
+        localStorage.removeItem(STORAGE_PARTICIPANT_ID);
+      }
+      setJoined(false);
+      setError(data?.message || 'Session ended by host');
+    };
+
+    // Auto re-join when socket reconnects (after network drop, phone call, background wake)
+    const handleConnect = () => {
+      if (typeof window !== 'undefined') {
+        const savedP = localStorage.getItem(STORAGE_PIN);
+        const savedN = localStorage.getItem(STORAGE_NAME);
+        const savedId = localStorage.getItem(STORAGE_PARTICIPANT_ID);
+        if (savedP && savedN) {
+          performJoin(savedP, savedN, savedId || undefined);
+        }
+      }
+    };
+
+    socket.on('room_updated', handleRoomUpdated);
+    socket.on('question_pushed', handleQuestionPushed);
+    socket.on('question_limit_updated', handleQuestionLimitUpdated);
+    socket.on('buzzer_unlocked', handleBuzzerUnlocked);
+    socket.on('buzzer_hit_recorded', handleBuzzerHitRecorded);
+    socket.on('turn_passed', handleTurnPassed);
+    socket.on('answer_revealed', handleAnswerRevealed);
+    socket.on('quiz_ended', handleQuizEnded);
+    socket.on('quiz_results_published', handleQuizResultsPublished);
+    socket.on('room_destroyed', handleRoomDestroyed);
+    socket.on('connect', handleConnect);
 
     return () => {
-      socket.off('room_updated');
-      socket.off('question_pushed');
-      socket.off('question_limit_updated');
-      socket.off('buzzer_unlocked');
-      socket.off('buzzer_hit_recorded');
-      socket.off('turn_passed');
-      socket.off('answer_revealed');
-      socket.off('quiz_ended');
-      socket.off('quiz_results_published');
+      socket.off('room_updated', handleRoomUpdated);
+      socket.off('question_pushed', handleQuestionPushed);
+      socket.off('question_limit_updated', handleQuestionLimitUpdated);
+      socket.off('buzzer_unlocked', handleBuzzerUnlocked);
+      socket.off('buzzer_hit_recorded', handleBuzzerHitRecorded);
+      socket.off('turn_passed', handleTurnPassed);
+      socket.off('answer_revealed', handleAnswerRevealed);
+      socket.off('quiz_ended', handleQuizEnded);
+      socket.off('quiz_results_published', handleQuizResultsPublished);
+      socket.off('room_destroyed', handleRoomDestroyed);
+      socket.off('connect', handleConnect);
+    };
+  }, []);
+
+  // Handle phone call return / mobile tab visibility change & online events
+  useEffect(() => {
+    const syncSession = () => {
+      const socket = getSocket();
+      if (!socket.connected) {
+        socket.connect();
+      }
+      if (typeof window !== 'undefined') {
+        const savedP = localStorage.getItem(STORAGE_PIN);
+        const savedN = localStorage.getItem(STORAGE_NAME);
+        const savedId = localStorage.getItem(STORAGE_PARTICIPANT_ID);
+        if (savedP && savedN) {
+          performJoin(savedP, savedN, savedId || undefined);
+        }
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncSession();
+      }
+    };
+
+    const handleOnline = () => {
+      syncSession();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', handleOnline);
     };
   }, []);
 
@@ -153,26 +340,30 @@ function ParticipantComponent() {
       setError('Please enter both PIN and Name');
       return;
     }
+    performJoin(pin, name, participantId);
+  };
+
+  const handleLeaveRoom = () => {
     const socket = getSocket();
-    socket.emit('join_room', { roomPin: pin, name, role: 'participant' }, (res: any) => {
-      if (res?.success) {
-        setJoined(true);
-        if (res.gameState) setGameState(res.gameState);
-        if (res.activeQuestion) setActiveQuestion(res.activeQuestion);
-        if (res.totalQuestions) setTotalQuestions(res.totalQuestions);
-        if (res.buzzerQueue) setBuzzerQueue(res.buzzerQueue);
-        if (res.currentAnswerer) setCurrentAnswerer(res.currentAnswerer);
-        if (res.hasBuzzed) setHasBuzzed(true);
-        if (res.hasFailed) setHasFailed(true);
-        if (res.myStats?.score !== undefined) setMyScore(res.myStats.score);
-        if (res.resultsPublished && res.finalResults) {
-          setGameState('RESULTS_PUBLISHED');
-          setPublishedResults(res.finalResults);
-        }
-      } else {
-        setError(res?.message || 'Failed to join room');
-      }
-    });
+    socket.emit('leave_room', { roomPin: pin }, () => {});
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_PIN);
+      localStorage.removeItem(STORAGE_NAME);
+      localStorage.removeItem(STORAGE_PARTICIPANT_ID);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('pin');
+      window.history.replaceState({}, '', url.toString());
+    }
+    setJoined(false);
+    setPin('');
+    setName('');
+    setParticipantId('');
+    setGameState('LOBBY');
+    setActiveQuestion(null);
+    setHasBuzzed(false);
+    setHasFailed(false);
+    setHasWonThisQuestion(false);
+    setMyScore(0);
   };
 
   const handleBuzzerPress = () => {
@@ -193,7 +384,7 @@ function ParticipantComponent() {
 
   const handleOptionClick = (index: number) => {
     const socket = getSocket();
-    const isMyTurn = currentAnswerer?.socketId === socket.id;
+    const isMyTurn = currentAnswerer && ((currentAnswerer.participantId && participantId ? currentAnswerer.participantId === participantId : false) || currentAnswerer.socketId === socket.id);
     if (gameState !== 'ANSWERING' || !isMyTurn || selectedOption !== null) return;
 
     setSelectedOption(index);
@@ -214,7 +405,19 @@ function ParticipantComponent() {
 
   const letters = ['A', 'B', 'C', 'D'];
   const socket = getSocket();
-  const isMyTurn = currentAnswerer?.socketId === socket.id;
+  const isMyTurn = currentAnswerer && ((currentAnswerer.participantId && participantId ? currentAnswerer.participantId === participantId : false) || currentAnswerer.socketId === socket.id);
+
+  if (isAutoConnecting && !joined) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg p-8 border border-gray-100 text-center">
+          <div className="animate-spin w-10 h-10 border-4 border-[#009639] border-t-transparent rounded-full mx-auto mb-4" />
+          <h2 className="text-lg font-bold text-gray-900">Reconnecting to Quiz...</h2>
+          <p className="text-xs text-gray-500 mt-1">Restoring your session, score, and room position</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!joined) {
     return (
@@ -292,9 +495,18 @@ function ParticipantComponent() {
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Score</p>
             <p className="font-bold text-amber-600 text-xl">{myScore} <span className="text-xs font-medium text-gray-400">pts</span></p>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Room</p>
-            <p className="font-mono font-bold text-[#009639] text-xl">{pin}</p>
+          <div className="flex items-center gap-2">
+            <div className="text-right">
+              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Room</p>
+              <p className="font-mono font-bold text-[#009639] text-xl">{pin}</p>
+            </div>
+            <button
+              onClick={handleLeaveRoom}
+              title="Leave Room"
+              className="p-2 ml-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors active:scale-95"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
@@ -316,6 +528,15 @@ function ParticipantComponent() {
             <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-2 rounded-xl text-xs font-bold">
               <Sparkles className="w-4 h-4 text-emerald-600" />
               <span>{totalQuestions} Questions in this round</span>
+            </div>
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <button
+                onClick={handleLeaveRoom}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors inline-flex items-center gap-1 font-medium"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Switch Player / Leave Room</span>
+              </button>
             </div>
           </div>
         )}
