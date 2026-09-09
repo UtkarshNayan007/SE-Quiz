@@ -24,8 +24,13 @@ interface RevealResult {
     socketId: string;
     name: string;
     timeFormatted: string;
-    turnNumber: number;
+    timeMs?: number;
+    totalCorrectCount?: number;
+    turnNumber?: number;
   } | null;
+  totalCorrectCount?: number;
+  totalAnsweredCount?: number;
+  totalParticipantsCount?: number;
   leaderboard: Array<{ name: string; score: number }>;
 }
 
@@ -35,12 +40,20 @@ function ProjectorComponent() {
 
   const [participantCount, setParticipantCount] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(10);
-  const [gameState, setGameState] = useState<'LOBBY' | 'READING' | 'BUZZER_UNLOCKED' | 'ANSWERING' | 'REVEAL' | 'HOST_CONTROL' | 'QUIZ_ENDED' | 'RESULTS_PUBLISHED'>('LOBBY');
+  const [gameState, setGameState] = useState<'LOBBY' | 'READING' | 'ANSWERING' | 'REVEAL' | 'QUIZ_ENDED' | 'RESULTS_PUBLISHED'>('LOBBY');
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [countdown, setCountdown] = useState(10);
   
-  const [buzzerQueue, setBuzzerQueue] = useState<any[]>([]);
-  const [currentAnswerer, setCurrentAnswerer] = useState<any>(null);
+  const [progressData, setProgressData] = useState<{
+    answeredCount: number;
+    unansweredCount: number;
+    participantCount: number;
+  }>({
+    answeredCount: 0,
+    unansweredCount: 0,
+    participantCount: 0
+  });
+
   const [revealResult, setRevealResult] = useState<RevealResult | null>(null);
   const [publishedResults, setPublishedResults] = useState<any>(null);
   const [participantUrl, setParticipantUrl] = useState('');
@@ -89,8 +102,6 @@ function ProjectorComponent() {
       if (res?.success) {
         if (res.gameState) setGameState(res.gameState);
         if (res.activeQuestion) setCurrentQuestion(res.activeQuestion);
-        if (res.buzzerQueue) setBuzzerQueue(res.buzzerQueue);
-        if (res.currentAnswerer) setCurrentAnswerer(res.currentAnswerer);
         if (res.totalQuestions) setTotalQuestions(res.totalQuestions);
         if (res.resultsPublished && res.finalResults) {
           setGameState('RESULTS_PUBLISHED');
@@ -102,19 +113,20 @@ function ProjectorComponent() {
     socket.on('room_updated', (data: any) => {
       setParticipantCount(data.participantCount || data.participants?.length || 0);
       if (data.gameState) setGameState(data.gameState);
-      if (data.buzzerQueue) setBuzzerQueue(data.buzzerQueue);
-      if (data.currentAnswerer) setCurrentAnswerer(data.currentAnswerer);
       if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
     });
 
     socket.on('question_pushed', (data: Question) => {
       setRevealResult(null);
-      setBuzzerQueue([]);
-      setCurrentAnswerer(null);
       setCountdown(data.durationSeconds || 10);
       setCurrentQuestion(data);
       if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
       setGameState('READING');
+      setProgressData({
+        answeredCount: 0,
+        unansweredCount: participantCount,
+        participantCount
+      });
 
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = setInterval(() => {
@@ -128,33 +140,38 @@ function ProjectorComponent() {
       }, 1000);
     });
 
+    socket.on('answering_started', (data: any) => {
+      setGameState('ANSWERING');
+      setCountdown(data.durationSeconds || 30);
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    });
+
+    socket.on('question_progress', (data: any) => {
+      setProgressData({
+        answeredCount: data.answeredCount || 0,
+        unansweredCount: data.unansweredCount || 0,
+        participantCount: data.participantCount || 0
+      });
+      if (data.participantCount !== undefined) {
+        setParticipantCount(data.participantCount);
+      }
+    });
+
     socket.on('question_limit_updated', (data: any) => {
       if (data?.totalQuestions) setTotalQuestions(data.totalQuestions);
     });
 
-    socket.on('buzzer_unlocked', () => {
-      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-      setGameState('BUZZER_UNLOCKED');
-      setCountdown(0);
-    });
-
-    socket.on('buzzer_hit_recorded', (data: any) => {
-      setBuzzerQueue(data.buzzerQueue || []);
-      setCurrentAnswerer(data.activeAnswerer || null);
-      if (data.activeAnswerer) setGameState('ANSWERING');
-    });
-
-    socket.on('turn_passed', (data: any) => {
-      if (data.nextAnswerer) {
-        setCurrentAnswerer(data.nextAnswerer);
-        setGameState('ANSWERING');
-      } else {
-        setCurrentAnswerer(null);
-        setGameState(data.gameState || 'BUZZER_UNLOCKED');
-      }
-    });
-
     socket.on('answer_revealed', (data: any) => {
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
       setGameState('REVEAL');
       setRevealResult(data);
       if (data.winner) {
@@ -177,10 +194,9 @@ function ProjectorComponent() {
     return () => {
       socket.off('room_updated');
       socket.off('question_pushed');
+      socket.off('answering_started');
+      socket.off('question_progress');
       socket.off('question_limit_updated');
-      socket.off('buzzer_unlocked');
-      socket.off('buzzer_hit_recorded');
-      socket.off('turn_passed');
       socket.off('answer_revealed');
       socket.off('quiz_ended');
       socket.off('quiz_results_published');
@@ -463,43 +479,80 @@ function ProjectorComponent() {
               </div>
             </div>
 
-            {/* Per-Question Winners Grid */}
-            <div className="bg-white border-2 border-slate-200 rounded-3xl p-6 shadow-lg">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                  <Award className="w-6 h-6 text-[#009639]" />
-                  <span>Winners by Question</span>
-                </h3>
-                <span className="text-xs font-bold uppercase text-slate-400">
-                  +100 pts per correct answer • -50 negative marking on wrong answers
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {publishedResults.questionWinners?.map((qw: any, idx: number) => (
-                  <div key={idx} className="bg-slate-50 border-2 border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between hover:border-[#009639]/40 transition-all">
-                    <div>
-                      <span className="text-xs font-extrabold text-[#009639] uppercase tracking-wider block mb-1">
-                        Question #{qw.questionIndex + 1}
-                      </span>
-                      <p className="text-xs font-semibold text-slate-700 line-clamp-2 mb-3">
-                        {qw.questionText}
-                      </p>
+            {/* Spotlight Awards Grid: Tie-Breaker Speed Winner, Best Learner Award */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 1. Tie-Breaker Speed Winner */}
+              <div className="bg-gradient-to-b from-blue-50 to-white rounded-3xl border-2 border-blue-200 p-6 shadow-md flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-black">
+                      <Zap className="w-4 h-4 fill-current" />
                     </div>
-                    <div className="pt-2 border-t border-slate-200">
-                      {qw.winner ? (
-                        <div>
-                          <div className="flex items-center gap-1.5 font-bold text-slate-900 text-sm">
-                            <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
-                            <span className="truncate">{qw.winner.name}</span>
-                          </div>
-                          <p className="text-xs font-mono font-bold text-[#009639] mt-0.5">{qw.winner.timeFormatted}</p>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400 italic">No Winner</span>
-                      )}
+                    <span className="text-xs font-black uppercase tracking-wider text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full">
+                      ⚡ Tie-Breaker Speed Winner
+                    </span>
+                  </div>
+                  <h4 className="text-2xl font-black text-slate-900 mt-2">
+                    {publishedResults.tieBreakerWinner?.name || 'N/A'}
+                  </h4>
+                  <div className="mt-3 flex items-center gap-3">
+                    <span className="text-2xl font-mono font-black text-blue-700">
+                      {publishedResults.tieBreakerWinner?.totalTimeFormatted || '--'}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      ({publishedResults.tieBreakerWinner?.score ?? 0} pts)
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-blue-600 mt-4 font-medium">
+                  Awarded for fastest cumulative response time in score tie / top performance.
+                </p>
+              </div>
+
+              {/* 2. Best Learner Award - Stage Challenge Qualifier */}
+              <div className="bg-gradient-to-b from-purple-50 via-white to-amber-50 rounded-3xl border-2 border-purple-200 p-6 shadow-md flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-black">
+                        <Award className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-black uppercase tracking-wider text-purple-700 bg-purple-100 px-2.5 py-0.5 rounded-full">
+                        🌟 Best Learner Award
+                      </span>
                     </div>
                   </div>
-                ))}
+                  <h4 className="text-2xl font-black text-slate-900 mt-2">
+                    {publishedResults.bestLearnerWinner?.name || 'N/A'}
+                  </h4>
+                  <div className="mt-3 flex items-center gap-3">
+                    <span className="text-2xl font-mono font-black text-purple-700">
+                      {publishedResults.bestLearnerWinner?.score ?? 0} pts
+                    </span>
+                    <span className="text-xs font-bold text-slate-500 font-mono">
+                      Speed: {publishedResults.bestLearnerWinner?.totalTimeFormatted || '--'}
+                    </span>
+                  </div>
+                  {publishedResults.bestLearnerWinner && (
+                    <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-purple-800 bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-200">
+                      <span>✓ Attempted All Questions ({publishedResults.bestLearnerWinner.attemptedCount}/{publishedResults.bestLearnerWinner.totalQuestions || totalQuestions})</span>
+                    </div>
+                  )}
+
+                  {/* Stage Challenge Requirement Callout */}
+                  <div className="mt-4 p-3 rounded-2xl bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-300 text-amber-950 flex items-start gap-2.5 shadow-sm animate-in fade-in duration-300">
+                    <span className="text-base leading-none mt-0.5">🎤</span>
+                    <div className="text-xs">
+                      <span className="font-black uppercase tracking-wider block text-amber-900">Stage Qualifier</span>
+                      <p className="font-bold text-slate-900 mt-0.5 leading-snug">
+                        Must come on stage and play one more game to claim the prize!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-purple-700 mt-3 font-medium">
+                  Awarded for attempting all questions, highest score after negative marking & fastest speed.
+                </p>
               </div>
             </div>
 
@@ -583,29 +636,20 @@ function ProjectorComponent() {
                 </div>
               )}
               
-              {gameState === 'BUZZER_UNLOCKED' && (
-                <div className="flex items-center gap-3 bg-[#00E676]/20 border-2 border-[#009639] rounded-2xl px-6 py-3 shadow-md animate-pulse">
-                  <Zap className="w-8 h-8 text-[#009639]" />
-                  <span className="text-3xl font-black text-[#009639] tracking-wider">
-                    BUZZER LIVE!
-                  </span>
-                </div>
-              )}
-
               {gameState === 'ANSWERING' && (
-                <div className="flex items-center gap-3 bg-gradient-to-r from-[#00E676] to-[#009639] text-white rounded-2xl px-6 py-3 shadow-lg animate-pulse">
-                  <UserCheck className="w-8 h-8" />
-                  <span className="text-2xl font-black tracking-wider">
-                    Turn #{buzzerQueue.length}: {currentAnswerer?.name} is Answering...
-                  </span>
-                </div>
-              )}
-
-              {gameState === 'HOST_CONTROL' && (
-                <div className="flex items-center gap-3 bg-amber-100 border-2 border-amber-500 rounded-2xl px-6 py-3 shadow-md text-amber-900 font-bold">
-                  <span className="text-2xl font-black tracking-wider uppercase">
-                    Both Attempts Incorrect — Host Control
-                  </span>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 bg-[#00E676]/20 border border-[#009639]/40 rounded-2xl px-5 py-3 shadow-md">
+                    <Users className="w-6 h-6 text-[#009639]" />
+                    <span className="text-xl font-black font-mono text-[#009639]">
+                      {progressData.answeredCount} / {progressData.participantCount || participantCount} Answered
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-[#00E676] to-[#009639] text-white rounded-2xl px-6 py-3 shadow-lg animate-pulse">
+                    <Timer className="w-8 h-8 text-white" />
+                    <span className="text-3xl font-black font-mono tracking-wider">
+                      {countdown}s
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -665,33 +709,73 @@ function ProjectorComponent() {
               })}
             </div>
 
-            {/* REVEAL EXPLANATION & WINNER FOOTER */}
+            {/* REVEAL EXPLANATION & PROMINENT PER-QUESTION WINNER (PROJECTOR SCREEN ONLY) */}
             {gameState === 'REVEAL' && revealResult && (
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5 shrink-0 mb-2">
                 {/* Official Explanation Card */}
-                <div className="md:col-span-8 bg-white border-2 border-slate-200 p-6 rounded-2xl flex flex-col justify-center shadow-md">
+                <div className="md:col-span-5 bg-white border-2 border-slate-200 p-6 rounded-3xl flex flex-col justify-center shadow-md">
                   <h4 className="text-xs uppercase tracking-widest text-[#009639] font-black mb-2 flex items-center gap-2">
                     <HelpCircle className="w-4 h-4" /> Official Explanation
                   </h4>
-                  <p className="text-lg text-slate-800 font-semibold leading-relaxed">
+                  <p className="text-base text-slate-800 font-semibold leading-relaxed">
                     {revealResult.explanation}
                   </p>
                 </div>
 
-                {/* Winner Card */}
-                <div className="md:col-span-4 bg-emerald-50 border-2 border-[#009639] p-6 rounded-2xl flex flex-col justify-center shadow-md">
+                {/* Per-Question Winner & Total Right Answers Card (Projector Screen Only) */}
+                <div className="md:col-span-7 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-amber-950 border-4 border-amber-300 p-6 rounded-3xl flex items-center justify-between gap-4 shadow-2xl animate-in zoom-in-95 duration-300">
                   {revealResult.winner ? (
-                    <div className="flex items-center gap-4">
-                      <Trophy className="w-12 h-12 text-[#009639] shrink-0" />
-                      <div>
-                        <p className="text-xs uppercase tracking-widest text-[#009639] font-black">Fastest Correct Answer</p>
-                        <h3 className="text-2xl font-black text-slate-900">{revealResult.winner.name}</h3>
-                        <p className="text-xs text-slate-600 font-mono font-bold mt-0.5">{revealResult.winner.timeFormatted} (Attempt #{revealResult.winner.turnNumber})</p>
+                    <div className="flex items-center justify-between gap-4 w-full">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-16 h-16 rounded-2xl bg-white/40 flex items-center justify-center shrink-0 shadow-inner">
+                          <Trophy className="w-10 h-10 text-amber-900 animate-bounce" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-amber-900/90 bg-white/50 px-3 py-0.5 rounded-full inline-flex items-center gap-1 mb-1">
+                            <Zap className="w-3 h-3 text-amber-900" /> 1st Correct by Time
+                          </span>
+                          <h3 className="text-3xl font-black text-slate-950 leading-tight truncate">
+                            {revealResult.winner.name}
+                          </h3>
+                          <p className="text-sm font-bold text-amber-950 mt-0.5 flex items-center gap-1.5 font-mono">
+                            <Clock className="w-4 h-4 text-amber-900" /> Response Time: <span className="font-black text-slate-950">{revealResult.winner.timeFormatted}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Total Count of People Who Answered Right */}
+                      <div className="bg-white/40 backdrop-blur-sm border-2 border-white/60 rounded-2xl px-5 py-3 flex flex-col items-center justify-center shrink-0 shadow-sm text-center min-w-[130px]">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-900/90 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-800" /> Total Right
+                        </span>
+                        <div className="text-3xl font-black text-slate-950 leading-none mt-1">
+                          {revealResult.totalCorrectCount ?? revealResult.winner.totalCorrectCount ?? 1}
+                        </div>
+                        <span className="text-[10px] font-bold text-amber-950/80 mt-1">
+                          {revealResult.totalAnsweredCount ? `of ${revealResult.totalAnsweredCount} answered` : 'correct answers'}
+                        </span>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center text-slate-600 text-base font-bold">
-                      No correct answers this round
+                    <div className="flex items-center justify-between gap-4 w-full">
+                      <div className="py-2">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-amber-900/90 bg-white/40 px-3 py-0.5 rounded-full inline-block mb-1">
+                          Question Result
+                        </span>
+                        <h3 className="text-2xl font-black text-slate-950 leading-tight">No Correct Answers</h3>
+                        <p className="text-xs text-amber-900 font-semibold mt-0.5">No participant answered correctly this round</p>
+                      </div>
+                      <div className="bg-white/40 backdrop-blur-sm border-2 border-white/60 rounded-2xl px-5 py-3 flex flex-col items-center justify-center shrink-0 shadow-sm text-center min-w-[130px]">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-900/90 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-amber-900" /> Total Right
+                        </span>
+                        <div className="text-3xl font-black text-slate-950 leading-none mt-1">
+                          0
+                        </div>
+                        <span className="text-[10px] font-bold text-amber-950/80 mt-1">
+                          {revealResult.totalAnsweredCount ? `of ${revealResult.totalAnsweredCount} answered` : '0 answered right'}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>

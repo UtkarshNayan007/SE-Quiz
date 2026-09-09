@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getSocket } from '../../lib/socket';
-import { ShieldCheck, Timer, Zap, CheckCircle2, XCircle, Clock, Send, Lock, Volume2, UserCheck, AlertTriangle, Trophy, Crown, Sparkles, Award, LogOut, RotateCcw } from 'lucide-react';
+import { ShieldCheck, Timer, Zap, CheckCircle2, XCircle, Clock, Send, Lock, Volume2, UserCheck, AlertTriangle, Trophy, Crown, Sparkles, Award, LogOut, RotateCcw, Share2, Download, FileCheck } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import CertificateModal from '../../components/CertificateModal';
+import { CertificateData, generateVerificationId } from '../../lib/certificateGenerator';
 
 const STORAGE_PIN = 'se_quiz_pin';
 const STORAGE_NAME = 'se_quiz_name';
@@ -21,26 +23,22 @@ function ParticipantComponent() {
   const [isAutoConnecting, setIsAutoConnecting] = useState(true);
   const [error, setError] = useState('');
   
-  // Game States: 'LOBBY', 'READING', 'BUZZER_UNLOCKED', 'ANSWERING', 'REVEAL', 'HOST_CONTROL', 'QUIZ_ENDED', 'RESULTS_PUBLISHED'
+  // Game States: 'LOBBY', 'READING', 'ANSWERING', 'REVEAL', 'QUIZ_ENDED', 'RESULTS_PUBLISHED'
   const [gameState, setGameState] = useState('LOBBY');
   const [totalQuestions, setTotalQuestions] = useState(10);
   const [activeQuestion, setActiveQuestion] = useState<any>(null);
   const [countdown, setCountdown] = useState(10);
   
-  const [hasBuzzed, setHasBuzzed] = useState(false);
-  const [buzzedPosition, setBuzzedPosition] = useState<number | null>(null);
-  const [buzzedTime, setBuzzedTime] = useState('');
-  
-  const [buzzerQueue, setBuzzerQueue] = useState<any[]>([]);
-  const [currentAnswerer, setCurrentAnswerer] = useState<any>(null);
-  
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [submittedTime, setSubmittedTime] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [answerResult, setAnswerResult] = useState<any>(null);
   const [revealResult, setRevealResult] = useState<any>(null);
-  const [hasFailed, setHasFailed] = useState(false);
-  const [hasWonThisQuestion, setHasWonThisQuestion] = useState(false);
   const [myScore, setMyScore] = useState(0);
   const [publishedResults, setPublishedResults] = useState<any>(null);
+  const [isCertificateOpen, setIsCertificateOpen] = useState(false);
 
   const initialMountDone = useRef(false);
 
@@ -60,19 +58,91 @@ function ParticipantComponent() {
     setTotalQuestions(10);
     setActiveQuestion(null);
     setCountdown(10);
-    setHasBuzzed(false);
-    setBuzzedPosition(null);
-    setBuzzedTime('');
-    setBuzzerQueue([]);
-    setCurrentAnswerer(null);
     setSelectedOption(null);
+    setHasSubmitted(false);
+    setSubmittedTime('');
+    setIsSubmitting(false);
     setAnswerResult(null);
     setRevealResult(null);
-    setHasFailed(false);
-    setHasWonThisQuestion(false);
     setMyScore(0);
     setPublishedResults(null);
+    setIsCertificateOpen(false);
     setError('');
+  };
+
+  const getParticipantCertificateData = (): CertificateData => {
+    const defaultData: CertificateData = {
+      name: name || 'Participant',
+      tier: 'participant',
+      awardTitle: 'Certified Cyber Defender',
+      rank: '-',
+      score: myScore,
+      totalQuestions,
+      dateStr: '7 October 2026',
+      locationStr: 'Avinya Campus, Bangalore'
+    };
+
+    if (!publishedResults) return defaultData;
+
+    const myLower = (name || '').trim().toLowerCase();
+    const allList = publishedResults.allRanks || publishedResults.leaderboard || publishedResults.leaderboardByScore || [];
+    const myEntry = allList.find((p: any) => p.name?.trim().toLowerCase() === myLower);
+
+    let myRank = myEntry?.rank;
+    if (!myRank) {
+      const idx = allList.findIndex((p: any) => p.name?.trim().toLowerCase() === myLower);
+      if (idx !== -1) myRank = idx + 1;
+      else myRank = '-';
+    }
+
+    const finalScore = myEntry?.score ?? myScore;
+    const finalSpeed = myEntry?.totalTimeFormatted || '';
+    const attemptedCount = myEntry?.attemptedCount || 0;
+
+    // Check winner categories
+    const isGrandChamp = (publishedResults.grandChampion?.name?.trim().toLowerCase() === myLower) ||
+                         (publishedResults.champion?.name?.trim().toLowerCase() === myLower) ||
+                         myRank === 1;
+
+    const isRunnerUp = (publishedResults.top3?.[1]?.name?.trim().toLowerCase() === myLower) || myRank === 2;
+    const isThirdPlace = (publishedResults.top3?.[2]?.name?.trim().toLowerCase() === myLower) || myRank === 3;
+    const isBestLearner = publishedResults.bestLearnerWinner?.name?.trim().toLowerCase() === myLower;
+    const isTieBreaker = publishedResults.tieBreakerWinner?.name?.trim().toLowerCase() === myLower;
+
+    let tier: 'winner' | 'participant' = 'participant';
+    let awardTitle = typeof myRank === 'number' ? `Cyber Defender • Rank #${myRank}` : 'Certified Cyber Defender';
+
+    if (isGrandChamp) {
+      tier = 'winner';
+      awardTitle = 'Grand Champion • 1st Place';
+    } else if (isRunnerUp) {
+      tier = 'winner';
+      awardTitle = '1st Runner Up • 2nd Place';
+    } else if (isThirdPlace) {
+      tier = 'winner';
+      awardTitle = '2nd Runner Up • 3rd Place';
+    } else if (isBestLearner) {
+      tier = 'winner';
+      awardTitle = 'Best Learner Award • Stage Qualifier';
+    } else if (isTieBreaker) {
+      tier = 'winner';
+      awardTitle = 'Tie-Breaker Speed Champion';
+    }
+
+    return {
+      name: name || 'Participant',
+      tier,
+      awardTitle,
+      rank: myRank,
+      totalParticipants: publishedResults.participantCount || allList.length,
+      score: finalScore,
+      speed: finalSpeed,
+      attemptedCount,
+      totalQuestions: publishedResults.totalQuestions || totalQuestions,
+      verificationId: generateVerificationId(name || 'Participant', finalScore),
+      dateStr: '7 October 2026',
+      locationStr: 'Avinya Campus, Bangalore'
+    };
   };
 
   const performJoin = (roomPinToUse: string, nameToUse: string, pIdToUse?: string) => {
@@ -115,23 +185,17 @@ function ParticipantComponent() {
         if (res.totalQuestions) setTotalQuestions(res.totalQuestions);
         if (res.remainingReadingSeconds !== undefined && res.remainingReadingSeconds > 0) {
           setCountdown(res.remainingReadingSeconds);
-        }
-        if (res.buzzerQueue) setBuzzerQueue(res.buzzerQueue);
-        if (res.currentAnswerer) setCurrentAnswerer(res.currentAnswerer);
-
-        if (res.hasBuzzed) {
-          setHasBuzzed(true);
-          if (res.buzzedPosition) setBuzzedPosition(res.buzzedPosition);
-          if (res.buzzedTime) setBuzzedTime(res.buzzedTime);
-        } else {
-          setHasBuzzed(false);
-          setBuzzedPosition(null);
-          setBuzzedTime('');
+        } else if (res.remainingAnsweringSeconds !== undefined && res.remainingAnsweringSeconds > 0) {
+          setCountdown(res.remainingAnsweringSeconds);
         }
 
-        if (res.hasFailed) setHasFailed(true);
-        if (res.hasWonThisQuestion) setHasWonThisQuestion(true);
         if (res.myStats?.score !== undefined) setMyScore(res.myStats.score);
+
+        if (res.hasAnsweredCurrentQuestion && res.myCurrentAnswer) {
+          setHasSubmitted(true);
+          setSelectedOption(res.myCurrentAnswer.optionIndex);
+          setSubmittedTime(res.myCurrentAnswer.timeFormatted || '');
+        }
 
         if (res.revealResult) {
           setRevealResult(res.revealResult);
@@ -211,9 +275,6 @@ function ParticipantComponent() {
       if (roomData?.gameState) {
         setGameState(roomData.gameState);
       }
-      if (roomData?.currentAnswerer !== undefined) {
-        setCurrentAnswerer(roomData.currentAnswerer);
-      }
       if (roomData?.totalQuestions) {
         setTotalQuestions(roomData.totalQuestions);
       }
@@ -223,44 +284,22 @@ function ParticipantComponent() {
       setActiveQuestion(data);
       if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
       setCountdown(data.durationSeconds || 10);
-      setHasBuzzed(false);
-      setBuzzedPosition(null);
-      setBuzzedTime('');
-      setBuzzerQueue([]);
-      setCurrentAnswerer(null);
       setSelectedOption(null);
+      setHasSubmitted(false);
+      setSubmittedTime('');
+      setIsSubmitting(false);
       setAnswerResult(null);
       setRevealResult(null);
-      setHasFailed(false);
-      setHasWonThisQuestion(false);
       setGameState('READING');
+    };
+
+    const handleAnsweringStarted = (data: any) => {
+      setGameState('ANSWERING');
+      setCountdown(data.durationSeconds || 30);
     };
 
     const handleQuestionLimitUpdated = (data: any) => {
       if (data?.totalQuestions) setTotalQuestions(data.totalQuestions);
-    };
-
-    const handleBuzzerUnlocked = () => {
-      setGameState('BUZZER_UNLOCKED');
-      setCountdown(0);
-    };
-
-    const handleBuzzerHitRecorded = (data: any) => {
-      setBuzzerQueue(data.buzzerQueue || []);
-      setCurrentAnswerer(data.activeAnswerer || null);
-      if (data.activeAnswerer) {
-        setGameState('ANSWERING');
-      }
-    };
-
-    const handleTurnPassed = (data: any) => {
-      if (data.nextAnswerer) {
-        setCurrentAnswerer(data.nextAnswerer);
-        setGameState('ANSWERING');
-      } else {
-        setCurrentAnswerer(null);
-        setGameState(data.gameState || 'BUZZER_UNLOCKED');
-      }
     };
 
     const handleAnswerRevealed = (data: any) => {
@@ -303,13 +342,18 @@ function ParticipantComponent() {
       }
     };
 
+    const handleRoundResult = (data: any) => {
+      if (data?.currentScore !== undefined) {
+        setMyScore(data.currentScore);
+      }
+    };
+
     socket.on('room_updated', handleRoomUpdated);
     socket.on('question_pushed', handleQuestionPushed);
+    socket.on('answering_started', handleAnsweringStarted);
     socket.on('question_limit_updated', handleQuestionLimitUpdated);
-    socket.on('buzzer_unlocked', handleBuzzerUnlocked);
-    socket.on('buzzer_hit_recorded', handleBuzzerHitRecorded);
-    socket.on('turn_passed', handleTurnPassed);
     socket.on('answer_revealed', handleAnswerRevealed);
+    socket.on('round_result', handleRoundResult);
     socket.on('quiz_ended', handleQuizEnded);
     socket.on('quiz_results_published', handleQuizResultsPublished);
     socket.on('room_destroyed', handleRoomDestroyed);
@@ -318,11 +362,10 @@ function ParticipantComponent() {
     return () => {
       socket.off('room_updated', handleRoomUpdated);
       socket.off('question_pushed', handleQuestionPushed);
+      socket.off('answering_started', handleAnsweringStarted);
       socket.off('question_limit_updated', handleQuestionLimitUpdated);
-      socket.off('buzzer_unlocked', handleBuzzerUnlocked);
-      socket.off('buzzer_hit_recorded', handleBuzzerHitRecorded);
-      socket.off('turn_passed', handleTurnPassed);
       socket.off('answer_revealed', handleAnswerRevealed);
+      socket.off('round_result', handleRoundResult);
       socket.off('quiz_ended', handleQuizEnded);
       socket.off('quiz_results_published', handleQuizResultsPublished);
       socket.off('room_destroyed', handleRoomDestroyed);
@@ -369,10 +412,10 @@ function ParticipantComponent() {
     };
   }, []);
 
-  // Countdown timer for 10s reading phase
+  // Countdown timer for 10s reading phase and 30s answering phase
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (gameState === 'READING' && countdown > 0) {
+    if ((gameState === 'READING' || gameState === 'ANSWERING') && countdown > 0) {
       timer = setInterval(() => {
         setCountdown((prev) => Math.max(0, prev - 1));
       }, 1000);
@@ -407,37 +450,17 @@ function ParticipantComponent() {
     resetQuizState();
   };
 
-  const handleBuzzerPress = () => {
-    if (gameState !== 'BUZZER_UNLOCKED' && gameState !== 'ANSWERING') return;
-    if (hasBuzzed || hasFailed) return;
-
-    const socket = getSocket();
-    socket.emit('hit_buzzer', { roomPin: pin }, (res: any) => {
-      if (res?.success) {
-        setHasBuzzed(true);
-        setBuzzedPosition(res.position);
-        setBuzzedTime(res.timeFormatted);
-      } else {
-        setError(res?.message || 'Failed to hit buzzer');
-      }
-    });
-  };
-
   const handleOptionClick = (index: number) => {
-    const socket = getSocket();
-    const isMyTurn = currentAnswerer && ((currentAnswerer.participantId && participantId ? currentAnswerer.participantId === participantId : false) || currentAnswerer.socketId === socket.id);
-    if (gameState !== 'ANSWERING' || !isMyTurn || selectedOption !== null) return;
+    if (gameState !== 'ANSWERING' || hasSubmitted || isSubmitting) return;
 
     setSelectedOption(index);
+    setIsSubmitting(true);
+    const socket = getSocket();
     socket.emit('submit_answer', { roomPin: pin, optionIndex: index }, (res: any) => {
+      setIsSubmitting(false);
       if (res?.success) {
-        setAnswerResult(res);
-        if (res.currentScore !== undefined) setMyScore(res.currentScore);
-        if (res.isCorrect || res.hasWonThisQuestion) {
-          setHasWonThisQuestion(true);
-        } else {
-          setHasFailed(true);
-        }
+        setHasSubmitted(true);
+        setSubmittedTime(res.timeFormatted || '');
       } else {
         setError(res?.message || 'Failed to submit answer');
       }
@@ -445,8 +468,6 @@ function ParticipantComponent() {
   };
 
   const letters = ['A', 'B', 'C', 'D'];
-  const socket = getSocket();
-  const isMyTurn = currentAnswerer && ((currentAnswerer.participantId && participantId ? currentAnswerer.participantId === participantId : false) || currentAnswerer.socketId === socket.id);
 
   if (isAutoConnecting && !joined) {
     return (
@@ -636,6 +657,172 @@ function ParticipantComponent() {
               )}
             </div>
 
+            {/* 4 Award Categories Showcase */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">
+                Official Quiz Awards
+              </h3>
+
+              {/* 1. Top 3 Podium */}
+              <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm space-y-2.5">
+                <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
+                  <Trophy className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-700">🏆 Top 3 Podium</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  {/* 1st Place */}
+                  <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+                    <span className="inline-block px-1.5 py-0.5 bg-amber-400 text-amber-950 font-black rounded text-[10px] mb-1">#1</span>
+                    <p className="font-bold text-gray-900 truncate">{publishedResults.top3?.[0]?.name || publishedResults.grandChampion?.name || 'TBD'}</p>
+                    <p className="font-mono text-[#009639] font-extrabold text-xs">{publishedResults.top3?.[0]?.score ?? publishedResults.grandChampion?.score ?? 0} pts</p>
+                  </div>
+                  {/* 2nd Place */}
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                    <span className="inline-block px-1.5 py-0.5 bg-slate-300 text-slate-800 font-black rounded text-[10px] mb-1">#2</span>
+                    <p className="font-bold text-gray-900 truncate">{publishedResults.top3?.[1]?.name || 'TBD'}</p>
+                    <p className="font-mono text-slate-700 font-extrabold text-xs">{publishedResults.top3?.[1]?.score ?? 0} pts</p>
+                  </div>
+                  {/* 3rd Place */}
+                  <div className="p-2.5 bg-amber-50/40 border border-amber-200/60 rounded-xl">
+                    <span className="inline-block px-1.5 py-0.5 bg-amber-600 text-white font-black rounded text-[10px] mb-1">#3</span>
+                    <p className="font-bold text-gray-900 truncate">{publishedResults.top3?.[2]?.name || 'TBD'}</p>
+                    <p className="font-mono text-amber-800 font-extrabold text-xs">{publishedResults.top3?.[2]?.score ?? 0} pts</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Tie-Breaker Speed Winner */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500 text-white flex items-center justify-center font-bold">
+                      <Zap className="w-4 h-4 fill-current" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-blue-700">⚡ Tie-Breaker Speed Winner</p>
+                      <h4 className="font-black text-gray-900 text-sm">
+                        {publishedResults.tieBreakerWinner?.name || 'No Tie-Breaker Required'}
+                      </h4>
+                    </div>
+                  </div>
+                  {publishedResults.tieBreakerWinner && (
+                    <div className="text-right font-mono">
+                      <p className="text-xs font-bold text-blue-700">{publishedResults.tieBreakerWinner.totalTimeFormatted || '--'}</p>
+                      <p className="text-[10px] text-gray-500">{publishedResults.tieBreakerWinner.score} pts</p>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px] text-blue-600 mt-2 font-medium">
+                  Fastest cumulative response time among competitors.
+                </p>
+              </div>
+
+              {/* 3. Best Learner Award - Stage Qualifier */}
+              <div className="bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border border-purple-200 rounded-2xl p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold">
+                      <Award className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider text-purple-700">🌟 Best Learner Award</p>
+                      <h4 className="font-black text-gray-900 text-sm">
+                        {publishedResults.bestLearnerWinner?.name || 'TBD'}
+                      </h4>
+                    </div>
+                  </div>
+                  {publishedResults.bestLearnerWinner && (
+                    <div className="text-right font-mono">
+                      <p className="text-xs font-black text-purple-700">{publishedResults.bestLearnerWinner.score ?? 0} pts</p>
+                      <p className="text-[10px] text-gray-500">Speed: {publishedResults.bestLearnerWinner.totalTimeFormatted || '--'}</p>
+                      <p className="text-[9px] font-bold text-purple-800 bg-purple-100 px-1.5 py-0.5 rounded mt-0.5 inline-block">✓ {publishedResults.bestLearnerWinner.attemptedCount}/{publishedResults.bestLearnerWinner.totalQuestions || totalQuestions} Questions</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-2.5 p-2 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-xl border border-amber-300 flex items-start gap-2 text-[11px] text-amber-950 font-semibold shadow-sm">
+                  <span className="text-sm leading-none mt-0.5">🎤</span>
+                  <div>
+                    <span className="font-black uppercase tracking-wider text-amber-900 block text-[10px]">Stage Qualifier</span>
+                    <span>Winner must come on stage and play one more game to claim the prize! (Attempted all questions + highest score after negative marking + fastest speed)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Official E-Certificate Showcase Card */}
+            {(() => {
+              const certData = getParticipantCertificateData();
+              const isWinner = certData.tier === 'winner';
+
+              return (
+                <div className={`rounded-3xl p-5 border shadow-md relative overflow-hidden transition-all ${
+                  isWinner 
+                    ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 border-amber-400/50 text-white shadow-emerald-950/20' 
+                    : 'bg-white border-emerald-200 text-gray-900 shadow-emerald-500/5'
+                }`}>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md ${
+                        isWinner ? 'bg-gradient-to-br from-amber-400 to-yellow-600 text-slate-950' : 'bg-[#009639] text-white'
+                      }`}>
+                        {isWinner ? <Trophy className="w-6 h-6" /> : <ShieldCheck className="w-6 h-6" />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                            isWinner ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40' : 'bg-emerald-50 text-[#009639] border border-emerald-200'
+                          }`}>
+                            {isWinner ? '🏆 Tier 1: Excellence Award' : '🛡️ Tier 2: Defender Award'}
+                          </span>
+                          <span className="text-[10px] font-mono text-gray-400">
+                            {certData.verificationId}
+                          </span>
+                        </div>
+                        <h3 className={`text-lg font-black mt-0.5 ${isWinner ? 'text-white' : 'text-gray-900'}`}>
+                          Official E-Certificate Ready!
+                        </h3>
+                        <p className={`text-xs ${isWinner ? 'text-slate-300' : 'text-gray-500'}`}>
+                          {certData.awardTitle} • Cyber Day 2026 by Schneider Electric
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2-Column Action Buttons */}
+                  <div className="grid grid-cols-2 gap-2.5 mt-4">
+                    <button
+                      onClick={() => setIsCertificateOpen(true)}
+                      className={`py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-95 ${
+                        isWinner
+                          ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 font-black shadow-amber-500/20'
+                          : 'bg-[#009639] hover:bg-[#00E676] text-white shadow-emerald-500/20'
+                      }`}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>View & Download</span>
+                    </button>
+
+                    <button
+                      onClick={() => setIsCertificateOpen(true)}
+                      className={`py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border transition active:scale-95 ${
+                        isWinner
+                          ? 'bg-slate-800/90 hover:bg-slate-700 border-slate-700 text-white'
+                          : 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-800'
+                      }`}
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>Share on Socials</span>
+                    </button>
+                  </div>
+
+                  <p className={`text-[11px] text-center mt-2.5 ${isWinner ? 'text-slate-400' : 'text-gray-400'}`}>
+                    Available in Landscape (16:9) & Instagram Story (9:16) with 1-click LinkedIn & Instagram tags!
+                  </p>
+                </div>
+              );
+            })()}
+
             {/* My Performance Card */}
             {(() => {
               const activeList = publishedResults.leaderboard || publishedResults.leaderboardByScore || [];
@@ -672,35 +859,6 @@ function ParticipantComponent() {
                 </div>
               );
             })()}
-
-            {/* Winners by Question Breakdown */}
-            {publishedResults.questionWinners && publishedResults.questionWinners.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 space-y-3">
-                <div className="flex items-center gap-2 border-b pb-2">
-                  <Award className="w-5 h-5 text-[#009639]" />
-                  <h3 className="font-bold text-gray-900 text-sm">Winners by Question</h3>
-                </div>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                  {publishedResults.questionWinners.map((w: any, idx: number) => {
-                    const winnerName = w.winner?.name || w.winnerName;
-                    const timeFormatted = w.winner?.timeFormatted || w.timeFormatted;
-                    return (
-                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-[10px]">
-                            Q{w.questionIndex + 1}
-                          </span>
-                          <span className="font-bold text-gray-800">{winnerName || 'Unclaimed'}</span>
-                        </div>
-                        {timeFormatted && (
-                          <span className="font-mono text-emerald-600 font-semibold">{timeFormatted}</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
 
             {/* Top Leaderboard */}
             <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 space-y-3">
@@ -788,10 +946,10 @@ function ParticipantComponent() {
                   </div>
                 )}
                 
-                {(gameState === 'BUZZER_UNLOCKED' || gameState === 'ANSWERING') && (
-                  <div className="flex items-center gap-1.5 text-[#009639] font-bold bg-green-50 px-3 py-1 rounded-full text-sm">
+                {gameState === 'ANSWERING' && (
+                  <div className="flex items-center gap-1.5 text-[#009639] font-bold bg-green-50 px-3 py-1 rounded-full text-sm animate-pulse">
                     <Zap className="w-4 h-4" />
-                    <span>Buzzer Live!</span>
+                    <span>30s Answering ({countdown}s)</span>
                   </div>
                 )}
 
@@ -807,96 +965,40 @@ function ParticipantComponent() {
               </h3>
             </div>
 
-            {/* BUZZER BUTTON SECTION */}
-            {gameState !== 'REVEAL' && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center">
-                {gameState === 'READING' && (
-                  <div className="flex flex-col items-center">
-                    <button
-                      disabled
-                      className="w-36 h-36 rounded-full bg-gray-200 border-4 border-gray-300 text-gray-400 font-black text-lg flex flex-col items-center justify-center cursor-not-allowed shadow-inner"
-                    >
-                      <Lock className="w-8 h-8 mb-1" />
-                      <span>LOCKED</span>
-                    </button>
-                    <p className="text-xs text-gray-400 mt-3 font-semibold">
-                      Reading Time ({countdown}s) - Buzzer unlocks after timer
-                    </p>
-                  </div>
-                )}
-
-                {(gameState === 'BUZZER_UNLOCKED' || gameState === 'ANSWERING') && (
-                  <div className="flex flex-col items-center">
-                    {hasWonThisQuestion ? (
-                      <div className="bg-green-50 border-2 border-[#009639] p-5 rounded-2xl text-green-900 w-full text-center shadow-md">
-                        <div className="flex items-center justify-center gap-2 font-black text-lg text-[#009639] mb-1">
-                          <Trophy className="w-7 h-7 text-amber-500" />
-                          <span>Question Winner!</span>
-                        </div>
-                        <p className="text-xs font-semibold text-green-800">
-                          You answered correctly first! +100 Points added to your total score. Get ready for the next question!
-                        </p>
-                      </div>
-                    ) : !hasBuzzed && !hasFailed ? (
-                      <button
-                        onClick={handleBuzzerPress}
-                        className="w-40 h-40 rounded-full bg-gradient-to-b from-[#00E676] to-[#009639] text-white font-black text-2xl flex flex-col items-center justify-center shadow-xl shadow-green-200 transform active:scale-90 transition-all hover:brightness-110 animate-pulse"
-                      >
-                        <Zap className="w-10 h-10 mb-1" />
-                        <span>BUZZ!</span>
-                      </button>
-                    ) : null}
-
-                    {hasBuzzed && !hasWonThisQuestion && (
-                      <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-green-800 w-full">
-                        <div className="flex items-center justify-center gap-2 font-bold text-lg">
-                          <CheckCircle2 className="w-6 h-6 text-[#009639]" />
-                          <span>Buzzer Pressed!</span>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-1">
-                          Response Time: <span className="font-bold text-[#009639]">{buzzedTime}</span> (Position #{buzzedPosition})
-                        </p>
-                      </div>
-                    )}
-
-                    {hasFailed && !hasWonThisQuestion && (
-                      <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-red-700 w-full">
-                        <div className="flex items-center justify-center gap-2 font-bold">
-                          <XCircle className="w-5 h-5" />
-                          <span>Attempt Failed</span>
-                        </div>
-                        <p className="text-xs text-red-600 mt-1">You answered incorrectly for this question.</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+            {/* STATUS BANNER */}
+            {gameState === 'READING' && (
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl text-center space-y-1">
+                <p className="text-sm font-bold text-amber-800 flex items-center justify-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  <span>Question Reading Time ({countdown}s)</span>
+                </p>
+                <p className="text-xs text-amber-600">
+                  Read the question carefully. Answering will unlock automatically!
+                </p>
               </div>
             )}
 
-            {/* HOST CONTROL BANNER FOR DOUBLE WRONG ATTEMPTS */}
-            {gameState === 'HOST_CONTROL' && (
-              <div className="p-4 rounded-xl text-center shadow-sm font-bold bg-amber-50 border border-amber-300 text-amber-800 text-sm">
-                Both top 2 attempts failed! Control passed to Host to reveal the answer.
+            {gameState === 'ANSWERING' && !hasSubmitted && (
+              <div className="bg-green-50 border border-[#009639] p-4 rounded-xl text-center space-y-1 animate-pulse">
+                <p className="text-sm font-black text-[#009639] flex items-center justify-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  <span>Answering is Live! Tap your choice below</span>
+                </p>
+                <p className="text-xs text-green-700">
+                  Time remaining: {countdown}s • Your response time will be recorded
+                </p>
               </div>
             )}
 
-            {/* TURN STATUS BANNER */}
-            {gameState === 'ANSWERING' && (
-              <div className={`p-4 rounded-xl text-center shadow-sm font-bold ${
-                isMyTurn 
-                  ? 'bg-gradient-to-r from-[#00E676] to-[#009639] text-white text-lg animate-pulse' 
-                  : 'bg-blue-50 text-blue-800 border border-blue-200 text-sm'
-              }`}>
-                {isMyTurn ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <UserCheck className="w-6 h-6" />
-                    <span>YOUR TURN! Select your answer below!</span>
-                  </div>
-                ) : (
-                  <p>
-                    Turn: <span className="underline">{currentAnswerer?.name}</span> is selecting an answer...
-                  </p>
-                )}
+            {gameState === 'ANSWERING' && hasSubmitted && (
+              <div className="bg-emerald-50 border border-emerald-300 p-4 rounded-xl text-center space-y-1">
+                <p className="text-sm font-black text-[#009639] flex items-center justify-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Answer Submitted in {submittedTime}!</span>
+                </p>
+                <p className="text-xs text-emerald-700">
+                  Waiting for round timer to end and host to reveal the answer...
+                </p>
               </div>
             )}
 
@@ -907,20 +1009,22 @@ function ParticipantComponent() {
                 
                 let cardClass = "relative w-full text-left bg-white rounded-xl border-2 transition-all duration-200 p-4 flex items-center gap-4 overflow-hidden";
                 let letterClass = "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors";
-                
                 let Icon = null;
 
-                if (gameState === 'READING' || gameState === 'BUZZER_UNLOCKED' || (gameState === 'ANSWERING' && !isMyTurn)) {
-                  // Disabled options for participants who aren't currently active answerer
+                if (gameState === 'READING') {
                   cardClass += " border-gray-200 opacity-60 cursor-not-allowed";
                   letterClass += " bg-gray-100 text-gray-500";
                 } 
-                else if (gameState === 'ANSWERING' && isMyTurn) {
-                  // Active for current answerer
-                  if (isSelected) {
-                    cardClass += " border-[#009639] bg-green-50";
-                    letterClass += " bg-[#009639] text-white";
-                    Icon = <CheckCircle2 className="w-5 h-5 text-[#009639] absolute right-4" />;
+                else if (gameState === 'ANSWERING') {
+                  if (hasSubmitted) {
+                    if (isSelected) {
+                      cardClass += " border-[#009639] bg-green-50/70 shadow-sm font-semibold";
+                      letterClass += " bg-[#009639] text-white";
+                      Icon = <Lock className="w-5 h-5 text-[#009639] absolute right-4" />;
+                    } else {
+                      cardClass += " border-gray-200 opacity-50 cursor-not-allowed";
+                      letterClass += " bg-gray-100 text-gray-400";
+                    }
                   } else {
                     cardClass += " border-gray-200 hover:border-[#009639] hover:shadow-md cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0";
                     letterClass += " bg-gray-100 text-gray-700";
@@ -934,7 +1038,7 @@ function ParticipantComponent() {
                     letterClass += " bg-[#009639] text-white";
                     Icon = <CheckCircle2 className="w-6 h-6 text-[#009639] absolute right-4" />;
                   } else if (isSelected && !isCorrect) {
-                    cardClass += " border-red-500 bg-red-50 text-red-700";
+                    cardClass += " border-red-500 bg-red-50 text-red-700 font-semibold";
                     letterClass += " bg-red-500 text-white";
                     Icon = <XCircle className="w-6 h-6 text-red-500 absolute right-4" />;
                   } else {
@@ -947,7 +1051,7 @@ function ParticipantComponent() {
                   <button
                     key={idx}
                     onClick={() => handleOptionClick(idx)}
-                    disabled={gameState !== 'ANSWERING' || !isMyTurn || selectedOption !== null}
+                    disabled={gameState !== 'ANSWERING' || hasSubmitted || isSubmitting}
                     className={cardClass}
                   >
                     <div className={letterClass}>{letters[idx]}</div>
@@ -958,68 +1062,101 @@ function ParticipantComponent() {
               })}
             </div>
 
-            {/* INDIVIDUAL ANSWER RESULT / REASONING FEEDBACK */}
-            {answerResult && (
-              <div className={`p-4 rounded-xl shadow-sm border ${
-                answerResult.isCorrect 
-                  ? 'bg-green-50 border-green-200 text-green-800' 
-                  : 'bg-red-50 border-red-200 text-red-800'
-              }`}>
-                <div className="flex items-center gap-2 font-bold mb-1 text-base">
-                  {answerResult.isCorrect ? (
-                    <>
-                      <CheckCircle2 className="w-5 h-5 text-[#009639]" />
-                      <span>CORRECT! +100 Points 🎉</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="w-5 h-5 text-red-600" />
-                      <span>
-                        INCORRECT ANSWER {answerResult.pointsDeducted > 0 ? `(-${answerResult.pointsDeducted} Points)` : '(0 pts deducted - score cannot be negative)'}
-                      </span>
-                    </>
-                  )}
+            {/* ANSWER SUBMITTED STATE (During answering window, no evaluation is leaked) */}
+            {gameState === 'ANSWERING' && hasSubmitted && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-1 animate-in fade-in">
+                <div className="flex items-center justify-center gap-2 text-emerald-800 font-bold text-sm">
+                  <Lock className="w-4 h-4 text-[#009639]" />
+                  <span>Answer Locked In {submittedTime ? `(${submittedTime})` : ''}</span>
                 </div>
-                
-                {answerResult.optionExplanation && (
-                  <p className="text-xs mt-2 p-2 bg-white/80 rounded-lg border border-current/10">
-                    <span className="font-semibold">Reason:</span> {answerResult.optionExplanation}
-                  </p>
-                )}
-                
-                {answerResult.explanation && (
-                  <p className="text-xs mt-1 italic text-gray-600">
-                    "{answerResult.explanation}"
-                  </p>
-                )}
+                <p className="text-xs text-emerald-700 font-medium">
+                  Waiting for round timer to end. Results will be revealed to everyone together!
+                </p>
               </div>
             )}
 
-            {/* FINAL REVEAL SUMMARY & EXPLANATION */}
+            {/* UNIFIED ROUND OUTCOME & EXPLANATION (Evaluated ONLY at Reveal) */}
             {gameState === 'REVEAL' && revealResult && (
-              <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-3">
-                <h4 className="font-bold text-gray-900 border-b pb-2 text-sm uppercase tracking-wider flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-[#009639]" /> Round Explanation
-                </h4>
-
-                <p className="text-sm text-gray-700 leading-relaxed font-medium bg-green-50/50 p-3 rounded-xl border border-green-100">
-                  {revealResult.explanation}
-                </p>
-
-                {revealResult.winner ? (
-                  <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-3 rounded-xl text-center font-bold text-sm">
-                    🏆 Winner: {revealResult.winner.name} ({revealResult.winner.timeFormatted})
-                  </div>
-                ) : (
-                  <div className="bg-gray-100 text-gray-600 p-3 rounded-xl text-center text-xs font-semibold">
-                    No correct answers this round.
+              <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-4 animate-in fade-in">
+                {/* 1. Clear Round Outcome Header (Single non-duplicated outcome banner) */}
+                {selectedOption !== null && selectedOption === revealResult.correctAnswerIndex && (
+                  <div className="p-3.5 bg-green-50 border-2 border-green-200 rounded-xl flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-[#009639] text-white flex items-center justify-center font-bold">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-emerald-900 uppercase tracking-wide">
+                          Correct Answer!
+                        </p>
+                        <p className="text-[11px] text-emerald-700 font-medium">
+                          Great job! +100 points added to your score
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-mono font-black text-[#009639] bg-white px-2.5 py-1 rounded-lg border border-green-200 shadow-sm">
+                      +100 pts
+                    </span>
                   </div>
                 )}
+
+                {selectedOption !== null && selectedOption !== revealResult.correctAnswerIndex && (
+                  <div className="p-3.5 bg-red-50 border-2 border-red-200 rounded-xl flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold">
+                        <XCircle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-red-900 uppercase tracking-wide">
+                          Incorrect Answer (-50 Points)
+                        </p>
+                        <p className="text-[11px] text-red-700 font-medium">
+                          Negative marking applied: 50 points deducted from your score
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-mono font-black text-red-600 bg-white px-2.5 py-1 rounded-lg border border-red-200 shadow-sm">
+                      -50 pts
+                    </span>
+                  </div>
+                )}
+
+                {selectedOption === null && (
+                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <Clock className="w-5 h-5 text-amber-600" />
+                      <div>
+                        <p className="text-xs font-bold text-amber-900">Time's Up (No Answer Submitted)</p>
+                        <p className="text-[11px] text-amber-700 font-medium">0 points awarded or deducted for this round</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-amber-700 bg-white px-2.5 py-1 rounded-lg border border-amber-200">
+                      0 pts
+                    </span>
+                  </div>
+                )}
+
+                {/* 2. Round Explanation */}
+                <div>
+                  <h4 className="font-bold text-gray-900 text-xs uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                    <Zap className="w-4 h-4 text-[#009639]" /> Round Explanation
+                  </h4>
+                  <p className="text-sm text-gray-700 leading-relaxed font-medium bg-green-50/50 p-3.5 rounded-xl border border-green-100">
+                    {revealResult.explanation}
+                  </p>
+                </div>
               </div>
             )}
 
           </div>
         )}
+
+        {/* Official E-Certificate Modal */}
+        <CertificateModal
+          isOpen={isCertificateOpen}
+          onClose={() => setIsCertificateOpen(false)}
+          data={getParticipantCertificateData()}
+        />
       </div>
     </div>
   );

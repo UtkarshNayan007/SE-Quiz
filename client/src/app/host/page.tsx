@@ -66,14 +66,23 @@ export default function HostDashboard() {
   const [currentQIndex, setCurrentQIndex] = useState(-1);
   const [activeQuestion, setActiveQuestion] = useState<any>(null);
   
-  // Game States: 'LOBBY', 'READING', 'BUZZER_UNLOCKED', 'ANSWERING', 'REVEAL', 'HOST_CONTROL', 'QUIZ_ENDED', 'RESULTS_PUBLISHED'
+  // Game States: 'LOBBY', 'READING', 'ANSWERING', 'REVEAL', 'QUIZ_ENDED', 'RESULTS_PUBLISHED'
   const [gameState, setGameState] = useState('LOBBY');
-  const [buzzerQueue, setBuzzerQueue] = useState<any[]>([]);
-  const [currentAnswerer, setCurrentAnswerer] = useState<any>(null);
-  const [turnInfo, setTurnInfo] = useState<any>(null);
+  const [countdown, setCountdown] = useState(10);
+  
+  // Real-time Answering Gauge Data
+  const [progressData, setProgressData] = useState<{
+    answeredCount: number;
+    unansweredCount: number;
+    participantCount: number;
+    latestAnswerer?: { name: string; timeFormatted: string };
+  }>({
+    answeredCount: 0,
+    unansweredCount: 0,
+    participantCount: 0
+  });
   
   const [revealResult, setRevealResult] = useState<any>(null);
-  const [questionWinners, setQuestionWinners] = useState<any[]>([]);
   const [finalResults, setFinalResults] = useState<any>(null);
   const [approvedCriteria, setApprovedCriteria] = useState<'score' | 'time'>('score');
   const [resultsPublished, setResultsPublished] = useState(false);
@@ -114,12 +123,9 @@ export default function HostDashboard() {
         setConfiguredQuestionCount(res.configuredQuestionCount || res.totalQuestions || 10);
         if (res.participants) setParticipants(deduplicateParticipants(res.participants));
         if (res.participantCount !== undefined) setParticipantCount(res.participantCount);
-        if (res.buzzerQueue) setBuzzerQueue(res.buzzerQueue);
         if (res.gameState) setGameState(res.gameState);
         if (res.currentQuestionIndex !== undefined) setCurrentQIndex(res.currentQuestionIndex);
         if (res.activeQuestion) setActiveQuestion(res.activeQuestion);
-        if (res.currentAnswerer) setCurrentAnswerer(res.currentAnswerer);
-        if (res.questionWinners) setQuestionWinners(res.questionWinners);
         if (res.finalResults) setFinalResults(res.finalResults);
         if (res.approvedCriteria) setApprovedCriteria(res.approvedCriteria);
         if (res.resultsPublished !== undefined) setResultsPublished(res.resultsPublished);
@@ -160,6 +166,19 @@ export default function HostDashboard() {
     }
   }, []);
 
+  // Host countdown timer for 10s reading phase and 30s answering phase
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if ((gameState === 'READING' || gameState === 'ANSWERING') && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [gameState, countdown]);
+
   useEffect(() => {
     const socket = getSocket();
 
@@ -167,7 +186,6 @@ export default function HostDashboard() {
       if (data?.participantCount !== undefined) setParticipantCount(data.participantCount);
       if (data?.gameState) setGameState(data.gameState);
       if (data?.currentQuestionIndex !== undefined) setCurrentQIndex(data.currentQuestionIndex);
-      if (data?.currentAnswerer !== undefined) setCurrentAnswerer(data.currentAnswerer);
       if (data?.resultsPublished !== undefined) setResultsPublished(data.resultsPublished);
       if (data?.totalQuestions) setTotalQuestions(data.totalQuestions);
       if (data?.configuredQuestionCount) setConfiguredQuestionCount(data.configuredQuestionCount);
@@ -176,46 +194,32 @@ export default function HostDashboard() {
     const handleHostRoomUpdated = (data: any) => {
       if (data?.participantCount !== undefined) setParticipantCount(data.participantCount);
       if (data?.participants) setParticipants(deduplicateParticipants(data.participants));
-      if (data?.buzzerQueue) setBuzzerQueue(data.buzzerQueue);
       if (data?.gameState) setGameState(data.gameState);
       if (data?.currentQuestionIndex !== undefined) setCurrentQIndex(data.currentQuestionIndex);
       if (data?.totalQuestions) setTotalQuestions(data.totalQuestions);
       if (data?.configuredQuestionCount) setConfiguredQuestionCount(data.configuredQuestionCount);
     };
 
-    const handleBuzzerHitRecorded = (data: any) => {
-      setBuzzerQueue(data.buzzerQueue || []);
-      setCurrentAnswerer(data.activeAnswerer || null);
-      if (data.activeAnswerer) setGameState('ANSWERING');
+    const handleAnsweringStarted = (data: any) => {
+      setGameState('ANSWERING');
+      setCountdown(data.durationSeconds || 30);
     };
 
-    const handleTurnPassed = (data: any) => {
-      setTurnInfo(data);
-      if (data.nextAnswerer) {
-        setCurrentAnswerer(data.nextAnswerer);
-        setGameState('ANSWERING');
-      } else {
-        setCurrentAnswerer(null);
-        setGameState(data.gameState || 'BUZZER_UNLOCKED');
+    const handleQuestionProgress = (data: any) => {
+      setProgressData({
+        answeredCount: data.answeredCount || 0,
+        unansweredCount: data.unansweredCount || 0,
+        participantCount: data.participantCount || 0,
+        latestAnswerer: data.latestAnswerer
+      });
+      if (data.participantCount !== undefined) {
+        setParticipantCount(data.participantCount);
       }
     };
 
     const handleAnswerRevealed = (data: any) => {
       setRevealResult(data);
       setGameState('REVEAL');
-      if (data.winner) {
-        setQuestionWinners(prev => {
-          const filtered = prev.filter(qw => qw.questionIndex !== data.questionIndex);
-          return [...filtered, {
-            questionIndex: data.questionIndex,
-            winner: data.winner
-          }];
-        });
-      }
-    };
-
-    const handleBuzzerUnlocked = () => {
-      setGameState('BUZZER_UNLOCKED');
     };
 
     const handleQuestionPushed = (data: any) => {
@@ -227,9 +231,12 @@ export default function HostDashboard() {
       setCurrentQIndex(data.questionIndex);
       if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
       setGameState('READING');
-      setBuzzerQueue([]);
-      setCurrentAnswerer(null);
-      setTurnInfo(null);
+      setCountdown(data.durationSeconds || 10);
+      setProgressData({
+        answeredCount: 0,
+        unansweredCount: participantCount,
+        participantCount: participantCount
+      });
       setRevealResult(null);
     };
 
@@ -242,7 +249,6 @@ export default function HostDashboard() {
 
     const handleHostQuizReview = (data: any) => {
       setFinalResults(data);
-      if (data.questionWinners) setQuestionWinners(data.questionWinners);
       setGameState('QUIZ_ENDED');
     };
 
@@ -265,10 +271,9 @@ export default function HostDashboard() {
 
     socket.on('room_updated', handleRoomUpdated);
     socket.on('host_room_updated', handleHostRoomUpdated);
-    socket.on('buzzer_hit_recorded', handleBuzzerHitRecorded);
-    socket.on('turn_passed', handleTurnPassed);
+    socket.on('answering_started', handleAnsweringStarted);
+    socket.on('question_progress', handleQuestionProgress);
     socket.on('answer_revealed', handleAnswerRevealed);
-    socket.on('buzzer_unlocked', handleBuzzerUnlocked);
     socket.on('question_pushed', handleQuestionPushed);
     socket.on('question_limit_updated', handleQuestionLimitUpdated);
     socket.on('host_quiz_review', handleHostQuizReview);
@@ -278,10 +283,9 @@ export default function HostDashboard() {
     return () => {
       socket.off('room_updated', handleRoomUpdated);
       socket.off('host_room_updated', handleHostRoomUpdated);
-      socket.off('buzzer_hit_recorded', handleBuzzerHitRecorded);
-      socket.off('turn_passed', handleTurnPassed);
+      socket.off('answering_started', handleAnsweringStarted);
+      socket.off('question_progress', handleQuestionProgress);
       socket.off('answer_revealed', handleAnswerRevealed);
-      socket.off('buzzer_unlocked', handleBuzzerUnlocked);
       socket.off('question_pushed', handleQuestionPushed);
       socket.off('question_limit_updated', handleQuestionLimitUpdated);
       socket.off('host_quiz_review', handleHostQuizReview);
@@ -316,10 +320,12 @@ export default function HostDashboard() {
         });
         setCurrentQIndex(res.questionIndex);
         setGameState('READING');
-        setBuzzerQueue([]);
-        setCurrentAnswerer(null);
-        setTurnInfo(null);
         setRevealResult(null);
+        setProgressData({
+          answeredCount: 0,
+          unansweredCount: participantCount,
+          participantCount: participantCount
+        });
       } else {
         setError(res.message || 'Failed to push question');
       }
@@ -347,7 +353,6 @@ export default function HostDashboard() {
         setGameState('QUIZ_ENDED');
         if (res.results) {
           setFinalResults(res.results);
-          if (res.results.questionWinners) setQuestionWinners(res.results.questionWinners);
         }
       } else {
         setError(res?.message || 'Failed to end quiz');
@@ -699,51 +704,81 @@ export default function HostDashboard() {
             </div>
           </div>
 
-          {/* Winner by Question Showcase */}
-          <div className="bg-white rounded-3xl shadow p-6 border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Award className="w-6 h-6 text-[#009639]" /> Winners by Question ({questionWinners.length})
-              </h3>
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                +100 pts per round win • Negative marking -50 pts on wrong attempts
-              </span>
+          {/* Spotlight Awards Grid: Tie-Breaker Speed Winner, Best Learner Award */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 1. Tie-Breaker Speed Winner */}
+            <div className="bg-gradient-to-b from-blue-50 to-white rounded-3xl border-2 border-blue-200 p-6 shadow-md flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-black">
+                    <Zap className="w-4 h-4 fill-current" />
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-wider text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full">
+                    ⚡ Tie-Breaker Speed Winner
+                  </span>
+                </div>
+                <h4 className="text-2xl font-black text-gray-900 mt-2">
+                  {finalResults?.tieBreakerWinner?.name || 'N/A'}
+                </h4>
+                <div className="mt-3 flex items-center gap-3">
+                  <span className="text-2xl font-mono font-black text-blue-700">
+                    {finalResults?.tieBreakerWinner?.totalTimeFormatted || '--'}
+                  </span>
+                  <span className="text-xs font-semibold text-gray-500">
+                    ({finalResults?.tieBreakerWinner?.score ?? 0} pts)
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-blue-600 mt-4 font-medium">
+                Awarded for fastest cumulative response time in score tie / top performance.
+              </p>
             </div>
 
-            {questionWinners.length === 0 ? (
-              <p className="text-gray-400 italic text-sm">No questions were completed before quiz end.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {questionWinners.map((qw: any, idx: number) => (
-                  <div key={idx} className="p-4 rounded-2xl border-2 border-gray-100 bg-slate-50 hover:border-[#009639]/30 transition-all space-y-2">
-                    <div className="flex justify-between items-center text-xs font-bold uppercase">
-                      <span className="bg-[#009639] text-white px-2.5 py-0.5 rounded-full">
-                        Question #{qw.questionIndex + 1}
-                      </span>
-                      <span className="text-gray-500">{qw.category || 'Technology'}</span>
+            {/* 2. Best Learner Award - Stage Challenge Qualifier */}
+            <div className="bg-gradient-to-b from-purple-50 via-white to-amber-50 rounded-3xl border-2 border-purple-200 p-6 shadow-md flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-black">
+                      <Award className="w-4 h-4" />
                     </div>
-                    <p className="text-xs font-medium text-gray-700 line-clamp-2">
-                      {qw.questionText}
-                    </p>
-                    <div className="pt-2 border-t border-gray-200">
-                      {qw.winner ? (
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Trophy className="w-4 h-4 text-amber-500" />
-                            <span className="font-bold text-sm text-gray-900">{qw.winner.name}</span>
-                          </div>
-                          <span className="text-xs font-mono font-bold text-[#009639]">
-                            {qw.winner.timeFormatted} (Turn #{qw.winner.turnNumber})
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400 italic">No correct answer recorded</span>
-                      )}
-                    </div>
+                    <span className="text-xs font-black uppercase tracking-wider text-purple-700 bg-purple-100 px-2.5 py-0.5 rounded-full">
+                      🌟 Best Learner Award
+                    </span>
                   </div>
-                ))}
+                </div>
+                <h4 className="text-2xl font-black text-gray-900 mt-2">
+                  {finalResults?.bestLearnerWinner?.name || 'N/A'}
+                </h4>
+                <div className="mt-3 flex items-center gap-3">
+                  <span className="text-2xl font-mono font-black text-purple-700">
+                    {finalResults?.bestLearnerWinner?.score ?? 0} pts
+                  </span>
+                  <span className="text-xs font-bold text-gray-500 font-mono">
+                    Speed: {finalResults?.bestLearnerWinner?.totalTimeFormatted || '--'}
+                  </span>
+                </div>
+                {finalResults?.bestLearnerWinner && (
+                  <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-purple-800 bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-200">
+                    <span>✓ Attempted All Questions ({finalResults.bestLearnerWinner.attemptedCount}/{finalResults.bestLearnerWinner.totalQuestions || configuredQuestionCount})</span>
+                  </div>
+                )}
+
+                {/* Stage Callout for Host */}
+                <div className="mt-4 p-3 rounded-2xl bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-300 text-amber-950 flex items-start gap-2.5 shadow-sm">
+                  <span className="text-base leading-none mt-0.5">🎤</span>
+                  <div className="text-xs">
+                    <span className="font-black uppercase tracking-wider block text-amber-900">Stage Qualifier</span>
+                    <p className="font-bold text-slate-900 mt-0.5 leading-snug">
+                      Call {finalResults?.bestLearnerWinner?.name || 'winner'} to the stage to play one more game and claim the prize!
+                    </p>
+                  </div>
+                </div>
               </div>
-            )}
+              <p className="text-[11px] text-purple-700 mt-3 font-medium">
+                Awarded for attempting all questions, highest score after negative marking & fastest speed.
+              </p>
+            </div>
           </div>
 
           {/* Official Final Leaderboard Table */}
@@ -989,10 +1024,8 @@ export default function HostDashboard() {
             {gameState !== 'LOBBY' && gameState !== 'REVEAL' && (
               <div className="bg-gray-50 rounded-2xl shadow p-6 border border-gray-200 text-center space-y-4">
                 <p className="text-gray-600 font-medium">
-                  {gameState === 'READING' && '📖 10s Reading Time in progress...'}
-                  {gameState === 'BUZZER_UNLOCKED' && '⚡ Buzzer is live! Waiting for participants to buzz in...'}
-                  {gameState === 'ANSWERING' && `🎯 Turn: ${currentAnswerer?.name} is selecting an option on screen...`}
-                  {gameState === 'HOST_CONTROL' && '⚠️ Both top 2 participants answered incorrectly! Control passed to host.'}
+                  {gameState === 'READING' && `📖 10s Question Reading in progress (${countdown}s remaining)...`}
+                  {gameState === 'ANSWERING' && `⚡ 30s Answering window is LIVE (${countdown}s remaining) • ${progressData.answeredCount} of ${participantCount} answered`}
                 </p>
 
                 <button
@@ -1010,52 +1043,89 @@ export default function HostDashboard() {
           {/* Right Column */}
           <div className="lg:col-span-5 flex flex-col gap-6">
             
-            {/* Buzzer Queue & Live Turn Card */}
+            {/* Live Answering Dial & Real-Time Gauge */}
             <div className="bg-white rounded-2xl shadow p-6 border border-gray-200">
-              <h2 className="text-xl font-bold text-[#009639] mb-4 flex items-center gap-2">
-                <Zap className="w-6 h-6" /> Live Buzzer Queue ({buzzerQueue.length})
-              </h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-[#009639] flex items-center gap-2">
+                  <Zap className="w-6 h-6" /> Live Answering Dial
+                </h2>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                  gameState === 'ANSWERING' ? 'bg-green-100 text-green-800 animate-pulse' : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {gameState === 'ANSWERING' ? 'Live Answering' : gameState}
+                </span>
+              </div>
 
-              {buzzerQueue.length === 0 ? (
-                <p className="text-gray-400 italic text-sm text-center py-4">No buzzer hits yet...</p>
-              ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {buzzerQueue.map((entry, idx) => {
-                    const isActive = currentAnswerer?.socketId === entry.socketId;
-                    return (
-                      <div
-                        key={idx}
-                        className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
-                          isActive
-                            ? 'bg-[#00E676]/20 border-[#009639] font-bold text-[#009639] shadow-sm'
-                            : 'bg-gray-50 border-gray-200 text-gray-700'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${
-                            isActive ? 'bg-[#009639] text-white' : 'bg-gray-200 text-gray-600'
-                          }`}>
-                            #{idx + 1}
-                          </span>
-                          <span className="text-sm font-semibold">{entry.name}</span>
-                        </div>
+              <div className="flex flex-col items-center">
+                {(() => {
+                  const safeTotal = Math.max(progressData.participantCount || participantCount, 1);
+                  const answered = progressData.answeredCount || 0;
+                  const unanswered = Math.max((progressData.participantCount || participantCount) - answered, 0);
+                  const percentage = Math.min(Math.round((answered / safeTotal) * 100), 100);
+                  const radius = 46;
+                  const circumference = 2 * Math.PI * radius;
+                  const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono text-gray-500">{entry.timeFormatted}</span>
-                          {isActive && <UserCheck className="w-4 h-4 text-[#009639]" />}
+                  return (
+                    <div className="w-full flex flex-col items-center">
+                      <div className="relative w-40 h-40 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 110 110">
+                          <circle
+                            cx="55"
+                            cy="55"
+                            r={radius}
+                            className="text-slate-100"
+                            strokeWidth="10"
+                            stroke="currentColor"
+                            fill="transparent"
+                          />
+                          <circle
+                            cx="55"
+                            cy="55"
+                            r={radius}
+                            className="text-[#009639] transition-all duration-500 ease-out"
+                            strokeWidth="10"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={strokeDashoffset}
+                            strokeLinecap="round"
+                            stroke="currentColor"
+                            fill="transparent"
+                          />
+                        </svg>
+
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                          <span className="text-3xl font-black text-gray-900 font-mono leading-none">{answered}</span>
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">of {progressData.participantCount || participantCount}</span>
+                          <span className="text-[11px] font-black text-[#009639] bg-green-50 px-2 py-0.5 rounded-full mt-1 border border-green-200">{percentage}%</span>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
 
-              {turnInfo?.lastAnswererWrong && (
-                <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{turnInfo.lastAnswererWrong} answered wrong. {turnInfo.noMoreTurns ? 'Both top 2 attempts failed! Control passed to host.' : 'Turn passed to 2nd person!'}</span>
-                </div>
-              )}
+                      {/* Stat Counters */}
+                      <div className="grid grid-cols-3 gap-2 w-full mt-4 text-center">
+                        <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total</p>
+                          <p className="text-xl font-black text-gray-800 font-mono">{progressData.participantCount || participantCount}</p>
+                        </div>
+                        <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                          <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Answered</p>
+                          <p className="text-xl font-black text-[#009639] font-mono">{answered}</p>
+                        </div>
+                        <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+                          <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Unanswered</p>
+                          <p className="text-xl font-black text-amber-700 font-mono">{unanswered}</p>
+                        </div>
+                      </div>
+
+                      {progressData.latestAnswerer && (
+                        <div className="mt-3 w-full p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-900">
+                          <span className="font-semibold truncate">⚡ Latest: {progressData.latestAnswerer.name}</span>
+                          <span className="font-mono font-bold text-[#009639] shrink-0 ml-1">{progressData.latestAnswerer.timeFormatted}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* Round Results & Explanation Card */}

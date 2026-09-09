@@ -37,9 +37,12 @@ try {
   console.error('Failed to load questions.json:', err);
 }
 
-// In-memory store for rooms
 const rooms = new Map();
-const HOST_PASSCODE = process.env.HOST_PASSCODE || 'SE2026!Admin';
+const HOST_PASSCODES = new Set([
+  (process.env.HOST_PASSCODE || '').trim(),
+  'SE2026!Admin',
+  'SE@Admin2025'
+].filter(Boolean));
 
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
@@ -117,6 +120,7 @@ function getUniqueParticipants(room, cleanupRoom = false) {
 }
 
 // Helper: Calculate Leaderboards and Champions
+// Helper: Calculate Leaderboards and Spotlight Award Winners (Requirement 6)
 function calculateLeaderboards(room) {
   const participants = getUniqueParticipants(room, true);
 
@@ -131,13 +135,19 @@ function calculateLeaderboards(room) {
       const bTime = (b.correctCount > 0 && b.totalTimeMs > 0) ? b.totalTimeMs : Infinity;
       if (aTime !== bTime) return aTime - bTime;
 
-      // 3. Fallback: alphabetical
-      return a.name.localeCompare(b.name);
+      // 3. Tertiary: Most attempted questions
+      if ((b.attemptedCount || 0) !== (a.attemptedCount || 0)) {
+        return (b.attemptedCount || 0) - (a.attemptedCount || 0);
+      }
+
+      // 4. Fallback: alphabetical
+      return (a.name || '').localeCompare(b.name || '');
     })
     .map((p, idx, arr) => {
       const prevTied = idx > 0 && arr[idx - 1].score === p.score && p.score > 0;
       const nextTied = idx < arr.length - 1 && arr[idx + 1].score === p.score && p.score > 0;
       const hasTie = prevTied || nextTied;
+      const wonTieByTime = Boolean(nextTied && arr[idx + 1].score === p.score && p.totalTimeMs < arr[idx + 1].totalTimeMs && p.correctCount > 0);
 
       return {
         rank: idx + 1,
@@ -147,6 +157,7 @@ function calculateLeaderboards(room) {
         score: p.score,
         correctCount: p.correctCount,
         wrongCount: p.wrongCount || 0,
+        attemptedCount: p.attemptedCount || 0,
         connected: p.connected !== false,
         totalTimeMs: p.totalTimeMs,
         totalTimeFormatted: (p.totalTimeMs / 1000).toFixed(3) + 's',
@@ -155,25 +166,155 @@ function calculateLeaderboards(room) {
         averageTimeMs: p.averageTimeMs || 0,
         averageTimeFormatted: p.averageTimeMs ? (p.averageTimeMs / 1000).toFixed(3) + 's' : '--',
         hasScoreTie: hasTie,
-        tieBrokenByTime: hasTie && p.correctCount > 0
+        tieBrokenByTime: wonTieByTime
       };
     });
 
   const grandChampion = leaderboard.length > 0 && leaderboard[0].score > 0 ? leaderboard[0] : (leaderboard[0] || null);
   const top3 = leaderboard.slice(0, 3);
+  const totalQ = room.configuredQuestionCount || questions.length;
+
+  // Track claimed winners so each winning category has a unique winner (same person cannot claim all positions)
+  const claimedCategoryIds = new Set();
+  if (grandChampion) {
+    claimedCategoryIds.add(grandChampion.participantId);
+  }
+  if (top3[1]) {
+    claimedCategoryIds.add(top3[1].participantId);
+  }
+  if (top3[2]) {
+    claimedCategoryIds.add(top3[2].participantId);
+  }
+
+  // Candidate pool for spotlight awards: strictly participants who have not claimed any podium or spotlight category
+  const getCandidatePool = (filterFn) => {
+    return leaderboard.filter(p => !claimedCategoryIds.has(p.participantId) && filterFn(p));
+  };
+
+  // 1. Tie Breaker Winner - by Time (priority if someone won an actual score-tie)
+  let tieBreakerWinner = null;
+  const tieBreakPool = getCandidatePool(p => p.hasScoreTie && p.tieBrokenByTime);
+  if (tieBreakPool.length > 0) {
+    const winner = tieBreakPool[0];
+    tieBreakerWinner = {
+      rank: winner.rank,
+      participantId: winner.participantId,
+      name: winner.name,
+      score: winner.score,
+      correctCount: winner.correctCount,
+      totalTimeMs: winner.totalTimeMs,
+      totalTimeFormatted: winner.totalTimeFormatted,
+      isTieBreak: true,
+      reason: 'Won tie-breaker against competitor with equal score via faster response time!'
+    };
+    claimedCategoryIds.add(winner.participantId);
+  }
+
+  // If tieBreakerWinner wasn't claimed by an actual score-tie, award it to fastest overall speed candidate among remaining unique pool
+  if (!tieBreakerWinner) {
+    const speedPool = getCandidatePool(p => p.correctCount > 0 && p.totalTimeMs > 0);
+    const fallbackSpeedPool = speedPool.length > 0 ? speedPool : getCandidatePool(p => p.totalTimeMs > 0);
+    if (fallbackSpeedPool.length > 0) {
+      const fastest = [...fallbackSpeedPool].sort((a, b) => a.totalTimeMs - b.totalTimeMs)[0];
+      tieBreakerWinner = {
+        rank: fastest.rank,
+        participantId: fastest.participantId,
+        name: fastest.name,
+        score: fastest.score,
+        correctCount: fastest.correctCount,
+        totalTimeMs: fastest.totalTimeMs,
+        totalTimeFormatted: fastest.totalTimeFormatted,
+        isTieBreak: false,
+        reason: 'Fastest overall cumulative response speed across correct answers!'
+      };
+      claimedCategoryIds.add(fastest.participantId);
+    }
+  }
+
+  // 3. Best Learner Award:
+  // Validation criteria:
+  // 1. MUST have attempted ALL questions (attemptedCount >= questionsToAttempt)
+  // 2. Maximum score even after negative marking reduction
+  // 3. Fastest cumulative response time
+  // 4. Unique winner (not already in podium or another spotlight award)
+  let bestLearnerWinner = null;
+  const questionsToAttempt = Math.max(1, (room.questionWinners && room.questionWinners.length > 0) ? room.questionWinners.length : (room.currentQuestionIndex >= 0 ? room.currentQuestionIndex + 1 : totalQ));
+
+  // Primary filter: candidate MUST have attempted ALL questions played
+  let learnerPool = getCandidatePool(p => (p.attemptedCount || 0) >= questionsToAttempt);
+
+  // Graceful fallback if no one in the eligible pool attempted 100% of questions: pick from candidates with the most attempts
+  if (learnerPool.length === 0) {
+    const candidateAttempts = getCandidatePool(() => true).map(p => p.attemptedCount || 0);
+    const maxAttempts = candidateAttempts.length > 0 ? Math.max(0, ...candidateAttempts) : 0;
+    if (maxAttempts > 0) {
+      learnerPool = getCandidatePool(p => (p.attemptedCount || 0) === maxAttempts);
+    }
+  }
+
+  if (learnerPool.length > 0) {
+    const topLearner = [...learnerPool].sort((a, b) => {
+      // 1. Most attempted questions (strictly prioritizes 100% attempts)
+      if ((b.attemptedCount || 0) !== (a.attemptedCount || 0)) {
+        return (b.attemptedCount || 0) - (a.attemptedCount || 0);
+      }
+      // 2. Highest score even after negative marking reduction
+      if (b.score !== a.score) return b.score - a.score;
+      // 3. Fastest time taken to answer
+      if (a.totalTimeMs !== b.totalTimeMs) return a.totalTimeMs - b.totalTimeMs;
+      return 0;
+    })[0];
+
+    bestLearnerWinner = {
+      rank: topLearner.rank,
+      participantId: topLearner.participantId,
+      name: topLearner.name,
+      score: topLearner.score,
+      totalTimeMs: topLearner.totalTimeMs,
+      totalTimeFormatted: topLearner.totalTimeFormatted,
+      correctCount: topLearner.correctCount,
+      wrongCount: topLearner.wrongCount || 0,
+      attemptedCount: topLearner.attemptedCount || 0,
+      totalQuestions: questionsToAttempt,
+      attemptedAll: (topLearner.attemptedCount || 0) >= questionsToAttempt,
+      stageChallengeRequired: true,
+      stageChallengeNote: 'Must come on stage and play one more game to claim the prize',
+      title: 'Best Learner Award',
+      reason: `Attempted all ${topLearner.attemptedCount}/${questionsToAttempt} questions with highest score after negative marking and fastest speed. Stage challenge required to claim prize!`
+    };
+    claimedCategoryIds.add(topLearner.participantId);
+  }
 
   return {
     leaderboard,
     leaderboardByScore: leaderboard,
     grandChampion,
     championByScore: grandChampion,
-    top3
+    top3,
+    tieBreakerWinner,
+    bestLearnerWinner
   };
 }
 
 const updateTimers = new Map();
 
-// Optimized room broadcast (prevents N^2 broadcast storm for 500 users)
+// Helper: compute active answer metrics for room
+function getAnswerMetrics(room) {
+  const uniqueParticipants = getUniqueParticipants(room, false);
+  const totalCount = uniqueParticipants.length;
+  let answeredCount = 0;
+  if (room && room.answeredParticipantIds) {
+    for (const p of uniqueParticipants) {
+      if (room.answeredParticipantIds.has(p.participantId) || room.answeredParticipantIds.has(p.socketId)) {
+        answeredCount++;
+      }
+    }
+  }
+  const unansweredCount = Math.max(0, totalCount - answeredCount);
+  return { totalCount, answeredCount, unansweredCount };
+}
+
+// Optimized room broadcast (prevents broadcast flood)
 function broadcastRoomUpdate(roomPin) {
   if (updateTimers.has(roomPin)) return;
 
@@ -182,46 +323,194 @@ function broadcastRoomUpdate(roomPin) {
     const room = rooms.get(roomPin);
     if (!room) return;
 
-    const uniqueParticipants = getUniqueParticipants(room, true);
-    const participantCount = uniqueParticipants.length;
+    const { totalCount, answeredCount, unansweredCount } = getAnswerMetrics(room);
 
     // Send lightweight metadata to room (participants & projector)
     io.to(roomPin).emit('room_updated', {
       roomPin: room.roomPin,
-      participantCount: participantCount,
+      participantCount: totalCount,
+      answeredCount: answeredCount,
+      unansweredCount: unansweredCount,
       gameState: room.gameState,
       currentQuestionIndex: room.currentQuestionIndex,
       totalQuestions: room.configuredQuestionCount || questions.length,
       configuredQuestionCount: room.configuredQuestionCount || questions.length,
-      buzzerQueueCount: room.buzzerQueue.length,
-      currentAnswerer: room.buzzerQueue[room.currentAnswererIndex] || null,
+      readingEndTime: room.readingEndTime || null,
+      answeringStartTime: room.answeringStartTime || null,
+      answeringEndTime: room.answeringEndTime || null,
       resultsPublished: room.resultsPublished || false
     });
 
-    // Send full participant list ONLY to Host socket
+    // Send full participant list & live dial counters ONLY to Host socket
     if (room.hostSocketId) {
+      const uniqueParticipants = getUniqueParticipants(room, true);
       const participantsList = uniqueParticipants.map(p => ({
         participantId: p.participantId || p.socketId,
         socketId: p.socketId,
         name: p.name,
         score: p.score,
         correctCount: p.correctCount,
+        wrongCount: p.wrongCount || 0,
+        attemptedCount: p.attemptedCount || 0,
         connected: p.connected !== false,
         fastestTimeFormatted: p.fastestTimeMs === Infinity ? '--' : (p.fastestTimeMs / 1000).toFixed(3) + 's',
-        totalTimeFormatted: (p.totalTimeMs / 1000).toFixed(3) + 's'
+        totalTimeFormatted: (p.totalTimeMs / 1000).toFixed(3) + 's',
+        hasAnsweredCurrent: room.answeredParticipantIds ? (room.answeredParticipantIds.has(p.participantId) || room.answeredParticipantIds.has(p.socketId)) : false
       }));
 
       io.to(room.hostSocketId).emit('host_room_updated', {
         participantCount: participantsList.length,
+        answeredCount: answeredCount,
+        unansweredCount: unansweredCount,
         participants: participantsList,
-        buzzerQueue: room.buzzerQueue,
         gameState: room.gameState,
         currentQuestionIndex: room.currentQuestionIndex,
         totalQuestions: room.configuredQuestionCount || questions.length,
-        configuredQuestionCount: room.configuredQuestionCount || questions.length
+        configuredQuestionCount: room.configuredQuestionCount || questions.length,
+        readingEndTime: room.readingEndTime || null,
+        answeringStartTime: room.answeringStartTime || null,
+        answeringEndTime: room.answeringEndTime || null
       });
     }
   }, 60));
+}
+
+// Internal: Transition from 10s reading phase to 30s answering phase
+function startAnsweringPhase(roomPin) {
+  const room = rooms.get(roomPin);
+  if (!room || room.gameState !== 'READING') return;
+
+  if (room.readingTimer) {
+    clearTimeout(room.readingTimer);
+    room.readingTimer = null;
+  }
+
+  room.gameState = 'ANSWERING';
+  room.readingEndTime = null;
+  room.answeringStartTime = Date.now();
+  room.answeringEndTime = Date.now() + 30000;
+
+  const answeringPayload = {
+    questionIndex: room.currentQuestionIndex,
+    durationSeconds: 30,
+    answeringStartTime: room.answeringStartTime,
+    answeringEndTime: room.answeringEndTime
+  };
+
+  console.log(`Room ${roomPin}: Question ${room.currentQuestionIndex + 1} options unlocked. 30s answering window active.`);
+
+  io.to(roomPin).emit('answering_started', answeringPayload);
+  broadcastRoomUpdate(roomPin);
+
+  // 30-second timer for answering window before auto-reveal
+  room.answeringTimer = setTimeout(() => {
+    executeRevealAnswer(roomPin);
+  }, 30000);
+}
+
+// Internal: Reveal answer, compute per-question winner (for projector only), and transition to REVEAL
+function executeRevealAnswer(roomPin) {
+  const room = rooms.get(roomPin);
+  if (!room || room.gameState === 'REVEAL' || room.gameState === 'QUIZ_ENDED' || room.gameState === 'RESULTS_PUBLISHED') return;
+
+  if (room.readingTimer) {
+    clearTimeout(room.readingTimer);
+    room.readingTimer = null;
+  }
+  if (room.answeringTimer) {
+    clearTimeout(room.answeringTimer);
+    room.answeringTimer = null;
+  }
+
+  room.gameState = 'REVEAL';
+  room.readingEndTime = null;
+  room.answeringStartTime = null;
+  room.answeringEndTime = null;
+
+  const question = questions[room.currentQuestionIndex];
+  if (!question) return;
+
+  // Compute per-question winner: fastest correct respondent among all candidates who answered this question
+  const correctSubmissions = [];
+  if (room.currentQuestionAnswers) {
+    for (const ans of room.currentQuestionAnswers.values()) {
+      if (ans.isCorrect) {
+        correctSubmissions.push(ans);
+      }
+    }
+  }
+
+  // Sort by timeMs ascending (fastest first)
+  correctSubmissions.sort((a, b) => a.timeMs - b.timeMs);
+
+  const totalCorrect = correctSubmissions.length;
+  const totalAnswered = room.currentQuestionAnswers ? room.currentQuestionAnswers.size : 0;
+  const totalParticipants = room.participants ? room.participants.size : 0;
+
+  const winnerData = correctSubmissions.length > 0 ? {
+    participantId: correctSubmissions[0].participantId,
+    name: correctSubmissions[0].name,
+    socketId: correctSubmissions[0].socketId,
+    timeMs: correctSubmissions[0].timeMs,
+    timeFormatted: correctSubmissions[0].timeFormatted,
+    totalCorrectCount: totalCorrect
+  } : null;
+
+  // Record in room.questionWinners (for projector display only; omitted from final results)
+  const existingQWinnerIdx = (room.questionWinners || []).findIndex(qw => qw.questionIndex === room.currentQuestionIndex);
+  const qRecord = {
+    questionIndex: room.currentQuestionIndex,
+    questionText: question.question,
+    category: question.category,
+    winner: winnerData,
+    totalCorrectCount: totalCorrect,
+    totalAnsweredCount: totalAnswered,
+    totalParticipantsCount: totalParticipants
+  };
+  if (!room.questionWinners) room.questionWinners = [];
+  if (existingQWinnerIdx >= 0) {
+    room.questionWinners[existingQWinnerIdx] = qRecord;
+  } else {
+    room.questionWinners.push(qRecord);
+  }
+
+  const { leaderboardByScore } = calculateLeaderboards(room);
+  const totalQ = room.configuredQuestionCount || questions.length;
+
+  room.currentRevealResult = {
+    correctAnswerIndex: question.correctAnswer,
+    correctOptionText: question.options[question.correctAnswer],
+    explanation: question.explanation,
+    winner: winnerData, // Fastest participant who answered correctly
+    totalCorrectCount: totalCorrect, // Total count of people who answered right
+    totalAnsweredCount: totalAnswered,
+    totalParticipantsCount: totalParticipants,
+    leaderboard: leaderboardByScore.slice(0, 10),
+    questionIndex: room.currentQuestionIndex,
+    isLastQuestion: room.currentQuestionIndex >= totalQ - 1
+  };
+
+  console.log(`Room ${roomPin}: Question ${room.currentQuestionIndex + 1} revealed. 1st Correct: ${winnerData?.name || 'None'} (${winnerData?.timeFormatted || 'N/A'}), Total Correct: ${totalCorrect}/${totalAnswered}`);
+
+  io.to(roomPin).emit('answer_revealed', room.currentRevealResult);
+
+  // Emit individual round result to each participant socket to evaluate and update their score simultaneously at reveal
+  for (const [pId, p] of room.participants.entries()) {
+    if (p.socketId) {
+      const pAns = room.currentQuestionAnswers ? room.currentQuestionAnswers.get(pId) : null;
+      io.to(p.socketId).emit('round_result', {
+        hasSubmitted: Boolean(pAns),
+        selectedOption: pAns ? pAns.optionIndex : null,
+        isCorrect: pAns ? pAns.isCorrect : false,
+        pointsDelta: pAns ? pAns.pointsDelta : 0,
+        pointsDeducted: pAns ? pAns.pointsDeducted : 0,
+        currentScore: p.score,
+        timeFormatted: pAns ? pAns.timeFormatted : null
+      });
+    }
+  }
+
+  broadcastRoomUpdate(roomPin);
 }
 
 io.on('connection', (socket) => {
@@ -232,7 +521,7 @@ io.on('connection', (socket) => {
     let cb = typeof callback === 'function' ? callback : (typeof data === 'function' ? data : null);
     let passcode = typeof data === 'object' && data !== null ? data.passcode : null;
 
-    if (!passcode || passcode !== HOST_PASSCODE) {
+    if (!passcode || !HOST_PASSCODES.has(passcode.trim())) {
       console.warn(`Unauthorized create_room attempt from ${socket.id}`);
       if (cb) cb({ success: false, message: 'Unauthorized: Invalid Admin Passcode' });
       return;
@@ -257,10 +546,8 @@ io.on('connection', (socket) => {
         socket.join(targetPin);
         console.log(`Host reconnected to existing room ${targetPin} (${socket.id})`);
 
-        const { leaderboard, leaderboardByScore, grandChampion, top3 } = calculateLeaderboards(existingRoom);
-        const leaderboardByTime = leaderboardByScore;
-        const championByScore = grandChampion;
-        const championByTime = grandChampion;
+        const { leaderboard, leaderboardByScore, grandChampion, top3, tieBreakerWinner, bestLearnerWinner } = calculateLeaderboards(existingRoom);
+        const { totalCount, answeredCount, unansweredCount } = getAnswerMetrics(existingRoom);
 
         const uniqueParticipants = getUniqueParticipants(existingRoom, true);
         const participantsList = uniqueParticipants.map(p => ({
@@ -269,9 +556,12 @@ io.on('connection', (socket) => {
           name: p.name,
           score: p.score,
           correctCount: p.correctCount,
+          wrongCount: p.wrongCount || 0,
+          attemptedCount: p.attemptedCount || 0,
           connected: p.connected !== false,
           fastestTimeFormatted: p.fastestTimeMs === Infinity ? '--' : (p.fastestTimeMs / 1000).toFixed(3) + 's',
-          totalTimeFormatted: (p.totalTimeMs / 1000).toFixed(3) + 's'
+          totalTimeFormatted: (p.totalTimeMs / 1000).toFixed(3) + 's',
+          hasAnsweredCurrent: existingRoom.answeredParticipantIds ? (existingRoom.answeredParticipantIds.has(p.participantId) || existingRoom.answeredParticipantIds.has(p.socketId)) : false
         }));
 
         let activeQuestion = null;
@@ -284,7 +574,7 @@ io.on('connection', (socket) => {
             question: q.question,
             options: q.options,
             category: q.category,
-            durationSeconds: 10
+            durationSeconds: existingRoom.gameState === 'READING' ? 10 : 30
           };
         }
 
@@ -294,20 +584,23 @@ io.on('connection', (socket) => {
           totalQuestions: totalQ,
           configuredQuestionCount: totalQ,
           participantCount: participantsList.length,
+          answeredCount,
+          unansweredCount,
           participants: participantsList,
-          buzzerQueue: existingRoom.buzzerQueue,
           gameState: existingRoom.gameState,
           currentQuestionIndex: existingRoom.currentQuestionIndex,
+          readingEndTime: existingRoom.readingEndTime,
+          answeringStartTime: existingRoom.answeringStartTime,
+          answeringEndTime: existingRoom.answeringEndTime,
           activeQuestion,
-          currentAnswerer: existingRoom.buzzerQueue[existingRoom.currentAnswererIndex] || null,
           questionWinners: existingRoom.questionWinners || [],
           finalResults: existingRoom.finalResults || null,
-          approvedCriteria: existingRoom.approvedCriteria || null,
           resultsPublished: existingRoom.resultsPublished || false,
           leaderboardByScore,
-          leaderboardByTime,
-          championByScore,
-          championByTime
+          grandChampion,
+          top3,
+          tieBreakerWinner,
+          bestLearnerWinner
         });
         broadcastRoomUpdate(targetPin);
       } catch (err) {
@@ -331,19 +624,17 @@ io.on('connection', (socket) => {
       participants: new Map(), // participantId -> participant details
       socketToParticipantId: new Map(), // socketId -> participantId
       currentQuestionIndex: -1,
-      gameState: 'LOBBY', // LOBBY | READING | BUZZER_UNLOCKED | ANSWERING | REVEAL | HOST_CONTROL | QUIZ_ENDED | RESULTS_PUBLISHED
-      unlockTime: null,
-      timerTimeout: null,
+      gameState: 'LOBBY', // LOBBY | READING | ANSWERING | REVEAL | QUIZ_ENDED | RESULTS_PUBLISHED
       readingEndTime: null,
+      readingTimer: null,
+      answeringStartTime: null,
+      answeringEndTime: null,
+      answeringTimer: null,
+      currentQuestionAnswers: new Map(), // participantId -> { optionIndex, isCorrect, timeMs, timeFormatted, pointsDelta }
+      answeredParticipantIds: new Set(), // Set of participantIds who answered current question
       currentRevealResult: null,
-      buzzerQueue: [], // Array of { participantId, socketId, name, timeMs, timeFormatted }
-      currentAnswererIndex: 0,
-      failedParticipants: new Set(), // participantIds / socketIds who answered incorrectly on CURRENT question
-      failedParticipantNames: new Set(), // lowercase names of participants who answered incorrectly on CURRENT question
-      failedAttemptCount: 0, // Count of distinct contenders who failed on CURRENT question (max 2)
       questionWinners: [], // Array of { questionIndex, questionText, category, winner }
       resultsPublished: false,
-      approvedCriteria: null,
       finalResults: null
     });
 
@@ -356,12 +647,11 @@ io.on('connection', (socket) => {
       totalQuestions: initialQuestionCount,
       configuredQuestionCount: initialQuestionCount,
       participantCount: 0,
+      answeredCount: 0,
+      unansweredCount: 0,
       participants: [],
-      buzzerQueue: [],
       gameState: 'LOBBY',
       currentQuestionIndex: -1,
-      currentAnswerer: null,
-      questionWinners: [],
       resultsPublished: false
     });
   });
@@ -384,7 +674,8 @@ io.on('connection', (socket) => {
     let participantId = data.participantId;
     let participant = null;
 
-    if (role === 'participant') {
+    const isParticipant = role === 'participant' || (!role && name);
+    if (isParticipant) {
       const sanitizedName = (name && typeof name === 'string') ? name.trim() : `Player_${socket.id.slice(0, 4)}`;
       const lowerName = sanitizedName.toLowerCase();
 
@@ -398,10 +689,11 @@ io.on('connection', (socket) => {
       }
 
       if (matchingEntries.length > 0) {
-        // Sort to pick the best existing entry: highest score, then most correct answers, then currently connected
+        // Sort to pick best entry: highest score, most correct answers, most attempted
         matchingEntries.sort((a, b) => {
           if (b.score !== a.score) return b.score - a.score;
           if ((b.correctCount || 0) !== (a.correctCount || 0)) return (b.correctCount || 0) - (a.correctCount || 0);
+          if ((b.attemptedCount || 0) !== (a.attemptedCount || 0)) return (b.attemptedCount || 0) - (a.attemptedCount || 0);
           if (a.connected !== b.connected) return a.connected ? -1 : 1;
           return 0;
         });
@@ -412,7 +704,6 @@ io.on('connection', (socket) => {
         // Prune any duplicate participant records in room.participants
         for (let i = 1; i < matchingEntries.length; i++) {
           const dup = matchingEntries[i];
-          console.log(`Pruning duplicate participant record for ${dup.name} (${dup.participantId}) in room ${roomPin}`);
           if (dup.disconnectTimeout) clearTimeout(dup.disconnectTimeout);
           if (dup.socketId && room.socketToParticipantId && room.socketToParticipantId.get(dup.socketId) === dup.participantId) {
             room.socketToParticipantId.delete(dup.socketId);
@@ -435,22 +726,6 @@ io.on('connection', (socket) => {
         if (sanitizedName) participant.name = sanitizedName;
         room.socketToParticipantId.set(socket.id, participant.participantId);
 
-        // Update socket ID on any buzzerQueue entries and deduplicate queue
-        const seenInQueue = new Set();
-        room.buzzerQueue = room.buzzerQueue.filter(b => {
-          const isMatch = (b.participantId && b.participantId === participant.participantId) ||
-                          (b.name && b.name.toLowerCase().trim() === lowerName);
-          if (isMatch) {
-            if (seenInQueue.has(participant.participantId)) return false;
-            seenInQueue.add(participant.participantId);
-            b.socketId = socket.id;
-            b.participantId = participant.participantId;
-            b.name = participant.name;
-            return true;
-          }
-          return true;
-        });
-
         console.log(`Player ${participant.name} (${participant.participantId}) reconnected with socket ${socket.id} to room ${roomPin} (Score: ${participant.score})`);
       } else {
         // New participant
@@ -464,7 +739,9 @@ io.on('connection', (socket) => {
           score: 0,
           correctCount: 0,
           wrongCount: 0,
+          attemptedCount: 0,
           totalTimeMs: 0,
+          allAttemptsTotalTimeMs: 0,
           fastestTimeMs: Infinity,
           averageTimeMs: 0,
           answers: [],
@@ -490,7 +767,7 @@ io.on('connection', (socket) => {
         question: q.question,
         options: q.options,
         category: q.category,
-        durationSeconds: 10
+        durationSeconds: room.gameState === 'READING' ? 10 : 30
       };
     }
 
@@ -498,29 +775,20 @@ io.on('connection', (socket) => {
     if (room.gameState === 'READING' && room.readingEndTime) {
       remainingReadingSeconds = Math.max(0, Math.ceil((room.readingEndTime - Date.now()) / 1000));
     }
+    let remainingAnsweringSeconds = 0;
+    if (room.gameState === 'ANSWERING' && room.answeringEndTime) {
+      remainingAnsweringSeconds = Math.max(0, Math.ceil((room.answeringEndTime - Date.now()) / 1000));
+    }
 
     const effectivePId = participant ? participant.participantId : (room.socketToParticipantId.get(socket.id) || socket.id);
     const myStats = participant || room.participants.get(effectivePId) || room.participants.get(socket.id) || null;
-    const nameKey = (myStats?.name || '').toLowerCase().trim();
 
-    const buzzerEntry = room.buzzerQueue.find(b => 
-      (b.participantId && b.participantId === effectivePId) || 
-      b.socketId === socket.id ||
-      (b.name && nameKey && b.name.toLowerCase().trim() === nameKey)
-    );
-    const buzzedPosition = buzzerEntry ? room.buzzerQueue.indexOf(buzzerEntry) + 1 : null;
-    const buzzedTime = buzzerEntry ? buzzerEntry.timeFormatted : '';
-    const hasBuzzed = !!buzzerEntry;
-    const hasFailed = room.failedParticipants.has(effectivePId) || 
-                      room.failedParticipants.has(socket.id) ||
-                      (nameKey && room.failedParticipantNames && room.failedParticipantNames.has(nameKey));
+    const hasAnsweredCurrentQuestion = room.answeredParticipantIds ? (
+      room.answeredParticipantIds.has(effectivePId) || room.answeredParticipantIds.has(socket.id)
+    ) : false;
+    const myCurrentAnswer = room.currentQuestionAnswers ? room.currentQuestionAnswers.get(effectivePId) : null;
 
-    const currentQWinner = room.questionWinners ? room.questionWinners.find(qw => qw.questionIndex === room.currentQuestionIndex) : null;
-    const hasWonThisQuestion = currentQWinner && currentQWinner.winner && (
-      (currentQWinner.winner.participantId && currentQWinner.winner.participantId === effectivePId) ||
-      currentQWinner.winner.socketId === socket.id ||
-      (myStats && currentQWinner.winner.name && currentQWinner.winner.name.toLowerCase().trim() === nameKey)
-    );
+    const { totalCount, answeredCount, unansweredCount } = getAnswerMetrics(room);
 
     if (callback) callback({
       success: true,
@@ -531,26 +799,41 @@ io.on('connection', (socket) => {
       totalQuestions: totalQ,
       configuredQuestionCount: totalQ,
       activeQuestion,
+      readingEndTime: room.readingEndTime,
       remainingReadingSeconds,
-      buzzerQueue: room.buzzerQueue.slice(0, 10),
-      currentAnswerer: room.buzzerQueue[room.currentAnswererIndex] || null,
-      hasBuzzed,
-      buzzedPosition,
-      buzzedTime,
-      hasFailed,
-      hasWonThisQuestion: !!hasWonThisQuestion,
+      answeringStartTime: room.answeringStartTime,
+      answeringEndTime: room.answeringEndTime,
+      remainingAnsweringSeconds,
+      hasAnsweredCurrentQuestion,
+      myCurrentAnswer: myCurrentAnswer ? {
+        optionIndex: myCurrentAnswer.optionIndex,
+        timeFormatted: myCurrentAnswer.timeFormatted,
+        ...(room.gameState === 'REVEAL' ? {
+          isCorrect: myCurrentAnswer.isCorrect,
+          pointsDelta: myCurrentAnswer.pointsDelta,
+          pointsDeducted: myCurrentAnswer.pointsDeducted,
+          optionExplanation: myCurrentAnswer.optionExplanation,
+          explanation: myCurrentAnswer.explanation
+        } : {})
+      } : null,
+      participantCount: totalCount,
+      answeredCount,
+      unansweredCount,
       revealResult: room.currentRevealResult || null,
       resultsPublished: room.resultsPublished || false,
       finalResults: room.finalResults || null,
-      questionWinners: room.questionWinners || [],
       myStats: myStats ? {
-        score: myStats.score,
+        score: (room.gameState === 'ANSWERING' && myStats.previousScore !== undefined) ? myStats.previousScore : myStats.score,
         correctCount: myStats.correctCount,
-        fastestTimeFormatted: myStats.fastestTimeMs === Infinity ? '--' : (myStats.fastestTimeMs / 1000).toFixed(3) + 's'
+        wrongCount: myStats.wrongCount || 0,
+        attemptedCount: myStats.attemptedCount || 0,
+        fastestTimeFormatted: myStats.fastestTimeMs === Infinity ? '--' : (myStats.fastestTimeMs / 1000).toFixed(3) + 's',
+        totalTimeFormatted: (myStats.totalTimeMs / 1000).toFixed(3) + 's'
       } : null
     });
   });
 
+  // Host: Push next question (10s reading phase)
   socket.on('push_question', (data, callback) => {
     const { roomPin, questionIndex } = data;
     const room = rooms.get(roomPin);
@@ -566,24 +849,23 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Reset state for reading phase
+    // Clear any existing timers
+    if (room.readingTimer) clearTimeout(room.readingTimer);
+    if (room.answeringTimer) clearTimeout(room.answeringTimer);
+
+    // Reset state for 10s reading phase
     room.currentQuestionIndex = questionIndex;
     room.gameState = 'READING';
-    room.unlockTime = null;
     room.readingEndTime = Date.now() + 10000;
+    room.answeringStartTime = null;
+    room.answeringEndTime = null;
     room.currentRevealResult = null;
-    room.buzzerQueue = [];
-    room.currentAnswererIndex = 0;
-    room.failedParticipants.clear();
-    if (room.failedParticipantNames) room.failedParticipantNames.clear();
-    room.failedAttemptCount = 0;
-    
-    if (room.timerTimeout) {
-      clearTimeout(room.timerTimeout);
-    }
-    if (room.buzzerBroadcastTimer) {
-      clearTimeout(room.buzzerBroadcastTimer);
-      room.buzzerBroadcastTimer = null;
+    room.currentQuestionAnswers = new Map();
+    room.answeredParticipantIds = new Set();
+
+    // Preserve previousScore for all participants so answering phase doesn't leak score deltas
+    for (const p of room.participants.values()) {
+      p.previousScore = p.score;
     }
 
     const questionData = questions[questionIndex];
@@ -593,135 +875,24 @@ io.on('connection', (socket) => {
       question: questionData.question,
       options: questionData.options,
       category: questionData.category,
-      durationSeconds: 10
+      durationSeconds: 10,
+      readingEndTime: room.readingEndTime
     };
+
+    console.log(`Room ${roomPin}: Host pushed Question ${questionIndex + 1}/${maxQuestions}. 10s reading phase initiated.`);
 
     io.to(roomPin).emit('question_pushed', safeQuestion);
     broadcastRoomUpdate(roomPin);
 
     if (callback) callback({ success: true, questionIndex, question: safeQuestion.question, options: safeQuestion.options });
 
-    // 10s reading timer before buzzer unlocks
-    room.timerTimeout = setTimeout(() => {
-      room.gameState = 'BUZZER_UNLOCKED';
-      room.unlockTime = Date.now();
-      room.readingEndTime = null;
-      
-      io.to(roomPin).emit('buzzer_unlocked', {
-        unlockTime: room.unlockTime
-      });
-      broadcastRoomUpdate(roomPin);
+    // 10-second reading timer before unlocking options and starting 30s answering window
+    room.readingTimer = setTimeout(() => {
+      startAnsweringPhase(roomPin);
     }, 10000);
   });
 
-  socket.on('hit_buzzer', (data, callback) => {
-    const { roomPin } = data;
-    const room = rooms.get(roomPin);
-
-    if (!room) {
-      if (callback) callback({ success: false, message: 'Room not found' });
-      return;
-    }
-
-    // NOTE: Game is open to all candidates for all questions! No lockout from previous rounds.
-
-    if ((room.failedAttemptCount || 0) >= 2) {
-      if (callback) callback({ success: false, message: 'Both top 2 attempts have been completed! Control passed to Host.' });
-      return;
-    }
-
-    if (room.gameState !== 'BUZZER_UNLOCKED' && room.gameState !== 'ANSWERING') {
-      if (callback) callback({ success: false, message: 'Buzzer is not active right now!' });
-      return;
-    }
-
-    const participantId = room.socketToParticipantId?.get(socket.id);
-    const participant = participantId ? room.participants.get(participantId) : (room.participants.get(socket.id) || null);
-
-    if (!participant) {
-      if (callback) callback({ success: false, message: 'Participant not found' });
-      return;
-    }
-
-    const pId = participant.participantId || socket.id;
-    const nameKey = (participant.name || '').toLowerCase().trim();
-
-    if (room.failedParticipants.has(pId) || room.failedParticipants.has(socket.id) || (nameKey && room.failedParticipantNames && room.failedParticipantNames.has(nameKey))) {
-      if (callback) callback({ success: false, message: 'You already attempted this question and answered incorrectly!' });
-      return;
-    }
-
-    const alreadyInQueue = room.buzzerQueue.some(b => 
-      (b.participantId && b.participantId === pId) || 
-      b.socketId === socket.id ||
-      (b.name && nameKey && b.name.toLowerCase().trim() === nameKey)
-    );
-    if (alreadyInQueue) {
-      if (callback) callback({ success: false, message: 'You have already pressed the buzzer!' });
-      return;
-    }
-
-    const timeMs = room.unlockTime ? (Date.now() - room.unlockTime) : 0;
-    const timeFormatted = (timeMs / 1000).toFixed(3) + 's';
-
-    const buzzerEntry = {
-      participantId: pId,
-      socketId: socket.id,
-      name: participant.name,
-      timeMs,
-      timeFormatted
-    };
-
-    room.buzzerQueue.push(buzzerEntry);
-
-    // If transitioning from BUZZER_UNLOCKED, find first unfailed participant
-    if (room.gameState === 'BUZZER_UNLOCKED') {
-      room.gameState = 'ANSWERING';
-      const firstValidIdx = room.buzzerQueue.findIndex(b => {
-        const idToCheck = b.participantId || b.socketId;
-        const bNameKey = (b.name || '').toLowerCase().trim();
-        return !room.failedParticipants.has(idToCheck) && 
-               !room.failedParticipants.has(b.socketId) && 
-               (!bNameKey || !room.failedParticipantNames || !room.failedParticipantNames.has(bNameKey));
-      });
-      room.currentAnswererIndex = firstValidIdx >= 0 ? firstValidIdx : 0;
-    }
-
-    const activeAnswerer = room.buzzerQueue[room.currentAnswererIndex];
-
-    // High performance queue broadcast: immediate for first 2 positions, throttled for subsequent hits
-    const isTopContender = room.buzzerQueue.length <= 2;
-    const emitBuzzerRecorded = () => {
-      io.to(roomPin).emit('buzzer_hit_recorded', {
-        buzzerQueue: room.buzzerQueue.slice(0, 10),
-        queueLength: room.buzzerQueue.length,
-        activeAnswerer: room.buzzerQueue[room.currentAnswererIndex],
-        turnNumber: room.currentAnswererIndex + 1
-      });
-    };
-
-    if (isTopContender) {
-      emitBuzzerRecorded();
-    } else if (!room.buzzerBroadcastTimer) {
-      room.buzzerBroadcastTimer = setTimeout(() => {
-        room.buzzerBroadcastTimer = null;
-        emitBuzzerRecorded();
-      }, 100);
-    }
-
-    broadcastRoomUpdate(roomPin);
-
-    const isYourTurn = activeAnswerer && ((activeAnswerer.participantId && activeAnswerer.participantId === pId) || activeAnswerer.socketId === socket.id);
-
-    if (callback) callback({
-      success: true,
-      timeMs,
-      timeFormatted,
-      position: room.buzzerQueue.length,
-      isYourTurn: !!isYourTurn
-    });
-  });
-
+  // Participant: Submit answer during 30s answering phase
   socket.on('submit_answer', (data, callback) => {
     const { roomPin, optionIndex } = data;
     const room = rooms.get(roomPin);
@@ -732,181 +903,113 @@ io.on('connection', (socket) => {
     }
 
     if (room.gameState !== 'ANSWERING') {
-      if (callback) callback({ success: false, message: 'Answering is not open' });
+      if (callback) callback({ success: false, message: 'Answering window is not currently open' });
       return;
     }
 
-    const currentAnswerer = room.buzzerQueue[room.currentAnswererIndex];
     const participantId = room.socketToParticipantId?.get(socket.id);
     const participant = participantId ? room.participants.get(participantId) : (room.participants.get(socket.id) || null);
     const pId = participant ? (participant.participantId || socket.id) : socket.id;
 
-    const isMatch = currentAnswerer && (
-      (currentAnswerer.participantId && currentAnswerer.participantId === pId) ||
-      currentAnswerer.socketId === socket.id ||
-      (participant && currentAnswerer.name && participant.name && currentAnswerer.name.toLowerCase().trim() === participant.name.toLowerCase().trim())
-    );
-
-    if (!isMatch) {
-      if (callback) callback({ success: false, message: 'It is not your turn to answer!' });
+    if (!participant) {
+      if (callback) callback({ success: false, message: 'Participant not recognized' });
       return;
     }
 
-    const question = questions[room.currentQuestionIndex];
-    const isCorrect = optionIndex === question.correctAnswer;
+    if (!room.answeredParticipantIds) room.answeredParticipantIds = new Set();
+    if (!room.currentQuestionAnswers) room.currentQuestionAnswers = new Map();
 
+    // Check if participant already answered this question
+    if (room.answeredParticipantIds.has(pId) || room.answeredParticipantIds.has(socket.id)) {
+      if (callback) callback({ success: false, message: 'You have already submitted your answer for this question' });
+      return;
+    }
+
+    const timeMs = room.answeringStartTime ? Math.max(1, Date.now() - room.answeringStartTime) : 0;
+    const timeFormatted = (timeMs / 1000).toFixed(3) + 's';
+
+    const question = questions[room.currentQuestionIndex];
+    if (!question) {
+      if (callback) callback({ success: false, message: 'Active question not found' });
+      return;
+    }
+
+    const isCorrect = optionIndex === question.correctAnswer;
     const optionExp = question.optionExplanations ? question.optionExplanations[optionIndex] : '';
+    let pointsDelta = 0;
 
     if (isCorrect) {
-      // Correct answer! Update participant statistics across all questions
-      if (participant) {
-        participant.score += 100;
-        participant.correctCount += 1;
-        participant.totalTimeMs += currentAnswerer.timeMs;
-        if (currentAnswerer.timeMs < participant.fastestTimeMs) {
-          participant.fastestTimeMs = currentAnswerer.timeMs;
-        }
-        participant.averageTimeMs = Math.round(participant.totalTimeMs / participant.correctCount);
-        participant.answers.push({
-          questionIndex: room.currentQuestionIndex,
-          timeMs: currentAnswerer.timeMs,
-          timeFormatted: currentAnswerer.timeFormatted,
-          isCorrect: true
-        });
+      participant.score += 100;
+      participant.correctCount += 1;
+      participant.totalTimeMs += timeMs;
+      if (timeMs < participant.fastestTimeMs) {
+        participant.fastestTimeMs = timeMs;
       }
-
-      room.gameState = 'REVEAL';
-
-      const winnerData = {
-        participantId: pId,
-        name: currentAnswerer.name,
-        socketId: currentAnswerer.socketId,
-        timeMs: currentAnswerer.timeMs,
-        timeFormatted: currentAnswerer.timeFormatted,
-        turnNumber: room.currentAnswererIndex + 1
-      };
-
-      // Record per-question winner
-      const existingQWinnerIdx = room.questionWinners.findIndex(qw => qw.questionIndex === room.currentQuestionIndex);
-      const qRecord = {
-        questionIndex: room.currentQuestionIndex,
-        questionText: question.question,
-        category: question.category,
-        winner: winnerData
-      };
-      if (existingQWinnerIdx >= 0) {
-        room.questionWinners[existingQWinnerIdx] = qRecord;
-      } else {
-        room.questionWinners.push(qRecord);
-      }
-
-      const { leaderboardByScore, leaderboardByTime } = calculateLeaderboards(room);
-
-      const totalQ = room.configuredQuestionCount || questions.length;
-      room.currentRevealResult = {
-        correctAnswerIndex: question.correctAnswer,
-        correctOptionText: question.options[question.correctAnswer],
-        explanation: question.explanation,
-        winner: winnerData,
-        leaderboard: leaderboardByScore.slice(0, 10),
-        questionIndex: room.currentQuestionIndex,
-        isLastQuestion: room.currentQuestionIndex >= totalQ - 1
-      };
-
-      io.to(roomPin).emit('answer_revealed', room.currentRevealResult);
-
-      broadcastRoomUpdate(roomPin);
-
-      if (callback) callback({
-        success: true,
-        isCorrect: true,
-        explanation: question.explanation,
-        optionExplanation: optionExp,
-        hasWonThisQuestion: true,
-        currentScore: participant ? participant.score : 100
-      });
+      participant.averageTimeMs = Math.round(participant.totalTimeMs / participant.correctCount);
+      pointsDelta = 100;
     } else {
-      // Wrong answer! Negative marking: -50 ONLY if player has scored points (floor at 0)
-      let pointsDeducted = 0;
-      if (participant) {
-        if (participant.score > 0) {
-          pointsDeducted = participant.score >= 50 ? 50 : participant.score;
-          participant.score -= pointsDeducted;
-        }
-        participant.wrongCount = (participant.wrongCount || 0) + 1;
-        participant.answers.push({
-          questionIndex: room.currentQuestionIndex,
-          timeMs: currentAnswerer.timeMs,
-          timeFormatted: currentAnswerer.timeFormatted,
-          isCorrect: false,
-          pointsDelta: -pointsDeducted
-        });
-        room.failedParticipants.add(pId);
-        if (participant.name) {
-          if (!room.failedParticipantNames) room.failedParticipantNames = new Set();
-          room.failedParticipantNames.add(participant.name.toLowerCase().trim());
-        }
-      }
+      // Negative marking: -50 (floored at 0 so score cannot be negative)
+      participant.score = Math.max(0, participant.score - 50);
+      participant.wrongCount = (participant.wrongCount || 0) + 1;
+      pointsDelta = -50;
+    }
 
-      room.failedParticipants.add(socket.id);
-      room.failedAttemptCount = (room.failedAttemptCount || 0) + 1;
+    participant.attemptedCount = (participant.attemptedCount || 0) + 1;
+    participant.allAttemptsTotalTimeMs = (participant.allAttemptsTotalTimeMs || 0) + timeMs;
 
-      let nextAnswerer = null;
+    participant.answers.push({
+      questionIndex: room.currentQuestionIndex,
+      optionIndex,
+      timeMs,
+      timeFormatted,
+      isCorrect,
+      pointsDelta
+    });
 
-      if ((room.failedAttemptCount || 0) >= 2) {
-        // Both top 2 participants answered wrong! End turns and transfer control to Host.
-        room.gameState = 'HOST_CONTROL';
-        io.to(roomPin).emit('turn_passed', {
-          wrongAnswerer: currentAnswerer.name,
-          wrongOptionIndex: optionIndex,
-          pointsDeducted,
-          nextAnswerer: null,
-          turnNumber: room.currentAnswererIndex + 1,
-          noMoreTurns: true,
-          gameState: 'HOST_CONTROL',
-          message: pointsDeducted > 0
-            ? `${currentAnswerer.name} answered incorrectly (-50 pts). Control passed to host.`
-            : `Both top 2 participants answered incorrectly! Control passed to host to reveal answer.`
-        });
-      } else {
-        // 1st attempt failed -> check if 2nd person is in buzzer queue
-        const nextIndex = room.currentAnswererIndex + 1;
+    room.answeredParticipantIds.add(pId);
+    room.answeredParticipantIds.add(socket.id);
 
-        if (nextIndex < room.buzzerQueue.length && nextIndex < 2) {
-          room.currentAnswererIndex = nextIndex;
-          nextAnswerer = room.buzzerQueue[nextIndex];
-          room.gameState = 'ANSWERING';
-        } else {
-          // Queue empty for 2nd turn - return to BUZZER_UNLOCKED so 2nd person can buzz
-          room.gameState = 'BUZZER_UNLOCKED';
-        }
+    const answerRecord = {
+      participantId: pId,
+      socketId: socket.id,
+      name: participant.name,
+      optionIndex,
+      isCorrect,
+      timeMs,
+      timeFormatted,
+      pointsDelta,
+      pointsDeducted: isCorrect ? 0 : 50,
+      optionExplanation: optionExp,
+      explanation: question.explanation || ''
+    };
+    room.currentQuestionAnswers.set(pId, answerRecord);
 
-        io.to(roomPin).emit('turn_passed', {
-          wrongAnswerer: currentAnswerer.name,
-          wrongOptionIndex: optionIndex,
-          pointsDeducted,
-          nextAnswerer: nextAnswerer ? { name: nextAnswerer.name, socketId: nextAnswerer.socketId } : null,
-          turnNumber: room.currentAnswererIndex + 1,
-          gameState: room.gameState,
-          message: pointsDeducted > 0
-            ? `${currentAnswerer.name} answered incorrectly (-50 pts). Next player's turn!`
-            : `${currentAnswerer.name} answered incorrectly. Next player's turn!`
-        });
-      }
+    // Compute live progress for Admin Dial (Requirement 7)
+    const { totalCount, answeredCount, unansweredCount } = getAnswerMetrics(room);
 
-      broadcastRoomUpdate(roomPin);
-
-      if (callback) callback({
-        success: true,
-        isCorrect: false,
-        pointsDeducted,
-        currentScore: participant ? participant.score : 0,
-        explanation: question.explanation,
-        optionExplanation: optionExp
+    // Immediate progress event to host for smooth real-time dial animation
+    if (room.hostSocketId) {
+      io.to(room.hostSocketId).emit('question_progress', {
+        answeredCount,
+        unansweredCount,
+        participantCount: totalCount,
+        latestAnswerer: participant.name,
+        timeFormatted
       });
     }
+
+    broadcastRoomUpdate(roomPin);
+
+    if (callback) callback({
+      success: true,
+      optionIndex,
+      timeMs,
+      timeFormatted,
+      message: 'Answer recorded! Evaluation will be revealed to everyone together.'
+    });
   });
 
+  // Host: Reveal Answer (or triggered automatically after 30s)
   socket.on('reveal_answer', (data, callback) => {
     const { roomPin } = data;
     const room = rooms.get(roomPin);
@@ -921,44 +1024,11 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if (room.timerTimeout) {
-      clearTimeout(room.timerTimeout);
-    }
-
-    room.gameState = 'REVEAL';
-    const question = questions[room.currentQuestionIndex];
-
-    // Record question in questionWinners with null winner if nobody got it right
-    const existingQWinnerIdx = room.questionWinners.findIndex(qw => qw.questionIndex === room.currentQuestionIndex);
-    if (existingQWinnerIdx === -1) {
-      room.questionWinners.push({
-        questionIndex: room.currentQuestionIndex,
-        questionText: question.question,
-        category: question.category,
-        winner: null
-      });
-    }
-
-    const { leaderboardByScore } = calculateLeaderboards(room);
-
-    const totalQ = room.configuredQuestionCount || questions.length;
-    room.currentRevealResult = {
-      correctAnswerIndex: question.correctAnswer,
-      correctOptionText: question.options[question.correctAnswer],
-      explanation: question.explanation,
-      winner: null,
-      leaderboard: leaderboardByScore.slice(0, 10),
-      questionIndex: room.currentQuestionIndex,
-      isLastQuestion: room.currentQuestionIndex >= totalQ - 1
-    };
-
-    io.to(roomPin).emit('answer_revealed', room.currentRevealResult);
-
-    broadcastRoomUpdate(roomPin);
+    executeRevealAnswer(roomPin);
     if (callback) callback({ success: true });
   });
 
-  // End Quiz: Host clicks End Quiz button or triggers completion
+  // End Quiz: Host concludes quiz and initiates review
   socket.on('end_quiz', (data, callback) => {
     const { roomPin } = data;
     const room = rooms.get(roomPin);
@@ -968,25 +1038,35 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if (room.timerTimeout) {
-      clearTimeout(room.timerTimeout);
-    }
+    if (room.readingTimer) clearTimeout(room.readingTimer);
+    if (room.answeringTimer) clearTimeout(room.answeringTimer);
 
     room.gameState = 'QUIZ_ENDED';
-    const { leaderboard, grandChampion, top3 } = calculateLeaderboards(room);
+    const { leaderboard, grandChampion, top3, tieBreakerWinner, bestLearnerWinner } = calculateLeaderboards(room);
     const totalQ = room.configuredQuestionCount || questions.length;
 
+    // Notice: per-question winners is removed from final results dashboard (Requirement 4)
     const reviewPayload = {
       roomPin,
       totalQuestions: totalQ,
-      completedQuestions: room.questionWinners.length,
-      questionWinners: room.questionWinners,
+      completedQuestions: (room.questionWinners || []).length,
       leaderboard,
       leaderboardByScore: leaderboard,
       grandChampion,
       champion: grandChampion,
       championByScore: grandChampion,
       top3,
+      tieBreakerWinner,
+      bestLearnerWinner,
+      allRanks: leaderboard.map(p => ({
+        participantId: p.participantId,
+        name: p.name,
+        score: p.score,
+        rank: p.rank,
+        totalTimeFormatted: p.totalTimeFormatted,
+        correctCount: p.correctCount,
+        attemptedCount: p.attemptedCount
+      })),
       participantCount: getUniqueParticipants(room, true).length
     };
 
@@ -994,21 +1074,19 @@ io.on('connection', (socket) => {
 
     console.log(`Quiz ended in room ${roomPin}. Host reviewing results...`);
 
-    // Notify all participants & projector that quiz is ended, host is reviewing
     io.to(roomPin).emit('quiz_ended', {
       message: 'Quiz has ended! Host is currently reviewing and verifying the official results.',
       resultsReady: false,
       gameState: 'QUIZ_ENDED'
     });
 
-    // Send complete review payload specifically to Host
     io.to(room.hostSocketId).emit('host_quiz_review', reviewPayload);
 
     broadcastRoomUpdate(roomPin);
     if (callback) callback({ success: true, results: reviewPayload, reviewPayload });
   });
 
-  // Publish Quiz Results: Host approves results (Overall Score with Time Tie-breaker + Winners by Question)
+  // Publish Quiz Results: Broadcast final awards & leaderboard (Requirement 6)
   socket.on('publish_quiz_results', (data, callback) => {
     const { roomPin } = data;
     const room = rooms.get(roomPin);
@@ -1021,8 +1099,9 @@ io.on('connection', (socket) => {
     room.gameState = 'RESULTS_PUBLISHED';
     room.resultsPublished = true;
 
-    const { leaderboard, grandChampion, top3 } = calculateLeaderboards(room);
+    const { leaderboard, grandChampion, top3, tieBreakerWinner, bestLearnerWinner } = calculateLeaderboards(room);
 
+    // Published payload: Top 3, Tie-Breaker Speed Winner, Best Learner Winner, Leaderboard
     const publishedData = {
       roomPin,
       grandChampion,
@@ -1030,9 +1109,19 @@ io.on('connection', (socket) => {
       top3,
       runnerUp: top3[1] || null,
       thirdPlace: top3[2] || null,
-      questionWinners: room.questionWinners,
+      tieBreakerWinner,
+      bestLearnerWinner,
       leaderboard: leaderboard.slice(0, 20),
       leaderboardByScore: leaderboard.slice(0, 20),
+      allRanks: leaderboard.map(p => ({
+        participantId: p.participantId,
+        name: p.name,
+        score: p.score,
+        rank: p.rank,
+        totalTimeFormatted: p.totalTimeFormatted,
+        correctCount: p.correctCount,
+        attemptedCount: p.attemptedCount
+      })),
       participantCount: getUniqueParticipants(room, true).length
     };
 
@@ -1040,9 +1129,7 @@ io.on('connection', (socket) => {
 
     console.log(`Final results published for room ${roomPin} (Champion: ${grandChampion?.name || 'None'})`);
 
-    // Broadcast official results to all clients (Host, Projector, Participants)
     io.to(roomPin).emit('quiz_results_published', publishedData);
-
     broadcastRoomUpdate(roomPin);
     if (callback) callback({ success: true, publishedData });
   });
