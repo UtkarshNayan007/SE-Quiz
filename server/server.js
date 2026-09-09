@@ -669,15 +669,57 @@ io.on('connection', (socket) => {
       room.socketToParticipantId = new Map();
     }
 
-    socket.join(roomPin);
-
     let participantId = data.participantId;
     let participant = null;
 
     const isParticipant = role === 'participant' || (!role && name);
     if (isParticipant) {
-      const sanitizedName = (name && typeof name === 'string') ? name.trim() : `Player_${socket.id.slice(0, 4)}`;
+      // Validate participant name strictly: Only capital letters (A-Z) and spaces
+      if (!name || typeof name !== 'string' || !name.trim()) {
+        if (callback) callback({ success: false, message: 'Please enter your name to join the quiz.' });
+        return;
+      }
+
+      const trimmedName = name.trim().replace(/\s+/g, ' ');
+
+      // Check for numbers, special characters, symbols
+      if (/[0-9]/.test(trimmedName) || /[^A-Za-z\s]/.test(trimmedName)) {
+        if (callback) {
+          callback({
+            success: false,
+            message: 'Invalid name. Only alphabetic letters (A-Z) and spaces are allowed. Numbers and special characters are not permitted.'
+          });
+        }
+        return;
+      }
+
+      const upperName = trimmedName.toUpperCase();
+      const alphabeticLettersOnly = upperName.replace(/[^A-Z]/g, '');
+
+      if (alphabeticLettersOnly.length < 2) {
+        if (callback) {
+          callback({
+            success: false,
+            message: 'Please enter a valid name with at least 2 letters.'
+          });
+        }
+        return;
+      }
+
+      if (upperName.length > 35) {
+        if (callback) {
+          callback({
+            success: false,
+            message: 'Name is too long. Maximum 35 characters allowed.'
+          });
+        }
+        return;
+      }
+
+      const sanitizedName = upperName;
       const lowerName = sanitizedName.toLowerCase();
+
+      socket.join(roomPin);
 
       // Find any existing participant entries matching either participantId or sanitizedName
       const matchingEntries = [];
@@ -753,6 +795,8 @@ io.on('connection', (socket) => {
         room.socketToParticipantId.set(socket.id, participantId);
         console.log(`New player ${participant.name} (${participantId}, ${socket.id}) joined room ${roomPin}`);
       }
+    } else {
+      socket.join(roomPin);
     }
 
     broadcastRoomUpdate(roomPin);

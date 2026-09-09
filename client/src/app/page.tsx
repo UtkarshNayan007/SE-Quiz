@@ -10,15 +10,30 @@ export default function LandingPage() {
 
   const handleJoinParticipant = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pin.trim() || pin.length < 6) {
+    const cleanPin = pin.trim().toUpperCase();
+    const cleanName = name.toUpperCase().replace(/[^A-Z\s]/g, '').trim().replace(/\s+/g, ' ');
+
+    if (!cleanPin || cleanPin.length < 6) {
       setError('Please enter a valid 6-digit Room PIN');
       return;
     }
-    if (!name.trim()) {
+    if (!cleanName) {
       setError('Please enter your Name');
       return;
     }
-    const url = `/participant?pin=${pin.trim()}&name=${encodeURIComponent(name.trim())}`;
+    if (name && (/[0-9]/.test(name) || /[^A-Za-z\s]/.test(name))) {
+      setError('Name must contain only capital letters (A-Z) and spaces. Numbers and special characters are not allowed.');
+      return;
+    }
+    if (cleanName.replace(/\s/g, '').length < 2) {
+      setError('Please enter a valid name with at least 2 letters.');
+      return;
+    }
+    if (cleanName.length > 35) {
+      setError('Name is too long. Maximum 35 characters allowed.');
+      return;
+    }
+    const url = `/participant?pin=${cleanPin}&name=${encodeURIComponent(cleanName)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -112,11 +127,21 @@ export default function LandingPage() {
                   </label>
                   <input
                     type="text"
-                    placeholder="Enter your name"
+                    placeholder="ENTER YOUR FULL NAME"
                     value={name}
-                    onChange={(e) => { setName(e.target.value); setError(''); }}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-base font-semibold focus:ring-2 focus:ring-schneider-green focus:bg-white transition"
+                    onChange={(e) => {
+                      setName(e.target.value.toUpperCase().replace(/[^A-Z\s]/g, ''));
+                      setError('');
+                    }}
+                    maxLength={35}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck="false"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-base font-semibold uppercase tracking-wide focus:ring-2 focus:ring-schneider-green focus:bg-white transition"
                   />
+                  <p className="text-xs text-slate-400 mt-1 font-medium">
+                    Capital letters only (A-Z). No numbers or special characters.
+                  </p>
                 </div>
 
                 <button

@@ -12,10 +12,16 @@ const STORAGE_PIN = 'se_quiz_pin';
 const STORAGE_NAME = 'se_quiz_name';
 const STORAGE_PARTICIPANT_ID = 'se_quiz_participant_id';
 
+// Helper to sanitize participant names: Only capital letters (A-Z) and spaces, collapsed
+const sanitizeParticipantName = (rawName: string | null | undefined): string => {
+  if (!rawName || typeof rawName !== 'string') return '';
+  return rawName.toUpperCase().replace(/[^A-Z\s]/g, '').trim().replace(/\s+/g, ' ');
+};
+
 function ParticipantComponent() {
   const searchParams = useSearchParams();
-  const urlPin = searchParams?.get('pin') || '';
-  const urlName = searchParams?.get('name') || '';
+  const urlPin = (searchParams?.get('pin') || '').trim().toUpperCase();
+  const urlName = sanitizeParticipantName(searchParams?.get('name'));
   const [pin, setPin] = useState(urlPin);
   const [name, setName] = useState(urlName);
   const [participantId, setParticipantId] = useState('');
@@ -146,7 +152,9 @@ function ParticipantComponent() {
   };
 
   const performJoin = (roomPinToUse: string, nameToUse: string, pIdToUse?: string) => {
-    if (!roomPinToUse || !nameToUse) {
+    const cleanPin = (roomPinToUse || '').trim().toUpperCase();
+    const cleanName = sanitizeParticipantName(nameToUse);
+    if (!cleanPin || !cleanName || cleanName.replace(/\s/g, '').length < 2) {
       setIsAutoConnecting(false);
       return;
     }
@@ -155,16 +163,16 @@ function ParticipantComponent() {
       socket.connect();
     }
     socket.emit('join_room', {
-      roomPin: roomPinToUse,
-      name: nameToUse,
+      roomPin: cleanPin,
+      name: cleanName,
       participantId: pIdToUse || undefined,
       role: 'participant'
     }, (res: any) => {
       setIsAutoConnecting(false);
       if (res?.success) {
         setJoined(true);
-        setPin(roomPinToUse);
-        setName(nameToUse);
+        setPin(cleanPin);
+        setName(cleanName);
         setError('');
 
         const effectivePid = res.participantId || pIdToUse;
@@ -172,10 +180,10 @@ function ParticipantComponent() {
           setParticipantId(effectivePid);
           if (typeof window !== 'undefined') {
             localStorage.setItem(STORAGE_PARTICIPANT_ID, effectivePid);
-            localStorage.setItem(STORAGE_PIN, roomPinToUse);
-            localStorage.setItem(STORAGE_NAME, nameToUse);
+            localStorage.setItem(STORAGE_PIN, cleanPin);
+            localStorage.setItem(STORAGE_NAME, cleanName);
             const url = new URL(window.location.href);
-            url.searchParams.set('pin', roomPinToUse);
+            url.searchParams.set('pin', cleanPin);
             window.history.replaceState({}, '', url.toString());
           }
         }
@@ -221,8 +229,8 @@ function ParticipantComponent() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const savedPin = localStorage.getItem(STORAGE_PIN) || '';
-    const savedName = localStorage.getItem(STORAGE_NAME) || '';
+    const savedPin = (localStorage.getItem(STORAGE_PIN) || '').trim().toUpperCase();
+    const savedName = sanitizeParticipantName(localStorage.getItem(STORAGE_NAME));
     const savedPid = localStorage.getItem(STORAGE_PARTICIPANT_ID) || '';
 
     // If urlPin is present and DIFFERENT from savedPin -> NEW ROOM from QR scan!
@@ -240,7 +248,7 @@ function ParticipantComponent() {
       resetQuizState();
 
       const effectiveName = urlName || savedName;
-      if (effectiveName) {
+      if (effectiveName && effectiveName.replace(/\s/g, '').length >= 2) {
         performJoin(urlPin, effectiveName, undefined);
       } else {
         setIsAutoConnecting(false);
@@ -259,7 +267,7 @@ function ParticipantComponent() {
     if (effectiveName) setName(effectiveName);
     if (savedPid) setParticipantId(savedPid);
 
-    if (effectivePin && effectiveName) {
+    if (effectivePin && effectiveName && effectiveName.replace(/\s/g, '').length >= 2) {
       performJoin(effectivePin, effectiveName, savedPid || undefined);
     } else {
       setIsAutoConnecting(false);
@@ -330,12 +338,12 @@ function ParticipantComponent() {
     // Auto re-join when socket reconnects (after network drop, phone call, background wake)
     const handleConnect = () => {
       if (typeof window !== 'undefined') {
-        const currentUrlPin = new URLSearchParams(window.location.search).get('pin') || '';
-        const savedP = localStorage.getItem(STORAGE_PIN);
-        const savedN = localStorage.getItem(STORAGE_NAME);
+        const currentUrlPin = (new URLSearchParams(window.location.search).get('pin') || '').trim().toUpperCase();
+        const savedP = (localStorage.getItem(STORAGE_PIN) || '').trim().toUpperCase();
+        const savedN = sanitizeParticipantName(localStorage.getItem(STORAGE_NAME));
         const savedId = localStorage.getItem(STORAGE_PARTICIPANT_ID);
         const targetPin = currentUrlPin || savedP;
-        if (targetPin && savedN) {
+        if (targetPin && savedN && savedN.replace(/\s/g, '').length >= 2) {
           const pidToUse = (targetPin === savedP) ? (savedId || undefined) : undefined;
           performJoin(targetPin, savedN, pidToUse);
         }
@@ -381,12 +389,12 @@ function ParticipantComponent() {
         socket.connect();
       }
       if (typeof window !== 'undefined') {
-        const currentUrlPin = new URLSearchParams(window.location.search).get('pin') || '';
-        const savedP = localStorage.getItem(STORAGE_PIN);
-        const savedN = localStorage.getItem(STORAGE_NAME);
+        const currentUrlPin = (new URLSearchParams(window.location.search).get('pin') || '').trim().toUpperCase();
+        const savedP = (localStorage.getItem(STORAGE_PIN) || '').trim().toUpperCase();
+        const savedN = sanitizeParticipantName(localStorage.getItem(STORAGE_NAME));
         const savedId = localStorage.getItem(STORAGE_PARTICIPANT_ID);
         const targetPin = currentUrlPin || savedP;
-        if (targetPin && savedN) {
+        if (targetPin && savedN && savedN.replace(/\s/g, '').length >= 2) {
           const pidToUse = (targetPin === savedP) ? (savedId || undefined) : undefined;
           performJoin(targetPin, savedN, pidToUse);
         }
@@ -427,11 +435,37 @@ function ParticipantComponent() {
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pin || !name) {
-      setError('Please enter both PIN and Name');
+    const cleanPin = (pin || '').trim().toUpperCase();
+    const cleanName = sanitizeParticipantName(name);
+
+    if (!cleanPin) {
+      setError('Please enter the Room PIN');
       return;
     }
-    performJoin(pin, name, participantId);
+
+    if (!cleanName) {
+      setError('Please enter your Name');
+      return;
+    }
+
+    if (name && (/[0-9]/.test(name) || /[^A-Za-z\s]/.test(name))) {
+      setError('Name must contain only capital letters (A-Z) and spaces. Numbers and special characters are not allowed.');
+      return;
+    }
+
+    if (cleanName.replace(/\s/g, '').length < 2) {
+      setError('Please enter a valid name with at least 2 letters.');
+      return;
+    }
+
+    if (cleanName.length > 35) {
+      setError('Name is too long. Maximum 35 characters allowed.');
+      return;
+    }
+
+    setError('');
+    setName(cleanName);
+    performJoin(cleanPin, cleanName, participantId);
   };
 
   const handleLeaveRoom = () => {
@@ -518,10 +552,21 @@ function ParticipantComponent() {
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your full name"
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#009639] focus:ring-2 focus:ring-[#00E676]/30 outline-none font-medium"
+                onChange={(e) => {
+                  const cleaned = e.target.value.toUpperCase().replace(/[^A-Z\s]/g, '');
+                  setName(cleaned);
+                  if (error) setError('');
+                }}
+                placeholder="ENTER YOUR FULL NAME"
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#009639] focus:ring-2 focus:ring-[#00E676]/30 outline-none uppercase font-semibold text-gray-800 tracking-wide"
+                maxLength={35}
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck="false"
               />
+              <p className="text-xs text-gray-400 mt-1 font-medium">
+                Capital letters only (A-Z). No numbers or special characters.
+              </p>
             </div>
             <button
               type="submit"
