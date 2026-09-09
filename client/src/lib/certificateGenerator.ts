@@ -59,6 +59,20 @@ export function generateVerificationId(name: string, score: number): string {
 }
 
 /**
+ * Helper: Convert text to Title Case (e.g. "UTKARSH NAYAN" -> "Utkarsh Nayan")
+ */
+export function toTitleCase(str: string): string {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
  * Load an image from URL safely with fallback
  */
 function loadImageSafely(src: string): Promise<HTMLImageElement | null> {
@@ -380,9 +394,9 @@ export async function renderCertificateToCanvas(
       drawText('CSH', width - 150, logoY + 60, 'bold 18px system-ui', '#FFFFFF');
     }
 
-    // B. CENTER HEADING: CYBER DAY 2026
+    // B. CENTER HEADING: CYBER DAY 2026 (Bold Serif - All Caps)
     ctx.save();
-    ctx.font = 'bold 44px "Cinzel", system-ui, sans-serif';
+    ctx.font = 'bold 46px "Cinzel", "Playfair Display", Georgia, "Times New Roman", serif';
     ctx.fillStyle = '#009639';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -412,50 +426,50 @@ export async function renderCertificateToCanvas(
     );
     ctx.restore();
 
-    // C. CERTIFICATE TITLE (Tier Specific)
+    // C. CERTIFICATE TITLE (Bold Serif - All Caps)
     ctx.save();
     if (isWinner) {
-      ctx.font = 'bold 48px "Cinzel", Georgia, serif';
+      ctx.font = 'bold 48px "Cinzel", "Playfair Display", Georgia, "Times New Roman", serif';
       ctx.fillStyle = '#009639';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('CERTIFICATE OF EXCELLENCE', centerX, 242);
 
-      drawText('HONORING OUTSTANDING CYBER DEFENSE MASTERY & TOP HONORS', centerX, 282, 'bold 12px system-ui, sans-serif', '#D97706');
+      drawText('HONORING OUTSTANDING CYBER DEFENSE MASTERY & TOP HONORS', centerX, 282, 'bold 12px "Cinzel", Georgia, serif', '#D97706');
     } else {
-      ctx.font = 'bold 46px "Cinzel", Georgia, serif';
+      ctx.font = 'bold 46px "Cinzel", "Playfair Display", Georgia, "Times New Roman", serif';
       ctx.fillStyle = '#009639';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('CERTIFICATE OF PARTICIPATION', centerX, 242);
 
-      drawText('RECOGNIZING ACTIVE COMPETENCE IN CYBERSECURITY & OT DEFENSE', centerX, 282, 'bold 12px system-ui, sans-serif', '#007A2E');
+      drawText('RECOGNIZING ACTIVE COMPETENCE IN CYBERSECURITY & OT DEFENSE', centerX, 282, 'bold 12px "Cinzel", Georgia, serif', '#007A2E');
     }
     ctx.restore();
 
     // D. RECIPIENT PRESENTATION CLAUSE
     drawText('This certificate is proudly presented to', centerX, 340, 'italic 20px "Playfair Display", Georgia, serif', '#64748B');
 
-    // E. RECIPIENT NAME IN GORGEOUS CALLIGRAPHY FONT (Centered in the True Middle)
+    // E. RECIPIENT NAME IN BOLD SERIF (TITLE CASE)
     ctx.save();
-    const recipientName = data.name.trim();
-    // Use Great Vibes or Alex Brush calligraphy, with Brush Script fallback
-    ctx.font = '76px "Great Vibes", "Alex Brush", "Brush Script MT", "Playfair Display", cursive, Georgia';
-    ctx.fillStyle = '#064E24'; // Rich deep forest emerald calligraphy ink
+    const recipientName = toTitleCase(data.name || 'Participant');
+    ctx.font = 'bold 64px "Playfair Display", "Cinzel", Georgia, "Times New Roman", serif';
+    ctx.fillStyle = '#064E24'; // Rich deep forest emerald
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Auto-scale calligraphy font if name is very long
-    const maxNameW = 1200;
+    // Auto-scale font if name is very long
+    const maxNameW = 1250;
     const currentNameW = ctx.measureText(recipientName).width;
     if (currentNameW > maxNameW) {
       const scale = maxNameW / currentNameW;
-      ctx.font = `${Math.floor(76 * scale)}px "Great Vibes", "Alex Brush", "Brush Script MT", cursive, Georgia`;
+      ctx.font = `bold ${Math.floor(64 * scale)}px "Playfair Display", "Cinzel", Georgia, "Times New Roman", serif`;
     }
     ctx.fillText(recipientName, centerX, 412);
 
-    // Decorative Calligraphy Underline with Emerald Diamond
-    const lineLen = 340;
+    // Decorative Underline with Emerald Diamond
+    const nameWidth = ctx.measureText(recipientName).width;
+    const lineLen = Math.max(280, Math.min(nameWidth / 2 + 50, 480));
     ctx.strokeStyle = isWinner ? '#F59E0B' : '#009639';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
@@ -559,6 +573,8 @@ export async function renderCertificateToCanvas(
 
     // I. CIRCULAR OFFICIAL EMBOSSED SECURITY SEAL
     drawOfficialSeal(ctx, centerX, 735, 46, isWinner);
+    // Certificate Number in Regular Serif
+    drawText(`Certificate Number: ${verificationId}`, centerX, 792, '400 14px "Playfair Display", Georgia, "Times New Roman", serif', '#475569');
 
     // J. THREE OFFICIAL SIGNATORIES (Well Balanced at the Bottom)
     const sigY = 885;
@@ -594,7 +610,7 @@ export async function renderCertificateToCanvas(
 
     // K. VERIFICATION FOOTER
     const footY = height - 60;
-    drawText(`VERIFICATION ID: ${verificationId}`, width * 0.20, footY, 'bold 11px monospace', '#64748B');
+    drawText(`Certificate Number: ${verificationId}`, width * 0.22, footY, '400 13px "Playfair Display", Georgia, "Times New Roman", serif', '#64748B');
     drawText(`${eventDate} • ${eventLocation}`, centerX, footY, 'bold 11px system-ui', '#007A2E');
     drawText('CCSH OT SOC MSSP • LIFE IS ON', width * 0.80, footY, 'bold 11px system-ui', '#009639');
 
@@ -616,9 +632,9 @@ export async function renderCertificateToCanvas(
       ctx.drawImage(cshLogoImg, centerX + 60, logoY + 10, cshSize, cshSize);
     }
 
-    // B. HEADING: CYBER DAY 2026
+    // B. HEADING: CYBER DAY 2026 (Bold Serif - All Caps)
     ctx.save();
-    ctx.font = 'bold 52px "Cinzel", system-ui, sans-serif';
+    ctx.font = 'bold 54px "Cinzel", "Playfair Display", Georgia, "Times New Roman", serif';
     ctx.fillStyle = '#009639';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -648,44 +664,54 @@ export async function renderCertificateToCanvas(
     );
     ctx.restore();
 
-    // C. CERTIFICATE TITLE
+    // C. CERTIFICATE TITLE (Bold Serif - All Caps)
     if (isWinner) {
-      ctx.font = 'bold 54px "Cinzel", Georgia, serif';
+      ctx.font = 'bold 54px "Cinzel", "Playfair Display", Georgia, "Times New Roman", serif';
       ctx.fillStyle = '#009639';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('CERTIFICATE OF', centerX, 500);
       ctx.fillText('EXCELLENCE', centerX, 565);
 
-      drawText('HONORING OUTSTANDING CYBER DEFENSE MASTERY', centerX, 625, 'bold 15px system-ui', '#D97706');
+      drawText('HONORING OUTSTANDING CYBER DEFENSE MASTERY', centerX, 625, 'bold 15px "Cinzel", Georgia, serif', '#D97706');
     } else {
-      ctx.font = 'bold 50px "Cinzel", Georgia, serif';
+      ctx.font = 'bold 50px "Cinzel", "Playfair Display", Georgia, "Times New Roman", serif';
       ctx.fillStyle = '#009639';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('CERTIFICATE OF', centerX, 500);
       ctx.fillText('PARTICIPATION', centerX, 565);
 
-      drawText('RECOGNIZING ACTIVE CYBERSECURITY DEFENSE', centerX, 625, 'bold 15px system-ui', '#007A2E');
+      drawText('RECOGNIZING ACTIVE CYBERSECURITY DEFENSE', centerX, 625, 'bold 15px "Cinzel", Georgia, serif', '#007A2E');
     }
 
     // Presentation text
     drawText('This certificate is proudly presented to', centerX, 705, 'italic 24px "Playfair Display", Georgia, serif', '#64748B');
 
-    // Recipient Name in Calligraphy Font
+    // Recipient Name in Bold Serif (Title Case)
     ctx.save();
-    ctx.font = '76px "Great Vibes", "Alex Brush", "Brush Script MT", "Playfair Display", cursive, Georgia';
+    const recipientNameStory = toTitleCase(data.name || 'Participant');
+    ctx.font = 'bold 64px "Playfair Display", "Cinzel", Georgia, "Times New Roman", serif';
     ctx.fillStyle = '#064E24';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(data.name.trim(), centerX, 785);
+
+    const maxNameW = 860;
+    const currentNameW = ctx.measureText(recipientNameStory).width;
+    if (currentNameW > maxNameW) {
+      const scale = maxNameW / currentNameW;
+      ctx.font = `bold ${Math.floor(64 * scale)}px "Playfair Display", "Cinzel", Georgia, "Times New Roman", serif`;
+    }
+    ctx.fillText(recipientNameStory, centerX, 785);
 
     // Underline
+    const nameWidthStory = ctx.measureText(recipientNameStory).width;
+    const lineLenStory = Math.max(220, Math.min(nameWidthStory / 2 + 40, 360));
     ctx.strokeStyle = isWinner ? '#F59E0B' : '#009639';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(centerX - 260, 835);
-    ctx.lineTo(centerX + 260, 835);
+    ctx.moveTo(centerX - lineLenStory, 835);
+    ctx.lineTo(centerX + lineLenStory, 835);
     ctx.stroke();
     ctx.restore();
 
@@ -714,6 +740,8 @@ export async function renderCertificateToCanvas(
 
     // Seal in Center of Story
     drawOfficialSeal(ctx, centerX, 1010, 62, isWinner);
+    // Certificate Number in Regular Serif
+    drawText(`Certificate Number: ${verificationId}`, centerX, 1088, '400 17px "Playfair Display", Georgia, "Times New Roman", serif', '#475569');
 
     // Performance Stats in Story
     ctx.save();
@@ -792,9 +820,9 @@ export async function renderCertificateToCanvas(
       drawText(ldr.org, posX, sigY + 72, '11px system-ui', '#64748B');
     });
 
-    // Story Footer
+    // Story Footer (Regular Serif for Certificate Number)
     const footY = height - 120;
-    drawText(`VERIFICATION ID: ${verificationId}`, centerX, footY - 35, 'bold 15px monospace', '#64748B');
+    drawText(`Certificate Number: ${verificationId}`, centerX, footY - 35, '400 16px "Playfair Display", Georgia, "Times New Roman", serif', '#64748B');
     drawText(`${eventDate} • ${eventLocation}`, centerX, footY, 'bold 15px system-ui', '#007A2E');
     drawText('SCHNEIDER ELECTRIC CCSH OT SOC MSSP • LIFE IS ON', centerX, footY + 35, 'bold 14px system-ui', '#009639');
   }

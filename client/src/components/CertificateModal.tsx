@@ -22,7 +22,8 @@ import {
   renderCertificateToCanvas,
   getLinkedInShareText,
   getInstagramShareCaption,
-  LEADERSHIP_PROFILES
+  LEADERSHIP_PROFILES,
+  toTitleCase
 } from '../lib/certificateGenerator';
 
 interface CertificateModalProps {
@@ -71,7 +72,7 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
     try {
       const dataUrl = canvasRef.current.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
-      const cleanName = (data.name || 'Participant').replace(/[^a-zA-Z0-9]/g, '_');
+      const cleanName = toTitleCase(data.name || 'Participant').replace(/[^a-zA-Z0-9]/g, '_');
       const suffix = format === 'story' ? 'Story' : 'Certificate';
       link.download = `Schneider_Electric_CyberDay2026_${suffix}_${cleanName}.png`;
       link.href = dataUrl;
