@@ -1024,25 +1024,25 @@ function ParticipantComponent() {
             )}
 
             {gameState === 'ANSWERING' && !hasSubmitted && (
-              <div className="bg-green-50 border border-[#009639] p-4 rounded-xl text-center space-y-1 animate-pulse">
-                <p className="text-sm font-black text-[#009639] flex items-center justify-center gap-2">
-                  <Zap className="w-4 h-4" />
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center space-y-1">
+                <p className="text-sm font-bold text-blue-900 flex items-center justify-center gap-2">
+                  <Zap className="w-4 h-4 text-blue-600 fill-blue-600" />
                   <span>Answering is Live! Tap your choice below</span>
                 </p>
-                <p className="text-xs text-green-700">
-                  Time remaining: {countdown}s • Your response time will be recorded
+                <p className="text-xs text-blue-700 font-medium">
+                  Time remaining: {countdown}s • Speed counts towards tie-breaking
                 </p>
               </div>
             )}
 
             {gameState === 'ANSWERING' && hasSubmitted && (
-              <div className="bg-emerald-50 border border-emerald-300 p-4 rounded-xl text-center space-y-1">
-                <p className="text-sm font-black text-[#009639] flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Answer Submitted in {submittedTime}!</span>
+              <div className="bg-slate-100 border border-slate-300 p-4 rounded-xl text-center space-y-1 animate-in fade-in">
+                <p className="text-sm font-bold text-slate-900 flex items-center justify-center gap-2">
+                  <Lock className="w-4 h-4 text-slate-700" />
+                  <span>Answer Locked In {submittedTime ? `(${submittedTime})` : ''}</span>
                 </p>
-                <p className="text-xs text-emerald-700">
-                  Waiting for round timer to end and host to reveal the answer...
+                <p className="text-xs text-slate-600 font-medium">
+                  Waiting for round timer to finish. Evaluation will be revealed to everyone together!
                 </p>
               </div>
             )}
@@ -1052,7 +1052,7 @@ function ParticipantComponent() {
               {activeQuestion.options?.map((optionText: string, idx: number) => {
                 const isSelected = selectedOption === idx;
                 
-                let cardClass = "relative w-full text-left bg-white rounded-xl border-2 transition-all duration-200 p-4 flex items-center gap-4 overflow-hidden";
+                let cardClass = "relative w-full text-left bg-white rounded-xl border-2 p-4 flex items-center gap-4 overflow-hidden select-none outline-none focus:outline-none focus:ring-0";
                 let letterClass = "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors";
                 let Icon = null;
 
@@ -1063,15 +1063,15 @@ function ParticipantComponent() {
                 else if (gameState === 'ANSWERING') {
                   if (hasSubmitted) {
                     if (isSelected) {
-                      cardClass += " border-[#009639] bg-green-50/70 shadow-sm font-semibold";
-                      letterClass += " bg-[#009639] text-white";
-                      Icon = <Lock className="w-5 h-5 text-[#009639] absolute right-4" />;
+                      cardClass += " border-slate-900 bg-slate-50 shadow-md font-bold text-slate-900 cursor-default";
+                      letterClass += " bg-slate-900 text-white";
+                      Icon = <Lock className="w-5 h-5 text-slate-700 absolute right-4" />;
                     } else {
-                      cardClass += " border-gray-200 opacity-50 cursor-not-allowed";
+                      cardClass += " border-gray-200 opacity-40 cursor-not-allowed";
                       letterClass += " bg-gray-100 text-gray-400";
                     }
                   } else {
-                    cardClass += " border-gray-200 hover:border-[#009639] hover:shadow-md cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0";
+                    cardClass += " border-gray-200 cursor-pointer active:scale-[0.99] active:bg-gray-50";
                     letterClass += " bg-gray-100 text-gray-700";
                   }
                 }
@@ -1087,7 +1087,7 @@ function ParticipantComponent() {
                     letterClass += " bg-red-500 text-white";
                     Icon = <XCircle className="w-6 h-6 text-red-500 absolute right-4" />;
                   } else {
-                    cardClass += " border-gray-200 opacity-50";
+                    cardClass += " border-gray-200 opacity-40";
                     letterClass += " bg-gray-100 text-gray-400";
                   }
                 }
@@ -1100,25 +1100,12 @@ function ParticipantComponent() {
                     className={cardClass}
                   >
                     <div className={letterClass}>{letters[idx]}</div>
-                    <span className="font-medium text-gray-800 pr-8">{optionText}</span>
+                    <span className="font-medium pr-8">{optionText}</span>
                     {Icon}
                   </button>
                 );
               })}
             </div>
-
-            {/* ANSWER SUBMITTED STATE (During answering window, no evaluation is leaked) */}
-            {gameState === 'ANSWERING' && hasSubmitted && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-1 animate-in fade-in">
-                <div className="flex items-center justify-center gap-2 text-emerald-800 font-bold text-sm">
-                  <Lock className="w-4 h-4 text-[#009639]" />
-                  <span>Answer Locked In {submittedTime ? `(${submittedTime})` : ''}</span>
-                </div>
-                <p className="text-xs text-emerald-700 font-medium">
-                  Waiting for round timer to end. Results will be revealed to everyone together!
-                </p>
-              </div>
-            )}
 
             {/* UNIFIED ROUND OUTCOME & EXPLANATION (Evaluated ONLY at Reveal) */}
             {gameState === 'REVEAL' && revealResult && (
