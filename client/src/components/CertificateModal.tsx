@@ -14,7 +14,8 @@ import {
   Trophy,
   ExternalLink,
   Smartphone,
-  Monitor
+  Monitor,
+  Eye
 } from 'lucide-react';
 import {
   CertificateData,
@@ -36,12 +37,28 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [format, setFormat] = useState<CertificateFormat>('landscape');
   const [isRendering, setIsRendering] = useState<boolean>(true);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
   const [copiedType, setCopiedType] = useState<'linkedin' | 'instagram' | 'id' | null>(null);
   const [toastMessage, setToastMessage] = useState<string>('');
 
   const isWinner = data.tier === 'winner';
 
-  // Render canvas whenever format or data changes
+  // Keep previewUrlRef in sync for cleanup
+  useEffect(() => {
+    previewUrlRef.current = previewUrl;
+  }, [previewUrl]);
+
+  // Clean up object URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+    };
+  }, []);
+
+  // Render canvas whenever format, data, or open state changes
   useEffect(() => {
     if (!isOpen) return;
 
@@ -51,9 +68,24 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
     const timer = setTimeout(async () => {
       if (canvasRef.current && isMounted) {
         await renderCertificateToCanvas(canvasRef.current, data, format);
-        if (isMounted) setIsRendering(false);
+        if (isMounted) {
+          try {
+            canvasRef.current.toBlob((blob) => {
+              if (blob && isMounted) {
+                const url = URL.createObjectURL(blob);
+                setPreviewUrl((prev) => {
+                  if (prev) URL.revokeObjectURL(prev);
+                  return url;
+                });
+              }
+              if (isMounted) setIsRendering(false);
+            }, 'image/png', 1.0);
+          } catch {
+            if (isMounted) setIsRendering(false);
+          }
+        }
       }
-    }, 50);
+    }, 60);
 
     return () => {
       isMounted = false;
@@ -63,26 +95,90 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 4000);
+    setTimeout(() => setToastMessage(''), 5000);
   };
 
-  // Download Certificate as High-Res PNG
-  const handleDownload = () => {
-    if (!canvasRef.current) return;
+  // Helper to extract high-quality PNG Blob from the current canvas
+  const getCanvasBlob = (): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      if (!canvasRef.current) {
+        resolve(null);
+        return;
+      }
+      canvasRef.current.toBlob((blob) => resolve(blob), 'image/png', 1.0);
+    });
+  };
+
+  // Download or Save Certificate as High-Res PNG
+  const handleDownload = async () => {
     try {
-      const dataUrl = canvasRef.current.toDataURL('image/png', 1.0);
-      const link = document.createElement('a');
+      const blob = await getCanvasBlob();
+      if (!blob) {
+        throw new Error('Canvas blob generation failed');
+      }
+
       const cleanName = toTitleCase(data.name || 'Participant').replace(/[^a-zA-Z0-9]/g, '_');
       const suffix = format === 'story' ? 'Story' : 'Certificate';
-      link.download = `Schneider_Electric_CyberDay2026_${suffix}_${cleanName}.png`;
-      link.href = dataUrl;
+      const filename = `Schneider_Electric_CyberDay2026_${suffix}_${cleanName}.png`;
+      const file = new File([blob], filename, { type: 'image/png' });
+
+      // 1. Try Native Mobile Web Share API with File (iOS Safari & Android Chrome)
+      // On iOS: Opens system Share Sheet where the user can tap "Save Image" -> saves directly to Photos / Camera Roll!
+      // On Android: Opens system Share Sheet with "Save to device" / Photos / Drive options.
+      if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: 'Schneider Electric Cyber Day 2026 Certificate',
+            text: `Official Cyber Day 2026 Certificate for ${toTitleCase(data.name || 'Participant')}`,
+            files: [file]
+          });
+          showToast('Select "Save Image" to save directly to your Photos / Camera Roll!');
+          return;
+        } catch (shareErr: any) {
+          if (shareErr?.name === 'AbortError') {
+            // User cancelled the share dialog
+            return;
+          }
+          console.warn('Web Share failed, falling back to blob download:', shareErr);
+        }
+      }
+
+      // 2. Blob URL Download Fallback (Desktop Browsers & Android Downloads)
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = blobUrl;
+      link.rel = 'noopener';
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      showToast('Certificate PNG downloaded in high resolution!');
+
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 2000);
+
+      const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent || '');
+      if (isIOS) {
+        showToast('Downloaded to Files > Downloads! Or press & hold the certificate image to Save to Photos.');
+      } else {
+        showToast('Certificate PNG downloaded to your device Downloads folder!');
+      }
     } catch (err) {
       console.error('Download error:', err);
-      showToast('Failed to download image. Try right-clicking to save.');
+      // 3. Last-resort fallback: open preview URL in new tab so user can press-and-hold to save
+      if (previewUrl) {
+        window.open(previewUrl, '_blank');
+        showToast('Certificate opened in new tab. Press and hold to Save to Photos.');
+      } else {
+        showToast('Please press and hold the certificate image above to Save to Photos.');
+      }
+    }
+  };
+
+  // Open high-resolution certificate in a new tab
+  const handleOpenFullSize = () => {
+    if (previewUrl) {
+      window.open(previewUrl, '_blank');
     }
   };
 
@@ -95,16 +191,16 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
       }
       setCopiedType('linkedin');
       setTimeout(() => setCopiedType(null), 3000);
-      
-      // Auto-trigger certificate download so they have the image ready to attach
-      handleDownload();
+
+      // Auto-trigger certificate download/save
+      await handleDownload();
 
       showToast('Post text copied with leadership mentions! Opening LinkedIn...');
-      
+
       // Open LinkedIn Feed with share composer
       setTimeout(() => {
         window.open('https://www.linkedin.com/feed/?shareActive=true', '_blank', 'noopener,noreferrer');
-      }, 700);
+      }, 900);
     } catch {
       showToast('Could not copy automatically. Text copied to manual clipboard.');
     }
@@ -125,38 +221,52 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
       setCopiedType('instagram');
       setTimeout(() => setCopiedType(null), 3000);
 
-      // Check if native mobile Web Share API with image file is supported
-      if (canvasRef.current && navigator.share && navigator.canShare) {
-        canvasRef.current.toBlob(async (blob) => {
-          if (blob) {
-            const file = new File([blob], `CyberDay2026_Story_${data.name.replace(/\s+/g, '_')}.png`, { type: 'image/png' });
-            if (navigator.canShare({ files: [file] })) {
-              try {
-                await navigator.share({
-                  title: 'Cyber Day 2026 Certificate',
-                  text: caption,
-                  files: [file]
-                });
-                showToast('Shared successfully to your phone!');
-                return;
-              } catch (e: any) {
-                if (e.name !== 'AbortError') {
-                  // Fall back to download
-                  handleDownload();
-                }
-              }
-            }
-          }
-          handleDownload();
-          showToast('Story image downloaded & caption copied! Ready to post on Instagram Stories.');
-        }, 'image/png');
+      // Render Story format (either from current canvas or offscreen canvas if format was just changed)
+      let storyBlob: Blob | null = null;
+      if (format === 'story' && canvasRef.current) {
+        storyBlob = await getCanvasBlob();
       } else {
-        handleDownload();
-        showToast('Story image downloaded & caption copied! Open Instagram to share.');
+        const offscreen = document.createElement('canvas');
+        await renderCertificateToCanvas(offscreen, data, 'story');
+        storyBlob = await new Promise<Blob | null>((res) => offscreen.toBlob(res, 'image/png', 1.0));
+      }
+
+      if (storyBlob) {
+        const cleanName = toTitleCase(data.name || 'Participant').replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `Schneider_Electric_CyberDay2026_Story_${cleanName}.png`;
+        const file = new File([storyBlob], filename, { type: 'image/png' });
+
+        if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: 'Schneider Electric Cyber Day 2026 Story',
+              text: caption,
+              files: [file]
+            });
+            showToast('Story ready! Select Instagram or Save Image to Photos.');
+            return;
+          } catch (e: any) {
+            if (e?.name === 'AbortError') return;
+          }
+        }
+
+        // Fallback download
+        const blobUrl = URL.createObjectURL(storyBlob);
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = blobUrl;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        }, 2000);
+        showToast('Story image downloaded & caption copied! Open Instagram Stories to post.');
+      } else {
+        showToast('Story caption copied! Open Instagram Stories to post.');
       }
     } catch {
-      handleDownload();
-      showToast('Story image downloaded. Open Instagram to post!');
+      showToast('Caption copied! Open Instagram Stories to post.');
     }
   };
 
@@ -232,37 +342,83 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
             </div>
           </div>
 
-          {/* Live High-Res Canvas Preview */}
-          <div className="relative w-full rounded-2xl overflow-hidden border border-slate-700/60 bg-black flex items-center justify-center min-h-[260px] max-h-[460px] shadow-inner">
+          {/* Live High-Res Image Preview (supports native iOS & Android long-press) */}
+          <div className="relative w-full rounded-2xl overflow-hidden border border-slate-700/60 bg-black flex items-center justify-center min-h-[260px] max-h-[460px] shadow-inner group">
             {isRendering && (
               <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
                 <div className="w-8 h-8 border-3 border-[#00E676] border-t-transparent rounded-full animate-spin mb-2" />
                 <p className="text-xs text-slate-300 font-medium">Generating official vector certificate...</p>
               </div>
             )}
+
+            {/* Hidden Canvas used for offscreen vector rendering */}
             <canvas
               ref={canvasRef}
-              className={`max-w-full max-h-[440px] w-auto h-auto object-contain rounded-xl shadow-2xl transition-opacity duration-300 ${
-                isRendering ? 'opacity-30' : 'opacity-100'
-              }`}
+              className="hidden"
             />
+
+            {/* Real <img> element enabling native iOS/Android Long-Press context menus ("Save to Photos" / "Download Image") */}
+            {previewUrl ? (
+              <img
+                src={previewUrl}
+                alt="Schneider Electric Cyber Day 2026 Certificate"
+                className={`max-w-full max-h-[440px] w-auto h-auto object-contain rounded-xl shadow-2xl transition-opacity duration-300 select-none ${
+                  isRendering ? 'opacity-30' : 'opacity-100'
+                }`}
+                style={{ WebkitTouchCallout: 'default' }}
+              />
+            ) : (
+              <div className="w-full h-[260px] flex items-center justify-center">
+                <div className="w-8 h-8 border-3 border-[#00E676] border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+
+            {/* Full Size View Button Overlay */}
+            {previewUrl && !isRendering && (
+              <button
+                type="button"
+                onClick={handleOpenFullSize}
+                className="absolute top-3 right-3 px-2.5 py-1.5 rounded-xl bg-slate-900/85 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 shadow-md backdrop-blur-sm transition flex items-center gap-1.5 text-xs font-semibold"
+                title="Open Full Resolution in New Tab"
+              >
+                <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">Full Size</span>
+              </button>
+            )}
+          </div>
+
+          {/* Mobile Guidance Banner */}
+          <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-emerald-950/40 border border-emerald-800/40 text-xs text-emerald-200">
+            <Sparkles className="w-4 h-4 text-[#00E676] flex-shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="font-bold text-white block">📱 Mobile Photo / Camera Roll Tip:</span>
+              <p className="text-[11px] text-emerald-300/90 leading-relaxed">
+                Tap <strong>&quot;Save / Download&quot;</strong> below and select <em>&quot;Save Image&quot;</em> in your phone&apos;s menu. You can also <strong>press &amp; hold</strong> the certificate preview above to save directly to your Photos / Gallery!
+              </p>
+            </div>
           </div>
 
           {/* 1-Click Action Buttons */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* 1. Download High-Res PNG */}
+            {/* 1. Download / Save High-Res PNG */}
             <button
               onClick={handleDownload}
-              className="py-3 px-4 rounded-2xl bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all active:scale-95"
+              disabled={isRendering}
+              className={`py-3 px-4 rounded-2xl bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all active:scale-95 ${
+                isRendering ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
             >
               <Download className="w-4 h-4" />
-              <span>Download PNG (Full HD)</span>
+              <span>{isRendering ? 'Generating...' : 'Save / Download (Full HD)'}</span>
             </button>
 
             {/* 2. Share on LinkedIn */}
             <button
               onClick={handleLinkedInShare}
-              className="py-3 px-4 rounded-2xl bg-[#0A66C2] hover:bg-[#0077B5] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-950/50 transition-all active:scale-95"
+              disabled={isRendering}
+              className={`py-3 px-4 rounded-2xl bg-[#0A66C2] hover:bg-[#0077B5] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-950/50 transition-all active:scale-95 ${
+                isRendering ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
             >
               {copiedType === 'linkedin' ? <Check className="w-4 h-4 text-green-300" /> : <Linkedin className="w-4 h-4 fill-current" />}
               <span>Share to LinkedIn</span>
@@ -271,7 +427,10 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
             {/* 3. Share on Instagram */}
             <button
               onClick={handleInstagramShare}
-              className="py-3 px-4 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-pink-950/50 transition-all active:scale-95"
+              disabled={isRendering}
+              className={`py-3 px-4 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-pink-950/50 transition-all active:scale-95 ${
+                isRendering ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
             >
               {copiedType === 'instagram' ? <Check className="w-4 h-4 text-green-300" /> : <Instagram className="w-4 h-4" />}
               <span>Share to Instagram</span>
