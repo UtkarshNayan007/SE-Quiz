@@ -85,6 +85,16 @@ function getUniqueParticipants(room, cleanupRoom = false) {
   const mapByName = new Map();
   const duplicatesToDelete = [];
 
+  // In LOBBY, prune any disconnected participants whose socket is gone (> 10s)
+  if (room.gameState === 'LOBBY') {
+    const now = Date.now();
+    for (const [pId, p] of room.participants.entries()) {
+      if (!p.connected && p.disconnectedAt && (now - p.disconnectedAt > 10000)) {
+        duplicatesToDelete.push(p);
+      }
+    }
+  }
+
   for (const p of room.participants.values()) {
     const key = (p.name || '').toLowerCase().trim();
     if (!key) continue;
@@ -623,11 +633,12 @@ io.on('connection', (socket) => {
 
       socket.join(roomPin);
 
-      // Find any existing participant entries matching either participantId or sanitizedName
+      // Find any existing participant entries matching this exact sanitizedName
       const matchingEntries = [];
       for (const p of room.participants.values()) {
         const pLower = (p.name || '').toLowerCase().trim();
-        if ((participantId && p.participantId === participantId) || (pLower && pLower === lowerName)) {
+        // A participant record only matches if the name is identical
+        if (pLower === lowerName) {
           matchingEntries.push(p);
         }
       }
@@ -672,10 +683,8 @@ io.on('connection', (socket) => {
 
         console.log(`Player ${participant.name} (${participant.participantId}) reconnected with socket ${socket.id} to room ${roomPin} (Score: ${participant.score})`);
       } else {
-        // New participant
-        if (!participantId) {
-          participantId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-        }
+        // New participant: always generate a fresh unique participantId to avoid inheriting stale cached IDs
+        participantId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
         participant = {
           participantId,
           socketId: socket.id,
@@ -1136,7 +1145,8 @@ io.on('connection', (socket) => {
         room.socketToParticipantId.delete(socket.id);
         const participant = room.participants.get(participantId);
         if (participant) {
-          console.log(`Participant ${participant.name} (${participantId}) disconnected from room ${roomPin}. 15-minute grace period active.`);
+          const timeoutMs = (room.gameState === 'LOBBY') ? 10000 : (15 * 60 * 1000);
+          console.log(`Participant ${participant.name} (${participantId}) disconnected from room ${roomPin} (${room.gameState === 'LOBBY' ? '10s' : '15m'} grace).`);
           participant.connected = false;
           participant.disconnectedAt = Date.now();
           if (participant.disconnectTimeout) clearTimeout(participant.disconnectTimeout);
@@ -1146,12 +1156,13 @@ io.on('connection', (socket) => {
               room.participants.delete(participantId);
               broadcastRoomUpdate(roomPin);
             }
-          }, 15 * 60 * 1000);
+          }, timeoutMs);
           broadcastRoomUpdate(roomPin);
         }
       } else if (room.participants.has(socket.id)) {
         const participant = room.participants.get(socket.id);
-        console.log(`Participant ${participant?.name || socket.id} disconnected from room ${roomPin}. 15-minute grace period active.`);
+        const timeoutMs = (room.gameState === 'LOBBY') ? 10000 : (15 * 60 * 1000);
+        console.log(`Participant ${participant?.name || socket.id} disconnected from room ${roomPin} (${room.gameState === 'LOBBY' ? '10s' : '15m'} grace).`);
         participant.connected = false;
         participant.disconnectedAt = Date.now();
         if (participant.disconnectTimeout) clearTimeout(participant.disconnectTimeout);
@@ -1160,9 +1171,72 @@ io.on('connection', (socket) => {
             room.participants.delete(socket.id);
             broadcastRoomUpdate(roomPin);
           }
-        }, 15 * 60 * 1000);
+        }, timeoutMs);
         broadcastRoomUpdate(roomPin);
       }
+    }
+  });
+
+  // Host: Reset or destroy room to start completely fresh
+  socket.on('reset_room', (data, callback) => {
+    const { roomPin } = data || {};
+    const room = rooms.get(roomPin);
+
+    if (!socket.isHost || !room || room.hostSocketId !== socket.id) {
+      if (callback) callback({ success: false, message: 'Unauthorized: Host privilege required' });
+      return;
+    }
+
+    if (room.readingTimer) clearTimeout(room.readingTimer);
+    if (room.answeringTimer) clearTimeout(room.answeringTimer);
+    if (room.hostDisconnectTimeout) clearTimeout(room.hostDisconnectTimeout);
+
+    io.to(roomPin).emit('room_destroyed', { message: 'The host has ended this game session.' });
+    rooms.delete(roomPin);
+    console.log(`Room ${roomPin} has been completely reset and deleted by host.`);
+
+    if (callback) callback({ success: true });
+  });
+
+  // Host: Remove / Kick an unwanted or duplicate participant
+  socket.on('remove_participant', (data, callback) => {
+    const { roomPin, participantId } = data || {};
+    const room = rooms.get(roomPin);
+
+    if (!socket.isHost || !room || room.hostSocketId !== socket.id) {
+      if (callback) callback({ success: false, message: 'Unauthorized: Host privilege required' });
+      return;
+    }
+
+    const pName = (data?.participantName || '').toLowerCase().trim();
+    let targetP = participantId ? room.participants.get(participantId) : null;
+    if (!targetP) {
+      for (const p of room.participants.values()) {
+        if (
+          (participantId && (p.participantId === participantId || p.socketId === participantId || p.name === participantId)) ||
+          (pName && p.name.toLowerCase().trim() === pName)
+        ) {
+          targetP = p;
+          break;
+        }
+      }
+    }
+
+    if (targetP) {
+      const pId = targetP.participantId;
+      if (targetP.disconnectTimeout) clearTimeout(targetP.disconnectTimeout);
+      if (targetP.socketId) {
+        io.to(targetP.socketId).emit('room_destroyed', { message: 'You have been removed from the session by the host.' });
+      }
+      room.participants.delete(pId);
+      if (targetP.socketId && room.socketToParticipantId) {
+        room.socketToParticipantId.delete(targetP.socketId);
+      }
+      console.log(`Room ${roomPin}: Host removed participant ${targetP.name} (${pId})`);
+      broadcastRoomUpdate(roomPin);
+      if (callback) callback({ success: true });
+    } else {
+      if (callback) callback({ success: false, message: 'Participant not found' });
     }
   });
 

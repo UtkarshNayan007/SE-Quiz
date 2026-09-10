@@ -27,7 +27,8 @@ import {
   Sparkles,
   Crown,
   SlidersHorizontal,
-  LogOut
+  LogOut,
+  X
 } from 'lucide-react';
 
 const deduplicateParticipants = (list: any[]) => {
@@ -391,10 +392,29 @@ export default function HostDashboard() {
 
   const handleResetSession = () => {
     if (typeof window !== 'undefined') {
+      if (roomPin) {
+        const socket = getSocket();
+        socket.emit('reset_room', { roomPin });
+      }
       localStorage.removeItem('se_host_room_pin');
       sessionStorage.removeItem('se_host_room_pin');
       window.location.href = '/host';
     }
+  };
+
+  const handleRemoveParticipant = (participantId?: string, participantName?: string) => {
+    if (!roomPin) return;
+    const socket = getSocket();
+    socket.emit('remove_participant', {
+      roomPin,
+      participantId,
+      participantName
+    }, (res: any) => {
+      if (res?.success) {
+        setParticipants(prev => prev.filter(p => (p.participantId || p.id) !== participantId && p.name !== participantName));
+        setParticipantCount(prev => Math.max(0, prev - 1));
+      }
+    });
   };
 
   const handleHostLogout = () => {
@@ -1143,6 +1163,16 @@ export default function HostDashboard() {
                       <span className="bg-[#009639] text-white text-xs px-2 py-0.5 rounded-full font-bold">
                         {p.score || 0}
                       </span>
+                      {gameState === 'LOBBY' && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveParticipant(p.participantId || p.id, p.name)}
+                          className="ml-0.5 text-gray-400 hover:text-red-600 transition-colors p-0.5 rounded-full hover:bg-gray-200"
+                          title={`Remove ${p.name}`}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   ))
                 )}

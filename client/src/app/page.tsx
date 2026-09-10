@@ -33,6 +33,15 @@ export default function LandingPage() {
       setError('Name is too long. Maximum 35 characters allowed.');
       return;
     }
+    if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem('se_quiz_name');
+      const savedPin = localStorage.getItem('se_quiz_pin');
+      if (savedName !== cleanName || savedPin !== cleanPin) {
+        localStorage.removeItem('se_quiz_participant_id');
+      }
+      localStorage.setItem('se_quiz_pin', cleanPin);
+      localStorage.setItem('se_quiz_name', cleanName);
+    }
     const url = `/participant?pin=${cleanPin}&name=${encodeURIComponent(cleanName)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };

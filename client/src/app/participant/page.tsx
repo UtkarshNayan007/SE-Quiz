@@ -210,23 +210,27 @@ function ParticipantComponent() {
     const savedName = sanitizeParticipantName(localStorage.getItem(STORAGE_NAME));
     const savedPid = localStorage.getItem(STORAGE_PARTICIPANT_ID) || '';
 
-    // If urlPin is present and DIFFERENT from savedPin -> NEW ROOM from QR scan!
-    if (urlPin && savedPin && urlPin !== savedPin) {
-      console.log(`[QR SCAN] Switching to new room PIN ${urlPin} (clearing old room ${savedPin})`);
+    const isDifferentRoom = Boolean(urlPin && savedPin && urlPin !== savedPin);
+    const isDifferentName = Boolean(urlName && savedName && urlName.toLowerCase() !== savedName.toLowerCase());
+
+    // If new room or new name is passed -> FRESH SESSION! Clear old participant ID
+    if (isDifferentRoom || isDifferentName) {
+      console.log(`[SESSION RESET] Resetting participant session (diffRoom: ${isDifferentRoom}, diffName: ${isDifferentName})`);
       localStorage.removeItem(STORAGE_PARTICIPANT_ID);
-      localStorage.setItem(STORAGE_PIN, urlPin);
+      if (urlPin) localStorage.setItem(STORAGE_PIN, urlPin);
       if (urlName) localStorage.setItem(STORAGE_NAME, urlName);
 
-      setPin(urlPin);
-      if (urlName) setName(urlName);
-      else if (savedName) setName(savedName);
+      const targetPin = urlPin || savedPin;
+      const targetName = urlName || savedName;
+
+      setPin(targetPin);
+      setName(targetName);
       setParticipantId('');
       setJoined(false);
       resetQuizState();
 
-      const effectiveName = urlName || savedName;
-      if (effectiveName && effectiveName.replace(/\s/g, '').length >= 2) {
-        performJoin(urlPin, effectiveName, undefined);
+      if (targetPin && targetName && targetName.replace(/\s/g, '').length >= 2) {
+        performJoin(targetPin, targetName, undefined);
       } else {
         setIsAutoConnecting(false);
       }
@@ -326,14 +330,22 @@ function ParticipantComponent() {
     // Auto re-join when socket reconnects (after network drop, phone call, background wake)
     const handleConnect = () => {
       if (typeof window !== 'undefined') {
-        const currentUrlPin = (new URLSearchParams(window.location.search).get('pin') || '').trim().toUpperCase();
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentUrlPin = (urlParams.get('pin') || '').trim().toUpperCase();
+        const currentUrlName = sanitizeParticipantName(urlParams.get('name'));
         const savedP = (localStorage.getItem(STORAGE_PIN) || '').trim().toUpperCase();
         const savedN = sanitizeParticipantName(localStorage.getItem(STORAGE_NAME));
         const savedId = localStorage.getItem(STORAGE_PARTICIPANT_ID);
+        
         const targetPin = currentUrlPin || savedP;
-        if (targetPin && savedN && savedN.replace(/\s/g, '').length >= 2) {
-          const pidToUse = (targetPin === savedP) ? (savedId || undefined) : undefined;
-          performJoin(targetPin, savedN, pidToUse);
+        const targetName = currentUrlName || savedN;
+
+        const isNameMismatch = Boolean(currentUrlName && savedN && currentUrlName.toLowerCase() !== savedN.toLowerCase());
+        const isPinMismatch = Boolean(currentUrlPin && savedP && currentUrlPin !== savedP);
+
+        if (targetPin && targetName && targetName.replace(/\s/g, '').length >= 2) {
+          const pidToUse = (!isPinMismatch && !isNameMismatch) ? (savedId || undefined) : undefined;
+          performJoin(targetPin, targetName, pidToUse);
         }
       }
     };
