@@ -91,6 +91,7 @@ export default function HostDashboard() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isAnsweringClosed, setIsAnsweringClosed] = useState(false);
   const roomCreatedRef = useRef(false);
 
   const attemptCreateRoom = (inputPasscode: string, targetPin?: string) => {
@@ -124,6 +125,7 @@ export default function HostDashboard() {
         if (res.participants) setParticipants(deduplicateParticipants(res.participants));
         if (res.participantCount !== undefined) setParticipantCount(res.participantCount);
         if (res.gameState) setGameState(res.gameState);
+        if (res.answeringEnded) setIsAnsweringClosed(true);
         if (res.currentQuestionIndex !== undefined) setCurrentQIndex(res.currentQuestionIndex);
         if (res.activeQuestion) setActiveQuestion(res.activeQuestion);
         if (res.finalResults) setFinalResults(res.finalResults);
@@ -202,7 +204,13 @@ export default function HostDashboard() {
 
     const handleAnsweringStarted = (data: any) => {
       setGameState('ANSWERING');
+      setIsAnsweringClosed(false);
       setCountdown(data.durationSeconds || 30);
+    };
+
+    const handleAnsweringClosed = () => {
+      setIsAnsweringClosed(true);
+      setCountdown(0);
     };
 
     const handleQuestionProgress = (data: any) => {
@@ -219,6 +227,7 @@ export default function HostDashboard() {
 
     const handleAnswerRevealed = (data: any) => {
       setRevealResult(data);
+      setIsAnsweringClosed(false);
       setGameState('REVEAL');
     };
 
@@ -231,6 +240,7 @@ export default function HostDashboard() {
       setCurrentQIndex(data.questionIndex);
       if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
       setGameState('READING');
+      setIsAnsweringClosed(false);
       setCountdown(data.durationSeconds || 10);
       setProgressData({
         answeredCount: 0,
@@ -272,6 +282,7 @@ export default function HostDashboard() {
     socket.on('room_updated', handleRoomUpdated);
     socket.on('host_room_updated', handleHostRoomUpdated);
     socket.on('answering_started', handleAnsweringStarted);
+    socket.on('answering_closed', handleAnsweringClosed);
     socket.on('question_progress', handleQuestionProgress);
     socket.on('answer_revealed', handleAnswerRevealed);
     socket.on('question_pushed', handleQuestionPushed);
@@ -284,6 +295,7 @@ export default function HostDashboard() {
       socket.off('room_updated', handleRoomUpdated);
       socket.off('host_room_updated', handleHostRoomUpdated);
       socket.off('answering_started', handleAnsweringStarted);
+      socket.off('answering_closed', handleAnsweringClosed);
       socket.off('question_progress', handleQuestionProgress);
       socket.off('answer_revealed', handleAnswerRevealed);
       socket.off('question_pushed', handleQuestionPushed);
@@ -413,8 +425,17 @@ export default function HostDashboard() {
       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-8 space-y-6">
           <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 bg-[#009639]/20 border border-[#00E676] rounded-2xl flex items-center justify-center text-[#00E676] mb-4 shadow-lg">
-              <Lock className="w-8 h-8" />
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <img
+                src="/se-logo.png"
+                alt="Schneider Electric"
+                className="w-12 h-12 object-contain drop-shadow-sm"
+              />
+              <img
+                src="/cyber-shield-logo.png"
+                alt="Cyber Security Shield"
+                className="w-12 h-12 object-contain drop-shadow-sm"
+              />
             </div>
             <h1 className="text-2xl font-bold text-white">Admin Access Gate</h1>
             <p className="text-sm text-slate-400 mt-1">SE Quiz Host Dashboard Protection</p>
@@ -507,6 +528,11 @@ export default function HostDashboard() {
           <img
             src="/se-logo.png"
             alt="Schneider Electric"
+            className="w-10 h-10 object-contain drop-shadow-sm"
+          />
+          <img
+            src="/cyber-shield-logo.png"
+            alt="Cyber Security Shield"
             className="w-10 h-10 object-contain drop-shadow-sm"
           />
           <div>
@@ -701,83 +727,6 @@ export default function HostDashboard() {
                   <span>⚡ Score tied; ranked by speed</span>
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Spotlight Awards Grid: Tie-Breaker Speed Winner, Best Learner Award */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* 1. Tie-Breaker Speed Winner */}
-            <div className="bg-gradient-to-b from-blue-50 to-white rounded-3xl border-2 border-blue-200 p-6 shadow-md flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-black">
-                    <Zap className="w-4 h-4 fill-current" />
-                  </div>
-                  <span className="text-xs font-black uppercase tracking-wider text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full">
-                    ⚡ Tie-Breaker Speed Winner
-                  </span>
-                </div>
-                <h4 className="text-2xl font-black text-gray-900 mt-2">
-                  {finalResults?.tieBreakerWinner?.name || 'N/A'}
-                </h4>
-                <div className="mt-3 flex items-center gap-3">
-                  <span className="text-2xl font-mono font-black text-blue-700">
-                    {finalResults?.tieBreakerWinner?.totalTimeFormatted || '--'}
-                  </span>
-                  <span className="text-xs font-semibold text-gray-500">
-                    ({finalResults?.tieBreakerWinner?.score ?? 0} pts)
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-blue-600 mt-4 font-medium">
-                Awarded for fastest cumulative response time in score tie / top performance.
-              </p>
-            </div>
-
-            {/* 2. Best Learner Award - Stage Challenge Qualifier */}
-            <div className="bg-gradient-to-b from-purple-50 via-white to-amber-50 rounded-3xl border-2 border-purple-200 p-6 shadow-md flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-black">
-                      <Award className="w-4 h-4" />
-                    </div>
-                    <span className="text-xs font-black uppercase tracking-wider text-purple-700 bg-purple-100 px-2.5 py-0.5 rounded-full">
-                      🌟 Best Learner Award
-                    </span>
-                  </div>
-                </div>
-                <h4 className="text-2xl font-black text-gray-900 mt-2">
-                  {finalResults?.bestLearnerWinner?.name || 'N/A'}
-                </h4>
-                <div className="mt-3 flex items-center gap-3">
-                  <span className="text-2xl font-mono font-black text-purple-700">
-                    {finalResults?.bestLearnerWinner?.score ?? 0} pts
-                  </span>
-                  <span className="text-xs font-bold text-gray-500 font-mono">
-                    Speed: {finalResults?.bestLearnerWinner?.totalTimeFormatted || '--'}
-                  </span>
-                </div>
-                {finalResults?.bestLearnerWinner && (
-                  <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-purple-800 bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-200">
-                    <span>✓ Attempted All Questions ({finalResults.bestLearnerWinner.attemptedCount}/{finalResults.bestLearnerWinner.totalQuestions || configuredQuestionCount})</span>
-                  </div>
-                )}
-
-                {/* Stage Callout for Host */}
-                <div className="mt-4 p-3 rounded-2xl bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-300 text-amber-950 flex items-start gap-2.5 shadow-sm">
-                  <span className="text-base leading-none mt-0.5">🎤</span>
-                  <div className="text-xs">
-                    <span className="font-black uppercase tracking-wider block text-amber-900">Stage Qualifier</span>
-                    <p className="font-bold text-slate-900 mt-0.5 leading-snug">
-                      Call {finalResults?.bestLearnerWinner?.name || 'winner'} to the stage to play one more game and claim the prize!
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <p className="text-[11px] text-purple-700 mt-3 font-medium">
-                Awarded for attempting all questions, highest score after negative marking & fastest speed.
-              </p>
             </div>
           </div>
 
@@ -1025,7 +974,11 @@ export default function HostDashboard() {
               <div className="bg-gray-50 rounded-2xl shadow p-6 border border-gray-200 text-center space-y-4">
                 <p className="text-gray-600 font-medium">
                   {gameState === 'READING' && `📖 10s Question Reading in progress (${countdown}s remaining)...`}
-                  {gameState === 'ANSWERING' && `⚡ 30s Answering window is LIVE (${countdown}s remaining) • ${progressData.answeredCount} of ${participantCount} answered`}
+                  {gameState === 'ANSWERING' && (
+                    countdown > 0 && !isAnsweringClosed
+                      ? `⚡ 30s Answering window is LIVE (${countdown}s remaining) • ${progressData.answeredCount} of ${participantCount} answered`
+                      : `⏳ Answering closed (${progressData.answeredCount} of ${participantCount} answered). Click below to reveal answer to everyone!`
+                  )}
                 </p>
 
                 <button

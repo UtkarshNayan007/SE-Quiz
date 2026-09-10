@@ -119,8 +119,7 @@ function getUniqueParticipants(room, cleanupRoom = false) {
   return Array.from(mapByName.values());
 }
 
-// Helper: Calculate Leaderboards and Champions
-// Helper: Calculate Leaderboards and Spotlight Award Winners (Requirement 6)
+// Helper: Calculate Leaderboards and Top 3 Winners (Version 3)
 function calculateLeaderboards(room) {
   const participants = getUniqueParticipants(room, true);
 
@@ -130,9 +129,13 @@ function calculateLeaderboards(room) {
       // 1. Primary: Score descending
       if (b.score !== a.score) return b.score - a.score;
 
-      // 2. Secondary: Time tie-breaker (fastest total time among players with correct answers)
-      const aTime = (a.correctCount > 0 && a.totalTimeMs > 0) ? a.totalTimeMs : Infinity;
-      const bTime = (b.correctCount > 0 && b.totalTimeMs > 0) ? b.totalTimeMs : Infinity;
+      // 2. Secondary: Time tie-breaker (fastest total time among players with correct answers or total answering time)
+      const aTime = (a.correctCount > 0 && a.totalTimeMs > 0)
+        ? a.totalTimeMs
+        : ((a.allAttemptsTotalTimeMs && a.allAttemptsTotalTimeMs > 0) ? a.allAttemptsTotalTimeMs : Infinity);
+      const bTime = (b.correctCount > 0 && b.totalTimeMs > 0)
+        ? b.totalTimeMs
+        : ((b.allAttemptsTotalTimeMs && b.allAttemptsTotalTimeMs > 0) ? b.allAttemptsTotalTimeMs : Infinity);
       if (aTime !== bTime) return aTime - bTime;
 
       // 3. Tertiary: Most attempted questions
@@ -147,7 +150,7 @@ function calculateLeaderboards(room) {
       const prevTied = idx > 0 && arr[idx - 1].score === p.score && p.score > 0;
       const nextTied = idx < arr.length - 1 && arr[idx + 1].score === p.score && p.score > 0;
       const hasTie = prevTied || nextTied;
-      const wonTieByTime = Boolean(nextTied && arr[idx + 1].score === p.score && p.totalTimeMs < arr[idx + 1].totalTimeMs && p.correctCount > 0);
+      const wonTieByTime = Boolean(nextTied && arr[idx + 1].score === p.score && p.totalTimeMs < arr[idx + 1].totalTimeMs);
 
       return {
         rank: idx + 1,
@@ -172,118 +175,6 @@ function calculateLeaderboards(room) {
 
   const grandChampion = leaderboard.length > 0 && leaderboard[0].score > 0 ? leaderboard[0] : (leaderboard[0] || null);
   const top3 = leaderboard.slice(0, 3);
-  const totalQ = room.configuredQuestionCount || questions.length;
-
-  // Track claimed winners so each winning category has a unique winner (same person cannot claim all positions)
-  const claimedCategoryIds = new Set();
-  if (grandChampion) {
-    claimedCategoryIds.add(grandChampion.participantId);
-  }
-  if (top3[1]) {
-    claimedCategoryIds.add(top3[1].participantId);
-  }
-  if (top3[2]) {
-    claimedCategoryIds.add(top3[2].participantId);
-  }
-
-  // Candidate pool for spotlight awards: strictly participants who have not claimed any podium or spotlight category
-  const getCandidatePool = (filterFn) => {
-    return leaderboard.filter(p => !claimedCategoryIds.has(p.participantId) && filterFn(p));
-  };
-
-  // 1. Tie Breaker Winner - by Time (priority if someone won an actual score-tie)
-  let tieBreakerWinner = null;
-  const tieBreakPool = getCandidatePool(p => p.hasScoreTie && p.tieBrokenByTime);
-  if (tieBreakPool.length > 0) {
-    const winner = tieBreakPool[0];
-    tieBreakerWinner = {
-      rank: winner.rank,
-      participantId: winner.participantId,
-      name: winner.name,
-      score: winner.score,
-      correctCount: winner.correctCount,
-      totalTimeMs: winner.totalTimeMs,
-      totalTimeFormatted: winner.totalTimeFormatted,
-      isTieBreak: true,
-      reason: 'Won tie-breaker against competitor with equal score via faster response time!'
-    };
-    claimedCategoryIds.add(winner.participantId);
-  }
-
-  // If tieBreakerWinner wasn't claimed by an actual score-tie, award it to fastest overall speed candidate among remaining unique pool
-  if (!tieBreakerWinner) {
-    const speedPool = getCandidatePool(p => p.correctCount > 0 && p.totalTimeMs > 0);
-    const fallbackSpeedPool = speedPool.length > 0 ? speedPool : getCandidatePool(p => p.totalTimeMs > 0);
-    if (fallbackSpeedPool.length > 0) {
-      const fastest = [...fallbackSpeedPool].sort((a, b) => a.totalTimeMs - b.totalTimeMs)[0];
-      tieBreakerWinner = {
-        rank: fastest.rank,
-        participantId: fastest.participantId,
-        name: fastest.name,
-        score: fastest.score,
-        correctCount: fastest.correctCount,
-        totalTimeMs: fastest.totalTimeMs,
-        totalTimeFormatted: fastest.totalTimeFormatted,
-        isTieBreak: false,
-        reason: 'Fastest overall cumulative response speed across correct answers!'
-      };
-      claimedCategoryIds.add(fastest.participantId);
-    }
-  }
-
-  // 3. Best Learner Award:
-  // Validation criteria:
-  // 1. MUST have attempted ALL questions (attemptedCount >= questionsToAttempt)
-  // 2. Maximum score even after negative marking reduction
-  // 3. Fastest cumulative response time
-  // 4. Unique winner (not already in podium or another spotlight award)
-  let bestLearnerWinner = null;
-  const questionsToAttempt = Math.max(1, (room.questionWinners && room.questionWinners.length > 0) ? room.questionWinners.length : (room.currentQuestionIndex >= 0 ? room.currentQuestionIndex + 1 : totalQ));
-
-  // Primary filter: candidate MUST have attempted ALL questions played
-  let learnerPool = getCandidatePool(p => (p.attemptedCount || 0) >= questionsToAttempt);
-
-  // Graceful fallback if no one in the eligible pool attempted 100% of questions: pick from candidates with the most attempts
-  if (learnerPool.length === 0) {
-    const candidateAttempts = getCandidatePool(() => true).map(p => p.attemptedCount || 0);
-    const maxAttempts = candidateAttempts.length > 0 ? Math.max(0, ...candidateAttempts) : 0;
-    if (maxAttempts > 0) {
-      learnerPool = getCandidatePool(p => (p.attemptedCount || 0) === maxAttempts);
-    }
-  }
-
-  if (learnerPool.length > 0) {
-    const topLearner = [...learnerPool].sort((a, b) => {
-      // 1. Most attempted questions (strictly prioritizes 100% attempts)
-      if ((b.attemptedCount || 0) !== (a.attemptedCount || 0)) {
-        return (b.attemptedCount || 0) - (a.attemptedCount || 0);
-      }
-      // 2. Highest score even after negative marking reduction
-      if (b.score !== a.score) return b.score - a.score;
-      // 3. Fastest time taken to answer
-      if (a.totalTimeMs !== b.totalTimeMs) return a.totalTimeMs - b.totalTimeMs;
-      return 0;
-    })[0];
-
-    bestLearnerWinner = {
-      rank: topLearner.rank,
-      participantId: topLearner.participantId,
-      name: topLearner.name,
-      score: topLearner.score,
-      totalTimeMs: topLearner.totalTimeMs,
-      totalTimeFormatted: topLearner.totalTimeFormatted,
-      correctCount: topLearner.correctCount,
-      wrongCount: topLearner.wrongCount || 0,
-      attemptedCount: topLearner.attemptedCount || 0,
-      totalQuestions: questionsToAttempt,
-      attemptedAll: (topLearner.attemptedCount || 0) >= questionsToAttempt,
-      stageChallengeRequired: true,
-      stageChallengeNote: 'Must come on stage and play one more game to claim the prize',
-      title: 'Best Learner Award',
-      reason: `Attempted all ${topLearner.attemptedCount}/${questionsToAttempt} questions with highest score after negative marking and fastest speed. Stage challenge required to claim prize!`
-    };
-    claimedCategoryIds.add(topLearner.participantId);
-  }
 
   return {
     leaderboard,
@@ -291,8 +182,8 @@ function calculateLeaderboards(room) {
     grandChampion,
     championByScore: grandChampion,
     top3,
-    tieBreakerWinner,
-    bestLearnerWinner
+    tieBreakerWinner: null,
+    bestLearnerWinner: null
   };
 }
 
@@ -386,6 +277,7 @@ function startAnsweringPhase(roomPin) {
   }
 
   room.gameState = 'ANSWERING';
+  room.answeringEnded = false;
   room.readingEndTime = null;
   room.answeringStartTime = Date.now();
   room.answeringEndTime = Date.now() + 30000;
@@ -402,9 +294,17 @@ function startAnsweringPhase(roomPin) {
   io.to(roomPin).emit('answering_started', answeringPayload);
   broadcastRoomUpdate(roomPin);
 
-  // 30-second timer for answering window before auto-reveal
+  // 30-second timer for answering window.
+  // Version 3: Closes answering window when time expires; answer is NOT auto-revealed.
+  // Result evaluation is kept on hold for all until the host explicitly triggers reveal_answer.
   room.answeringTimer = setTimeout(() => {
-    executeRevealAnswer(roomPin);
+    room.answeringEnded = true;
+    console.log(`Room ${roomPin}: Question ${room.currentQuestionIndex + 1} answering window closed (30s expired). Evaluation on hold waiting for host reveal.`);
+    io.to(roomPin).emit('answering_closed', {
+      questionIndex: room.currentQuestionIndex,
+      message: "Time's up! Answering is closed. Waiting for host to reveal the answer..."
+    });
+    broadcastRoomUpdate(roomPin);
   }, 30000);
 }
 
@@ -423,6 +323,7 @@ function executeRevealAnswer(roomPin) {
   }
 
   room.gameState = 'REVEAL';
+  room.answeringEnded = true;
   room.readingEndTime = null;
   room.answeringStartTime = null;
   room.answeringEndTime = null;
@@ -546,7 +447,7 @@ io.on('connection', (socket) => {
         socket.join(targetPin);
         console.log(`Host reconnected to existing room ${targetPin} (${socket.id})`);
 
-        const { leaderboard, leaderboardByScore, grandChampion, top3, tieBreakerWinner, bestLearnerWinner } = calculateLeaderboards(existingRoom);
+        const { leaderboard, leaderboardByScore, grandChampion, top3 } = calculateLeaderboards(existingRoom);
         const { totalCount, answeredCount, unansweredCount } = getAnswerMetrics(existingRoom);
 
         const uniqueParticipants = getUniqueParticipants(existingRoom, true);
@@ -588,6 +489,7 @@ io.on('connection', (socket) => {
           unansweredCount,
           participants: participantsList,
           gameState: existingRoom.gameState,
+          answeringEnded: Boolean(existingRoom.answeringEnded),
           currentQuestionIndex: existingRoom.currentQuestionIndex,
           readingEndTime: existingRoom.readingEndTime,
           answeringStartTime: existingRoom.answeringStartTime,
@@ -599,8 +501,8 @@ io.on('connection', (socket) => {
           leaderboardByScore,
           grandChampion,
           top3,
-          tieBreakerWinner,
-          bestLearnerWinner
+          tieBreakerWinner: null,
+          bestLearnerWinner: null
         });
         broadcastRoomUpdate(targetPin);
       } catch (err) {
@@ -839,6 +741,7 @@ io.on('connection', (socket) => {
       participantId: effectivePId,
       roomPin,
       gameState: room.gameState,
+      answeringEnded: Boolean(room.answeringEnded),
       currentQuestionIndex: room.currentQuestionIndex,
       totalQuestions: totalQ,
       configuredQuestionCount: totalQ,
@@ -879,7 +782,7 @@ io.on('connection', (socket) => {
 
   // Host: Push next question (10s reading phase)
   socket.on('push_question', (data, callback) => {
-    const { roomPin, questionIndex } = data;
+    const { roomPin } = data || {};
     const room = rooms.get(roomPin);
 
     if (!socket.isHost || !room || room.hostSocketId !== socket.id) {
@@ -888,10 +791,15 @@ io.on('connection', (socket) => {
     }
 
     const maxQuestions = room.configuredQuestionCount || questions.length;
-    if (questionIndex < 0 || questionIndex >= maxQuestions) {
+    const targetIndex = typeof data?.questionIndex === 'number' && !isNaN(data.questionIndex)
+      ? data.questionIndex
+      : (room.currentQuestionIndex !== null ? room.currentQuestionIndex + 1 : 0);
+
+    if (targetIndex < 0 || targetIndex >= maxQuestions || !questions[targetIndex]) {
       if (callback) callback({ success: false, message: `Question index exceeds configured limit (${maxQuestions})` });
       return;
     }
+    const questionIndex = targetIndex;
 
     // Clear any existing timers
     if (room.readingTimer) clearTimeout(room.readingTimer);
@@ -900,6 +808,7 @@ io.on('connection', (socket) => {
     // Reset state for 10s reading phase
     room.currentQuestionIndex = questionIndex;
     room.gameState = 'READING';
+    room.answeringEnded = false;
     room.readingEndTime = Date.now() + 10000;
     room.answeringStartTime = null;
     room.answeringEndTime = null;
@@ -946,8 +855,8 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if (room.gameState !== 'ANSWERING') {
-      if (callback) callback({ success: false, message: 'Answering window is not currently open' });
+    if (room.gameState !== 'ANSWERING' || room.answeringEnded || (room.answeringEndTime && Date.now() > room.answeringEndTime)) {
+      if (callback) callback({ success: false, message: 'Answering window is closed for this question' });
       return;
     }
 
@@ -1086,7 +995,7 @@ io.on('connection', (socket) => {
     if (room.answeringTimer) clearTimeout(room.answeringTimer);
 
     room.gameState = 'QUIZ_ENDED';
-    const { leaderboard, grandChampion, top3, tieBreakerWinner, bestLearnerWinner } = calculateLeaderboards(room);
+    const { leaderboard, grandChampion, top3 } = calculateLeaderboards(room);
     const totalQ = room.configuredQuestionCount || questions.length;
 
     // Notice: per-question winners is removed from final results dashboard (Requirement 4)
@@ -1100,8 +1009,8 @@ io.on('connection', (socket) => {
       champion: grandChampion,
       championByScore: grandChampion,
       top3,
-      tieBreakerWinner,
-      bestLearnerWinner,
+      tieBreakerWinner: null,
+      bestLearnerWinner: null,
       allRanks: leaderboard.map(p => ({
         participantId: p.participantId,
         name: p.name,
@@ -1143,9 +1052,9 @@ io.on('connection', (socket) => {
     room.gameState = 'RESULTS_PUBLISHED';
     room.resultsPublished = true;
 
-    const { leaderboard, grandChampion, top3, tieBreakerWinner, bestLearnerWinner } = calculateLeaderboards(room);
+    const { leaderboard, grandChampion, top3 } = calculateLeaderboards(room);
 
-    // Published payload: Top 3, Tie-Breaker Speed Winner, Best Learner Winner, Leaderboard
+    // Published payload: Top 3, Leaderboard
     const publishedData = {
       roomPin,
       grandChampion,
@@ -1153,8 +1062,8 @@ io.on('connection', (socket) => {
       top3,
       runnerUp: top3[1] || null,
       thirdPlace: top3[2] || null,
-      tieBreakerWinner,
-      bestLearnerWinner,
+      tieBreakerWinner: null,
+      bestLearnerWinner: null,
       leaderboard: leaderboard.slice(0, 20),
       leaderboardByScore: leaderboard.slice(0, 20),
       allRanks: leaderboard.map(p => ({

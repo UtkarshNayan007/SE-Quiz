@@ -42,6 +42,7 @@ function ParticipantComponent() {
   
   const [answerResult, setAnswerResult] = useState<any>(null);
   const [revealResult, setRevealResult] = useState<any>(null);
+  const [isAnsweringClosed, setIsAnsweringClosed] = useState(false);
   const [myScore, setMyScore] = useState(0);
   const [publishedResults, setPublishedResults] = useState<any>(null);
   const [isCertificateOpen, setIsCertificateOpen] = useState(false);
@@ -68,6 +69,7 @@ function ParticipantComponent() {
     setHasSubmitted(false);
     setSubmittedTime('');
     setIsSubmitting(false);
+    setIsAnsweringClosed(false);
     setAnswerResult(null);
     setRevealResult(null);
     setMyScore(0);
@@ -76,44 +78,24 @@ function ParticipantComponent() {
     setError('');
   };
 
+  // Compute Participant Certificate Data
   const getParticipantCertificateData = (): CertificateData => {
-    const defaultData: CertificateData = {
-      name: name || 'Participant',
-      tier: 'participant',
-      awardTitle: 'Certified Cyber Defender',
-      rank: '-',
-      score: myScore,
-      totalQuestions,
-      dateStr: '7 October 2026',
-      locationStr: 'Avinya Campus, Bangalore'
-    };
-
-    if (!publishedResults) return defaultData;
-
     const myLower = (name || '').trim().toLowerCase();
-    const allList = publishedResults.allRanks || publishedResults.leaderboard || publishedResults.leaderboardByScore || [];
-    const myEntry = allList.find((p: any) => p.name?.trim().toLowerCase() === myLower);
+    const allList = publishedResults?.allRanks || publishedResults?.leaderboard || [];
+    const myEntry = allList.find((p: any) => (p.name || '').trim().toLowerCase() === myLower);
 
-    let myRank = myEntry?.rank;
-    if (!myRank) {
-      const idx = allList.findIndex((p: any) => p.name?.trim().toLowerCase() === myLower);
-      if (idx !== -1) myRank = idx + 1;
-      else myRank = '-';
-    }
+    const finalScore = myEntry?.score ?? myScore ?? 0;
+    const myRank = myEntry?.rank;
+    const finalSpeed = myEntry?.totalTimeFormatted || undefined;
+    const attemptedCount = myEntry?.attemptedCount ?? 0;
 
-    const finalScore = myEntry?.score ?? myScore;
-    const finalSpeed = myEntry?.totalTimeFormatted || '';
-    const attemptedCount = myEntry?.attemptedCount || 0;
-
-    // Check winner categories
-    const isGrandChamp = (publishedResults.grandChampion?.name?.trim().toLowerCase() === myLower) ||
-                         (publishedResults.champion?.name?.trim().toLowerCase() === myLower) ||
+    const isGrandChamp = (publishedResults?.grandChampion?.name?.trim().toLowerCase() === myLower) ||
+                         (publishedResults?.championByScore?.name?.trim().toLowerCase() === myLower) ||
+                         (publishedResults?.champion?.name?.trim().toLowerCase() === myLower) ||
                          myRank === 1;
 
-    const isRunnerUp = (publishedResults.top3?.[1]?.name?.trim().toLowerCase() === myLower) || myRank === 2;
-    const isThirdPlace = (publishedResults.top3?.[2]?.name?.trim().toLowerCase() === myLower) || myRank === 3;
-    const isBestLearner = publishedResults.bestLearnerWinner?.name?.trim().toLowerCase() === myLower;
-    const isTieBreaker = publishedResults.tieBreakerWinner?.name?.trim().toLowerCase() === myLower;
+    const isRunnerUp = (publishedResults?.top3?.[1]?.name?.trim().toLowerCase() === myLower) || myRank === 2;
+    const isThirdPlace = (publishedResults?.top3?.[2]?.name?.trim().toLowerCase() === myLower) || myRank === 3;
 
     let tier: 'winner' | 'participant' = 'participant';
     let awardTitle = typeof myRank === 'number' ? `Cyber Defender • Rank #${myRank}` : 'Certified Cyber Defender';
@@ -127,12 +109,6 @@ function ParticipantComponent() {
     } else if (isThirdPlace) {
       tier = 'winner';
       awardTitle = '2nd Runner Up • 3rd Place';
-    } else if (isBestLearner) {
-      tier = 'winner';
-      awardTitle = 'Best Learner Award • Stage Qualifier';
-    } else if (isTieBreaker) {
-      tier = 'winner';
-      awardTitle = 'Tie-Breaker Speed Champion';
     }
 
     return {
@@ -140,11 +116,11 @@ function ParticipantComponent() {
       tier,
       awardTitle,
       rank: myRank,
-      totalParticipants: publishedResults.participantCount || allList.length,
+      totalParticipants: publishedResults?.participantCount || allList.length || 1,
       score: finalScore,
       speed: finalSpeed,
       attemptedCount,
-      totalQuestions: publishedResults.totalQuestions || totalQuestions,
+      totalQuestions: publishedResults?.totalQuestions || totalQuestions,
       verificationId: generateVerificationId(name || 'Participant', finalScore),
       dateStr: '7 October 2026',
       locationStr: 'Avinya Campus, Bangalore'
@@ -189,6 +165,7 @@ function ParticipantComponent() {
         }
 
         if (res.gameState) setGameState(res.gameState);
+        if (res.answeringEnded) setIsAnsweringClosed(true);
         if (res.activeQuestion) setActiveQuestion(res.activeQuestion);
         if (res.totalQuestions) setTotalQuestions(res.totalQuestions);
         if (res.remainingReadingSeconds !== undefined && res.remainingReadingSeconds > 0) {
@@ -286,6 +263,9 @@ function ParticipantComponent() {
       if (roomData?.totalQuestions) {
         setTotalQuestions(roomData.totalQuestions);
       }
+      if (roomData?.answeringEnded !== undefined) {
+        setIsAnsweringClosed(Boolean(roomData.answeringEnded));
+      }
     };
 
     const handleQuestionPushed = (data: any) => {
@@ -296,6 +276,7 @@ function ParticipantComponent() {
       setHasSubmitted(false);
       setSubmittedTime('');
       setIsSubmitting(false);
+      setIsAnsweringClosed(false);
       setAnswerResult(null);
       setRevealResult(null);
       setGameState('READING');
@@ -303,7 +284,13 @@ function ParticipantComponent() {
 
     const handleAnsweringStarted = (data: any) => {
       setGameState('ANSWERING');
+      setIsAnsweringClosed(false);
       setCountdown(data.durationSeconds || 30);
+    };
+
+    const handleAnsweringClosed = () => {
+      setIsAnsweringClosed(true);
+      setCountdown(0);
     };
 
     const handleQuestionLimitUpdated = (data: any) => {
@@ -312,6 +299,7 @@ function ParticipantComponent() {
 
     const handleAnswerRevealed = (data: any) => {
       setRevealResult(data);
+      setIsAnsweringClosed(false);
       setGameState('REVEAL');
     };
 
@@ -359,6 +347,7 @@ function ParticipantComponent() {
     socket.on('room_updated', handleRoomUpdated);
     socket.on('question_pushed', handleQuestionPushed);
     socket.on('answering_started', handleAnsweringStarted);
+    socket.on('answering_closed', handleAnsweringClosed);
     socket.on('question_limit_updated', handleQuestionLimitUpdated);
     socket.on('answer_revealed', handleAnswerRevealed);
     socket.on('round_result', handleRoundResult);
@@ -371,6 +360,7 @@ function ParticipantComponent() {
       socket.off('room_updated', handleRoomUpdated);
       socket.off('question_pushed', handleQuestionPushed);
       socket.off('answering_started', handleAnsweringStarted);
+      socket.off('answering_closed', handleAnsweringClosed);
       socket.off('question_limit_updated', handleQuestionLimitUpdated);
       socket.off('answer_revealed', handleAnswerRevealed);
       socket.off('round_result', handleRoundResult);
@@ -485,7 +475,7 @@ function ParticipantComponent() {
   };
 
   const handleOptionClick = (index: number) => {
-    if (gameState !== 'ANSWERING' || hasSubmitted || isSubmitting) return;
+    if (gameState !== 'ANSWERING' || hasSubmitted || isSubmitting || countdown <= 0 || isAnsweringClosed) return;
 
     setSelectedOption(index);
     setIsSubmitting(true);
@@ -520,11 +510,18 @@ function ParticipantComponent() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
           <div className="flex flex-col items-center mb-8">
-            <img
-              src="/se-logo.png"
-              alt="Schneider Electric"
-              className="w-16 h-16 object-contain mb-4 drop-shadow-sm"
-            />
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <img
+                src="/se-logo.png"
+                alt="Schneider Electric"
+                className="w-14 h-14 object-contain drop-shadow-sm"
+              />
+              <img
+                src="/cyber-shield-logo.png"
+                alt="Cyber Security Shield"
+                className="w-14 h-14 object-contain drop-shadow-sm"
+              />
+            </div>
             <h1 className="text-2xl font-bold text-gray-900">Join Quiz Session</h1>
             <p className="text-sm text-gray-500 mt-1">Schneider Electric MSS Quiz</p>
           </div>
@@ -587,11 +584,16 @@ function ParticipantComponent() {
         
         {/* Top Player Info Header */}
         <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-between border border-gray-100">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <img
               src="/se-logo.png"
               alt="Schneider Electric"
-              className="w-9 h-9 object-contain drop-shadow-sm"
+              className="w-8 h-8 object-contain drop-shadow-sm"
+            />
+            <img
+              src="/cyber-shield-logo.png"
+              alt="Cyber Security Shield"
+              className="w-8 h-8 object-contain drop-shadow-sm"
             />
             <div>
               <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Player</p>
@@ -732,64 +734,6 @@ function ParticipantComponent() {
                     <span className="inline-block px-1.5 py-0.5 bg-amber-600 text-white font-black rounded text-[10px] mb-1">#3</span>
                     <p className="font-bold text-gray-900 truncate">{publishedResults.top3?.[2]?.name || 'TBD'}</p>
                     <p className="font-mono text-amber-800 font-extrabold text-xs">{publishedResults.top3?.[2]?.score ?? 0} pts</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Tie-Breaker Speed Winner */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-blue-500 text-white flex items-center justify-center font-bold">
-                      <Zap className="w-4 h-4 fill-current" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-wider text-blue-700">⚡ Tie-Breaker Speed Winner</p>
-                      <h4 className="font-black text-gray-900 text-sm">
-                        {publishedResults.tieBreakerWinner?.name || 'No Tie-Breaker Required'}
-                      </h4>
-                    </div>
-                  </div>
-                  {publishedResults.tieBreakerWinner && (
-                    <div className="text-right font-mono">
-                      <p className="text-xs font-bold text-blue-700">{publishedResults.tieBreakerWinner.totalTimeFormatted || '--'}</p>
-                      <p className="text-[10px] text-gray-500">{publishedResults.tieBreakerWinner.score} pts</p>
-                    </div>
-                  )}
-                </div>
-                <p className="text-[11px] text-blue-600 mt-2 font-medium">
-                  Fastest cumulative response time among competitors.
-                </p>
-              </div>
-
-              {/* 3. Best Learner Award - Stage Qualifier */}
-              <div className="bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border border-purple-200 rounded-2xl p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold">
-                      <Award className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-wider text-purple-700">🌟 Best Learner Award</p>
-                      <h4 className="font-black text-gray-900 text-sm">
-                        {publishedResults.bestLearnerWinner?.name || 'TBD'}
-                      </h4>
-                    </div>
-                  </div>
-                  {publishedResults.bestLearnerWinner && (
-                    <div className="text-right font-mono">
-                      <p className="text-xs font-black text-purple-700">{publishedResults.bestLearnerWinner.score ?? 0} pts</p>
-                      <p className="text-[10px] text-gray-500">Speed: {publishedResults.bestLearnerWinner.totalTimeFormatted || '--'}</p>
-                      <p className="text-[9px] font-bold text-purple-800 bg-purple-100 px-1.5 py-0.5 rounded mt-0.5 inline-block">✓ {publishedResults.bestLearnerWinner.attemptedCount}/{publishedResults.bestLearnerWinner.totalQuestions || totalQuestions} Questions</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-2.5 p-2 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-xl border border-amber-300 flex items-start gap-2 text-[11px] text-amber-950 font-semibold shadow-sm">
-                  <span className="text-sm leading-none mt-0.5">🎤</span>
-                  <div>
-                    <span className="font-black uppercase tracking-wider text-amber-900 block text-[10px]">Stage Qualifier</span>
-                    <span>Winner must come on stage and play one more game to claim the prize! (Attempted all questions + highest score after negative marking + fastest speed)</span>
                   </div>
                 </div>
               </div>
@@ -992,9 +936,17 @@ function ParticipantComponent() {
                 )}
                 
                 {gameState === 'ANSWERING' && (
-                  <div className="flex items-center gap-1.5 text-[#009639] font-bold bg-green-50 px-3 py-1 rounded-full text-sm animate-pulse">
+                  <div className={`flex items-center gap-1.5 font-bold px-3 py-1 rounded-full text-sm ${
+                    countdown > 0 && !isAnsweringClosed
+                      ? 'text-[#009639] bg-green-50 animate-pulse'
+                      : 'text-amber-800 bg-amber-50'
+                  }`}>
                     <Zap className="w-4 h-4" />
-                    <span>30s Answering ({countdown}s)</span>
+                    <span>
+                      {countdown > 0 && !isAnsweringClosed
+                        ? `30s Answering (${countdown}s)`
+                        : 'Answering Closed'}
+                    </span>
                   </div>
                 )}
 
@@ -1024,13 +976,32 @@ function ParticipantComponent() {
             )}
 
             {gameState === 'ANSWERING' && !hasSubmitted && (
-              <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center space-y-1">
-                <p className="text-sm font-bold text-blue-900 flex items-center justify-center gap-2">
-                  <Zap className="w-4 h-4 text-blue-600 fill-blue-600" />
-                  <span>Answering is Live! Tap your choice below</span>
+              <div className={`border p-4 rounded-xl text-center space-y-1 ${
+                countdown > 0 && !isAnsweringClosed
+                  ? 'bg-blue-50 border-blue-200'
+                  : 'bg-amber-50 border-amber-200'
+              }`}>
+                <p className={`text-sm font-bold flex items-center justify-center gap-2 ${
+                  countdown > 0 && !isAnsweringClosed ? 'text-blue-900' : 'text-amber-900'
+                }`}>
+                  {countdown > 0 && !isAnsweringClosed ? (
+                    <>
+                      <Zap className="w-4 h-4 text-blue-600 fill-blue-600" />
+                      <span>Answering is Live! Tap your choice below</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4 text-amber-700" />
+                      <span>Time's Up! Answering is Closed</span>
+                    </>
+                  )}
                 </p>
-                <p className="text-xs text-blue-700 font-medium">
-                  Time remaining: {countdown}s • Speed counts towards tie-breaking
+                <p className={`text-xs font-medium ${
+                  countdown > 0 && !isAnsweringClosed ? 'text-blue-700' : 'text-amber-700'
+                }`}>
+                  {countdown > 0 && !isAnsweringClosed
+                    ? `Time remaining: ${countdown}s • Speed counts towards tie-breaking`
+                    : 'Evaluation is on hold — waiting for host to reveal the answer to all...'}
                 </p>
               </div>
             )}
@@ -1042,7 +1013,9 @@ function ParticipantComponent() {
                   <span>Answer Locked In {submittedTime ? `(${submittedTime})` : ''}</span>
                 </p>
                 <p className="text-xs text-slate-600 font-medium">
-                  Waiting for round timer to finish. Evaluation will be revealed to everyone together!
+                  {countdown > 0 && !isAnsweringClosed
+                    ? 'Waiting for round timer to finish. Evaluation will be revealed to everyone together!'
+                    : 'Evaluation is on hold. Waiting for host to reveal the answer to everyone!'}
                 </p>
               </div>
             )}
@@ -1070,6 +1043,9 @@ function ParticipantComponent() {
                       cardClass += " border-gray-200 opacity-40 cursor-not-allowed";
                       letterClass += " bg-gray-100 text-gray-400";
                     }
+                  } else if (countdown <= 0 || isAnsweringClosed) {
+                    cardClass += " border-gray-200 opacity-50 cursor-not-allowed";
+                    letterClass += " bg-gray-100 text-gray-400";
                   } else {
                     cardClass += " border-gray-200 cursor-pointer active:scale-[0.99] active:bg-gray-50";
                     letterClass += " bg-gray-100 text-gray-700";
@@ -1096,7 +1072,7 @@ function ParticipantComponent() {
                   <button
                     key={idx}
                     onClick={() => handleOptionClick(idx)}
-                    disabled={gameState !== 'ANSWERING' || hasSubmitted || isSubmitting}
+                    disabled={gameState !== 'ANSWERING' || hasSubmitted || isSubmitting || countdown <= 0 || isAnsweringClosed}
                     className={cardClass}
                   >
                     <div className={letterClass}>{letters[idx]}</div>

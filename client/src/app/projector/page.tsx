@@ -57,6 +57,7 @@ function ProjectorComponent() {
   const [revealResult, setRevealResult] = useState<RevealResult | null>(null);
   const [publishedResults, setPublishedResults] = useState<any>(null);
   const [participantUrl, setParticipantUrl] = useState('');
+  const [isAnsweringClosed, setIsAnsweringClosed] = useState(false);
 
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -94,15 +95,18 @@ function ProjectorComponent() {
     }
   };
 
+  // Socket setup
   useEffect(() => {
     if (!roomPin) return;
 
     const socket = getSocket();
+
     socket.emit('join_room', { roomPin, name: 'Projector', role: 'projector' }, (res: any) => {
       if (res?.success) {
         if (res.gameState) setGameState(res.gameState);
         if (res.activeQuestion) setCurrentQuestion(res.activeQuestion);
         if (res.totalQuestions) setTotalQuestions(res.totalQuestions);
+        if (res.answeringEnded) setIsAnsweringClosed(true);
         if (res.resultsPublished && res.finalResults) {
           setGameState('RESULTS_PUBLISHED');
           setPublishedResults(res.finalResults);
@@ -114,10 +118,12 @@ function ProjectorComponent() {
       setParticipantCount(data.participantCount || data.participants?.length || 0);
       if (data.gameState) setGameState(data.gameState);
       if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
+      if (data.answeringEnded !== undefined) setIsAnsweringClosed(Boolean(data.answeringEnded));
     });
 
     socket.on('question_pushed', (data: Question) => {
       setRevealResult(null);
+      setIsAnsweringClosed(false);
       setCountdown(data.durationSeconds || 10);
       setCurrentQuestion(data);
       if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
@@ -142,6 +148,7 @@ function ProjectorComponent() {
 
     socket.on('answering_started', (data: any) => {
       setGameState('ANSWERING');
+      setIsAnsweringClosed(false);
       setCountdown(data.durationSeconds || 30);
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = setInterval(() => {
@@ -153,6 +160,12 @@ function ProjectorComponent() {
           return prev - 1;
         });
       }, 1000);
+    });
+
+    socket.on('answering_closed', () => {
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+      setCountdown(0);
+      setIsAnsweringClosed(true);
     });
 
     socket.on('question_progress', (data: any) => {
@@ -172,6 +185,7 @@ function ProjectorComponent() {
 
     socket.on('answer_revealed', (data: any) => {
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+      setIsAnsweringClosed(false);
       setGameState('REVEAL');
       setRevealResult(data);
       if (data.winner) {
@@ -195,6 +209,7 @@ function ProjectorComponent() {
       socket.off('room_updated');
       socket.off('question_pushed');
       socket.off('answering_started');
+      socket.off('answering_closed');
       socket.off('question_progress');
       socket.off('question_limit_updated');
       socket.off('answer_revealed');
@@ -210,11 +225,18 @@ function ProjectorComponent() {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center font-sans p-6">
         <div className="bg-white border border-slate-200 p-8 rounded-3xl max-w-md w-full text-center shadow-xl">
-          <img
-            src="/se-logo.png"
-            alt="Schneider Electric"
-            className="w-16 h-16 object-contain mx-auto mb-4 drop-shadow-sm"
-          />
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <img
+              src="/se-logo.png"
+              alt="Schneider Electric"
+              className="w-14 h-14 object-contain drop-shadow-sm"
+            />
+            <img
+              src="/cyber-shield-logo.png"
+              alt="Cyber Security Shield"
+              className="w-14 h-14 object-contain drop-shadow-sm"
+            />
+          </div>
           <h2 className="text-2xl font-black mb-2 text-slate-900">Projector Display</h2>
           <p className="text-slate-600 text-sm mb-6">Enter the 6-digit Room PIN created on the Host Dashboard to launch the stage screen view.</p>
 
@@ -252,6 +274,11 @@ function ProjectorComponent() {
           <img
             src="/se-logo.png"
             alt="Schneider Electric"
+            className="w-11 h-11 object-contain drop-shadow-sm"
+          />
+          <img
+            src="/cyber-shield-logo.png"
+            alt="Cyber Security Shield"
             className="w-11 h-11 object-contain drop-shadow-sm"
           />
           <div>
@@ -479,83 +506,6 @@ function ProjectorComponent() {
               </div>
             </div>
 
-            {/* Spotlight Awards Grid: Tie-Breaker Speed Winner, Best Learner Award */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* 1. Tie-Breaker Speed Winner */}
-              <div className="bg-gradient-to-b from-blue-50 to-white rounded-3xl border-2 border-blue-200 p-6 shadow-md flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-black">
-                      <Zap className="w-4 h-4 fill-current" />
-                    </div>
-                    <span className="text-xs font-black uppercase tracking-wider text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full">
-                      ⚡ Tie-Breaker Speed Winner
-                    </span>
-                  </div>
-                  <h4 className="text-2xl font-black text-slate-900 mt-2">
-                    {publishedResults.tieBreakerWinner?.name || 'N/A'}
-                  </h4>
-                  <div className="mt-3 flex items-center gap-3">
-                    <span className="text-2xl font-mono font-black text-blue-700">
-                      {publishedResults.tieBreakerWinner?.totalTimeFormatted || '--'}
-                    </span>
-                    <span className="text-xs font-semibold text-slate-500">
-                      ({publishedResults.tieBreakerWinner?.score ?? 0} pts)
-                    </span>
-                  </div>
-                </div>
-                <p className="text-xs text-blue-600 mt-4 font-medium">
-                  Awarded for fastest cumulative response time in score tie / top performance.
-                </p>
-              </div>
-
-              {/* 2. Best Learner Award - Stage Challenge Qualifier */}
-              <div className="bg-gradient-to-b from-purple-50 via-white to-amber-50 rounded-3xl border-2 border-purple-200 p-6 shadow-md flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-black">
-                        <Award className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-black uppercase tracking-wider text-purple-700 bg-purple-100 px-2.5 py-0.5 rounded-full">
-                        🌟 Best Learner Award
-                      </span>
-                    </div>
-                  </div>
-                  <h4 className="text-2xl font-black text-slate-900 mt-2">
-                    {publishedResults.bestLearnerWinner?.name || 'N/A'}
-                  </h4>
-                  <div className="mt-3 flex items-center gap-3">
-                    <span className="text-2xl font-mono font-black text-purple-700">
-                      {publishedResults.bestLearnerWinner?.score ?? 0} pts
-                    </span>
-                    <span className="text-xs font-bold text-slate-500 font-mono">
-                      Speed: {publishedResults.bestLearnerWinner?.totalTimeFormatted || '--'}
-                    </span>
-                  </div>
-                  {publishedResults.bestLearnerWinner && (
-                    <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-purple-800 bg-purple-100 px-2.5 py-0.5 rounded-full border border-purple-200">
-                      <span>✓ Attempted All Questions ({publishedResults.bestLearnerWinner.attemptedCount}/{publishedResults.bestLearnerWinner.totalQuestions || totalQuestions})</span>
-                    </div>
-                  )}
-
-                  {/* Stage Challenge Requirement Callout */}
-                  <div className="mt-4 p-3 rounded-2xl bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-300 text-amber-950 flex items-start gap-2.5 shadow-sm animate-in fade-in duration-300">
-                    <span className="text-base leading-none mt-0.5">🎤</span>
-                    <div className="text-xs">
-                      <span className="font-black uppercase tracking-wider block text-amber-900">Stage Qualifier</span>
-                      <p className="font-bold text-slate-900 mt-0.5 leading-snug">
-                        Must come on stage and play one more game to claim the prize!
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-[11px] text-purple-700 mt-3 font-medium">
-                  Awarded for attempting all questions, highest score after negative marking & fastest speed.
-                </p>
-              </div>
-            </div>
-
             {/* Official Final Leaderboard Table */}
             <div className="bg-white border-2 border-slate-200 rounded-3xl p-6 shadow-lg">
               <div className="flex justify-between items-center mb-4">
@@ -644,12 +594,21 @@ function ProjectorComponent() {
                       {progressData.answeredCount} / {progressData.participantCount || participantCount} Answered
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 bg-gradient-to-r from-[#00E676] to-[#009639] text-white rounded-2xl px-6 py-3 shadow-lg animate-pulse">
-                    <Timer className="w-8 h-8 text-white" />
-                    <span className="text-3xl font-black font-mono tracking-wider">
-                      {countdown}s
-                    </span>
-                  </div>
+                  {countdown > 0 && !isAnsweringClosed ? (
+                    <div className="flex items-center gap-3 bg-gradient-to-r from-[#00E676] to-[#009639] text-white rounded-2xl px-6 py-3 shadow-lg animate-pulse">
+                      <Timer className="w-8 h-8 text-white" />
+                      <span className="text-3xl font-black font-mono tracking-wider">
+                        {countdown}s
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2.5 bg-amber-50 border-2 border-amber-300 text-amber-900 rounded-2xl px-5 py-3 shadow-md">
+                      <Clock className="w-6 h-6 text-amber-700 animate-pulse" />
+                      <span className="text-lg font-black tracking-wide uppercase">
+                        Answering Closed • Waiting for Host to Reveal
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 

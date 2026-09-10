@@ -53,6 +53,11 @@ export default function LandingPage() {
               alt="Schneider Electric"
               className="w-10 h-10 object-contain drop-shadow-sm"
             />
+            <img
+              src="/cyber-shield-logo.png"
+              alt="Cyber Security Shield"
+              className="w-10 h-10 object-contain drop-shadow-sm"
+            />
             <div>
               <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
                 Schneider <span className="text-schneider-brand">Electric</span>
