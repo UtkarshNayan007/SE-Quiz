@@ -5,6 +5,9 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
+const EventEmitter = require('events');
+EventEmitter.defaultMaxListeners = 2000;
+
 // Process-level crash prevention guards
 process.on('uncaughtException', (err) => {
   console.error('CRITICAL UNCAUGHT EXCEPTION PREVENTED:', err);
@@ -29,12 +32,85 @@ const io = new Server(server, {
 });
 
 let questions = [];
-try {
+
+function loadQuestions() {
   const questionsPath = path.join(__dirname, 'questions.json');
-  questions = JSON.parse(fs.readFileSync(questionsPath, 'utf-8'));
-  console.log(`Loaded ${questions.length} questions.`);
-} catch (err) {
-  console.error('Failed to load questions.json:', err);
+  try {
+    const raw = fs.readFileSync(questionsPath, 'utf-8');
+    questions = JSON.parse(raw);
+    // Log verification of what was loaded
+    console.log(`Loaded ${questions.length} questions from ${questionsPath}`);
+    console.log(`  First question (id=${questions[0]?.id}): "${(questions[0]?.question || '').substring(0, 60)}..."`);
+    console.log(`  First question category: ${questions[0]?.category}, type: ${questions[0]?.type}`);
+    const cats = {};
+    questions.forEach(q => { cats[q.category] = (cats[q.category] || 0) + 1; });
+    console.log('  Category breakdown:', JSON.stringify(cats));
+  } catch (err) {
+    console.error('CRITICAL: Failed to load questions from', questionsPath, err);
+  }
+  return questions;
+}
+
+loadQuestions();
+
+/**
+ * Build room questions with category interleaving / shuffling.
+ * The 6 requested categories:
+ * 1. Picture Base
+ * 2. Find out the Difference in Image
+ * 3. Crossword
+ * 4. Fill in the Blank (Choose from options)
+ * 5. Riddles
+ * 6. Theory
+ *
+ * If count = 5: 1 from 5 distinct categories (Picture Base, Diff, Crossword, Fill Blank, Riddles).
+ * If count = 10: round-robin interleaved across 6 categories.
+ * If count = 15: round-robin interleaved.
+ * If count = 30: all 5 questions from all 6 categories, interleaved.
+ */
+function buildRoomQuestions(count = 30) {
+  if (!questions || questions.length === 0) {
+    loadQuestions();
+  }
+
+  const categoryOrder = [
+    'Picture Base',
+    'Find out the Difference in Image',
+    'Crossword',
+    'Fill in the Blank (Choose from options)',
+    'Riddles',
+    'Theory'
+  ];
+
+  const pools = {};
+  for (const cat of categoryOrder) {
+    pools[cat] = questions.filter(q => q.category === cat);
+  }
+
+  const selected = [];
+  let round = 0;
+
+  while (selected.length < count) {
+    let addedInRound = 0;
+    for (const cat of categoryOrder) {
+      if (selected.length >= count) break;
+      const pool = pools[cat];
+      if (pool && round < pool.length) {
+        selected.push(pool[round]);
+        addedInRound++;
+      }
+    }
+    if (addedInRound === 0) break;
+    round++;
+  }
+
+  return selected.length > 0 ? selected : questions.slice(0, count);
+}
+
+function getRoomQuestion(room, index) {
+  if (!room) return null;
+  const list = (room.roomQuestions && room.roomQuestions.length > 0) ? room.roomQuestions : questions;
+  return list[index] || null;
 }
 
 const rooms = new Map();
@@ -85,8 +161,8 @@ function getUniqueParticipants(room, cleanupRoom = false) {
   const mapByName = new Map();
   const duplicatesToDelete = [];
 
-  // In LOBBY, prune any disconnected participants whose socket is gone (> 10s)
-  if (room.gameState === 'LOBBY') {
+  // In LOBBY or RULES, prune any disconnected participants whose socket is gone (> 10s)
+  if (room.gameState === 'LOBBY' || room.gameState === 'RULES') {
     const now = Date.now();
     for (const [pId, p] of room.participants.entries()) {
       if (!p.connected && p.disconnectedAt && (now - p.disconnectedAt > 10000)) {
@@ -338,7 +414,7 @@ function executeRevealAnswer(roomPin) {
   room.answeringStartTime = null;
   room.answeringEndTime = null;
 
-  const question = questions[room.currentQuestionIndex];
+  const question = getRoomQuestion(room, room.currentQuestionIndex);
   if (!question) return;
 
   // Compute per-question winner: fastest correct respondent among all candidates who answered this question
@@ -392,6 +468,9 @@ function executeRevealAnswer(roomPin) {
     correctAnswerIndex: question.correctAnswer,
     correctOptionText: question.options[question.correctAnswer],
     explanation: question.explanation,
+    type: question.type || 'theory',
+    visualData: question.visualData || null,
+    revealVisual: question.revealVisual || null,
     winner: winnerData, // Fastest participant who answered correctly
     totalCorrectCount: totalCorrect, // Total count of people who answered right
     totalAnsweredCount: totalAnswered,
@@ -476,17 +555,22 @@ io.on('connection', (socket) => {
         }));
 
         let activeQuestion = null;
-        const totalQ = existingRoom.configuredQuestionCount || questions.length;
-        if (existingRoom.currentQuestionIndex >= 0 && questions[existingRoom.currentQuestionIndex]) {
-          const q = questions[existingRoom.currentQuestionIndex];
-          activeQuestion = {
-            questionIndex: existingRoom.currentQuestionIndex,
-            totalQuestions: totalQ,
-            question: q.question,
-            options: q.options,
-            category: q.category,
-            durationSeconds: existingRoom.gameState === 'READING' ? 10 : 30
-          };
+        const totalQ = existingRoom.configuredQuestionCount || existingRoom.roomQuestions?.length || questions.length;
+        if (existingRoom.currentQuestionIndex >= 0) {
+          const q = getRoomQuestion(existingRoom, existingRoom.currentQuestionIndex);
+          if (q) {
+            activeQuestion = {
+              questionIndex: existingRoom.currentQuestionIndex,
+              totalQuestions: totalQ,
+              question: q.question,
+              options: q.options,
+              category: q.category,
+              type: q.type || 'theory',
+              visualData: q.visualData || null,
+              instruction: q.instruction || null,
+              durationSeconds: existingRoom.gameState === 'READING' ? 10 : 30
+            };
+          }
         }
 
         if (cb) cb({
@@ -499,22 +583,14 @@ io.on('connection', (socket) => {
           unansweredCount,
           participants: participantsList,
           gameState: existingRoom.gameState,
-          answeringEnded: Boolean(existingRoom.answeringEnded),
+          answeringEnded: existingRoom.answeringEnded,
           currentQuestionIndex: existingRoom.currentQuestionIndex,
-          readingEndTime: existingRoom.readingEndTime,
-          answeringStartTime: existingRoom.answeringStartTime,
-          answeringEndTime: existingRoom.answeringEndTime,
           activeQuestion,
-          questionWinners: existingRoom.questionWinners || [],
-          finalResults: existingRoom.finalResults || null,
-          resultsPublished: existingRoom.resultsPublished || false,
-          leaderboardByScore,
-          grandChampion,
-          top3,
-          tieBreakerWinner: null,
-          bestLearnerWinner: null
+          finalResults: existingRoom.finalResults,
+          approvedCriteria: existingRoom.approvedCriteria || 'score',
+          resultsPublished: existingRoom.resultsPublished || false
         });
-        broadcastRoomUpdate(targetPin);
+        console.log(`Host successfully reconnected to room ${targetPin}`);
       } catch (err) {
         console.error('Error during host reconnection to room:', err);
         if (cb) cb({ success: false, message: 'Server error during host reconnection: ' + err.message });
@@ -524,15 +600,17 @@ io.on('connection', (socket) => {
 
     const roomPin = Math.floor(100000 + Math.random() * 900000).toString();
     const initialQuestionCount = (data && data.questionCount) 
-      ? Math.min(Math.max(parseInt(data.questionCount) || 10, 1), questions.length)
-      : 10;
+      ? Math.min(Math.max(parseInt(data.questionCount) || questions.length, 1), questions.length)
+      : questions.length;
+    const roomQuestions = buildRoomQuestions(initialQuestionCount);
     
     rooms.set(roomPin, {
       roomPin,
       hostSocketId: socket.id,
       hostDisconnected: false,
       hostDisconnectTimeout: null,
-      configuredQuestionCount: initialQuestionCount,
+      configuredQuestionCount: roomQuestions.length,
+      roomQuestions: roomQuestions,
       participants: new Map(), // participantId -> participant details
       socketToParticipantId: new Map(), // socketId -> participantId
       currentQuestionIndex: -1,
@@ -551,13 +629,13 @@ io.on('connection', (socket) => {
     });
 
     socket.join(roomPin);
-    console.log(`Room created: ${roomPin} by authenticated host ${socket.id} (Configured questions: ${initialQuestionCount}/${questions.length})`);
+    console.log(`Room created: ${roomPin} by authenticated host ${socket.id} (Configured interleaved questions: ${roomQuestions.length}/${questions.length})`);
     
     if (cb) cb({
       success: true,
       roomPin,
-      totalQuestions: initialQuestionCount,
-      configuredQuestionCount: initialQuestionCount,
+      totalQuestions: roomQuestions.length,
+      configuredQuestionCount: roomQuestions.length,
       participantCount: 0,
       answeredCount: 0,
       unansweredCount: 0,
@@ -713,17 +791,22 @@ io.on('connection', (socket) => {
     broadcastRoomUpdate(roomPin);
 
     let activeQuestion = null;
-    const totalQ = room.configuredQuestionCount || questions.length;
-    if (room.currentQuestionIndex >= 0 && room.currentQuestionIndex < totalQ && questions[room.currentQuestionIndex]) {
-      const q = questions[room.currentQuestionIndex];
-      activeQuestion = {
-        questionIndex: room.currentQuestionIndex,
-        totalQuestions: totalQ,
-        question: q.question,
-        options: q.options,
-        category: q.category,
-        durationSeconds: room.gameState === 'READING' ? 10 : 30
-      };
+    const totalQ = room.configuredQuestionCount || room.roomQuestions?.length || questions.length;
+    if (room.currentQuestionIndex >= 0 && room.currentQuestionIndex < totalQ) {
+      const q = getRoomQuestion(room, room.currentQuestionIndex);
+      if (q) {
+        activeQuestion = {
+          questionIndex: room.currentQuestionIndex,
+          totalQuestions: totalQ,
+          question: q.question,
+          options: q.options,
+          category: q.category,
+          type: q.type || 'theory',
+          visualData: q.visualData || null,
+          instruction: q.instruction || null,
+          durationSeconds: room.gameState === 'READING' ? 10 : 30
+        };
+      }
     }
 
     let remainingReadingSeconds = 0;
@@ -799,12 +882,13 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const maxQuestions = room.configuredQuestionCount || questions.length;
+    const maxQuestions = room.configuredQuestionCount || room.roomQuestions?.length || questions.length;
     const targetIndex = typeof data?.questionIndex === 'number' && !isNaN(data.questionIndex)
       ? data.questionIndex
       : (room.currentQuestionIndex !== null ? room.currentQuestionIndex + 1 : 0);
 
-    if (targetIndex < 0 || targetIndex >= maxQuestions || !questions[targetIndex]) {
+    const questionData = getRoomQuestion(room, targetIndex);
+    if (targetIndex < 0 || targetIndex >= maxQuestions || !questionData) {
       if (callback) callback({ success: false, message: `Question index exceeds configured limit (${maxQuestions})` });
       return;
     }
@@ -830,13 +914,15 @@ io.on('connection', (socket) => {
       p.previousScore = p.score;
     }
 
-    const questionData = questions[questionIndex];
     const safeQuestion = {
       questionIndex,
       totalQuestions: maxQuestions,
       question: questionData.question,
       options: questionData.options,
       category: questionData.category,
+      type: questionData.type || 'theory',
+      visualData: questionData.visualData || null,
+      instruction: questionData.instruction || null,
       durationSeconds: 10,
       readingEndTime: room.readingEndTime
     };
@@ -846,7 +932,19 @@ io.on('connection', (socket) => {
     io.to(roomPin).emit('question_pushed', safeQuestion);
     broadcastRoomUpdate(roomPin);
 
-    if (callback) callback({ success: true, questionIndex, question: safeQuestion.question, options: safeQuestion.options });
+    if (callback) callback({
+      success: true,
+      questionIndex,
+      question: safeQuestion.question,
+      options: safeQuestion.options,
+      category: safeQuestion.category,
+      type: safeQuestion.type,
+      visualData: safeQuestion.visualData,
+      instruction: safeQuestion.instruction,
+      durationSeconds: safeQuestion.durationSeconds,
+      totalQuestions: safeQuestion.totalQuestions,
+      activeQuestion: safeQuestion
+    });
 
     // 10-second reading timer before unlocking options and starting 30s answering window
     room.readingTimer = setTimeout(() => {
@@ -890,7 +988,7 @@ io.on('connection', (socket) => {
     const timeMs = room.answeringStartTime ? Math.max(1, Date.now() - room.answeringStartTime) : 0;
     const timeFormatted = (timeMs / 1000).toFixed(3) + 's';
 
-    const question = questions[room.currentQuestionIndex];
+    const question = getRoomQuestion(room, room.currentQuestionIndex);
     if (!question) {
       if (callback) callback({ success: false, message: 'Active question not found' });
       return;
@@ -981,7 +1079,8 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if (room.currentQuestionIndex === -1 || !questions[room.currentQuestionIndex]) {
+    const activeQ = getRoomQuestion(room, room.currentQuestionIndex);
+    if (room.currentQuestionIndex === -1 || !activeQ) {
       if (callback) callback({ success: false, message: 'No active question' });
       return;
     }
@@ -1112,16 +1211,18 @@ io.on('connection', (socket) => {
       return;
     }
 
-    room.configuredQuestionCount = count;
-    console.log(`Room ${roomPin}: Host set question limit to ${count} (of ${questions.length})`);
+    const roomQuestions = buildRoomQuestions(count);
+    room.roomQuestions = roomQuestions;
+    room.configuredQuestionCount = roomQuestions.length;
+    console.log(`Room ${roomPin}: Host set question limit to ${count} (generated ${roomQuestions.length} interleaved questions across 6 categories)`);
 
     io.to(roomPin).emit('question_limit_updated', {
-      configuredQuestionCount: count,
-      totalQuestions: count
+      configuredQuestionCount: roomQuestions.length,
+      totalQuestions: roomQuestions.length
     });
 
     broadcastRoomUpdate(roomPin);
-    if (callback) callback({ success: true, configuredQuestionCount: count, totalQuestions: count });
+    if (callback) callback({ success: true, configuredQuestionCount: roomQuestions.length, totalQuestions: roomQuestions.length });
   });
 
   socket.on('disconnect', () => {
@@ -1145,8 +1246,9 @@ io.on('connection', (socket) => {
         room.socketToParticipantId.delete(socket.id);
         const participant = room.participants.get(participantId);
         if (participant) {
-          const timeoutMs = (room.gameState === 'LOBBY') ? 10000 : (15 * 60 * 1000);
-          console.log(`Participant ${participant.name} (${participantId}) disconnected from room ${roomPin} (${room.gameState === 'LOBBY' ? '10s' : '15m'} grace).`);
+          const isPreGame = (room.gameState === 'LOBBY' || room.gameState === 'RULES');
+          const timeoutMs = isPreGame ? 10000 : (15 * 60 * 1000);
+          console.log(`Participant ${participant.name} (${participantId}) disconnected from room ${roomPin} (${isPreGame ? '10s' : '15m'} grace).`);
           participant.connected = false;
           participant.disconnectedAt = Date.now();
           if (participant.disconnectTimeout) clearTimeout(participant.disconnectTimeout);
@@ -1161,8 +1263,9 @@ io.on('connection', (socket) => {
         }
       } else if (room.participants.has(socket.id)) {
         const participant = room.participants.get(socket.id);
-        const timeoutMs = (room.gameState === 'LOBBY') ? 10000 : (15 * 60 * 1000);
-        console.log(`Participant ${participant?.name || socket.id} disconnected from room ${roomPin} (${room.gameState === 'LOBBY' ? '10s' : '15m'} grace).`);
+        const isPreGame = (room.gameState === 'LOBBY' || room.gameState === 'RULES');
+        const timeoutMs = isPreGame ? 10000 : (15 * 60 * 1000);
+        console.log(`Participant ${participant?.name || socket.id} disconnected from room ${roomPin} (${isPreGame ? '10s' : '15m'} grace).`);
         participant.connected = false;
         participant.disconnectedAt = Date.now();
         if (participant.disconnectTimeout) clearTimeout(participant.disconnectTimeout);
@@ -1196,6 +1299,39 @@ io.on('connection', (socket) => {
     console.log(`Room ${roomPin} has been completely reset and deleted by host.`);
 
     if (callback) callback({ success: true });
+  });
+
+  // Host: Present Rules & Interface Guide to all screens
+  socket.on('show_rules', (data, callback) => {
+    const { roomPin } = data || {};
+    const room = rooms.get(roomPin);
+
+    if (!socket.isHost || !room || room.hostSocketId !== socket.id) {
+      if (callback) callback({ success: false, message: 'Unauthorized: Host privilege required' });
+      return;
+    }
+
+    room.gameState = 'RULES';
+    broadcastRoomUpdate(roomPin);
+    io.to(roomPin).emit('rules_started', { gameState: 'RULES' });
+    console.log(`Room ${roomPin}: Host activated Rules & Interface Guide phase.`);
+    if (callback) callback({ success: true, gameState: 'RULES' });
+  });
+
+  // Host: Return from Rules back to Lobby
+  socket.on('return_to_lobby', (data, callback) => {
+    const { roomPin } = data || {};
+    const room = rooms.get(roomPin);
+
+    if (!socket.isHost || !room || room.hostSocketId !== socket.id) {
+      if (callback) callback({ success: false, message: 'Unauthorized: Host privilege required' });
+      return;
+    }
+
+    room.gameState = 'LOBBY';
+    broadcastRoomUpdate(roomPin);
+    console.log(`Room ${roomPin}: Host returned room to LOBBY.`);
+    if (callback) callback({ success: true, gameState: 'LOBBY' });
   });
 
   // Host: Remove / Kick an unwanted or duplicate participant

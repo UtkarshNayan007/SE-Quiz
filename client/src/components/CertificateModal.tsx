@@ -273,29 +273,29 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-slate-900 rounded-3xl shadow-2xl border border-slate-700 overflow-hidden text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-3xl max-h-[94vh] flex flex-col bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-700 overflow-hidden text-white">
         
         {/* Top Header Bar */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-950/80">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-md ${
+        <div className="flex items-center justify-between px-3.5 py-3 sm:px-5 sm:py-4 border-b border-slate-800 bg-slate-950/80 gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-md shrink-0 ${
               isWinner ? 'bg-amber-500 text-slate-950' : 'bg-[#009639] text-white'
             }`}>
-              {isWinner ? <Trophy className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
+              {isWinner ? <Trophy className="w-4 h-4 sm:w-5 sm:h-5" /> : <Shield className="w-4 h-4 sm:w-5 sm:h-5" />}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-black text-white">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h3 className="text-sm sm:text-base font-black text-white truncate">
                   Official E-Certificate
                 </h3>
-                <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                <span className={`text-[9px] sm:text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
                   isWinner ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40' : 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/40'
                 }`}>
-                  {isWinner ? '🏆 Excellence Tier' : '🛡️ Defender Tier'}
+                  {isWinner ? '🏆 Excellence' : '🛡️ Defender'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-[11px] sm:text-xs text-slate-400 truncate">
                 Schneider Electric CCSH OT SOC MSSP • Cyber Day 2026
               </p>
             </div>
@@ -303,7 +303,7 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition shrink-0"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -311,33 +311,33 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-5 md:p-6 space-y-4 sm:space-y-5">
           
           {/* Format Switcher (Landscape 16:9 vs Story 9:16) */}
-          <div className="flex items-center justify-between bg-slate-950/60 p-2 rounded-2xl border border-slate-800 text-xs font-semibold">
-            <span className="text-slate-400 pl-2">Layout Aspect Ratio:</span>
-            <div className="flex items-center gap-1.5">
+          <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between bg-slate-950/60 p-2 rounded-2xl border border-slate-800 text-xs font-semibold gap-2">
+            <span className="text-slate-400 pl-1.5 text-[11px] sm:text-xs">Layout Aspect Ratio:</span>
+            <div className="flex items-center gap-1.5 w-full xs:w-auto">
               <button
                 onClick={() => setFormat('landscape')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
+                className={`flex-1 xs:flex-initial flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl transition text-[11px] sm:text-xs ${
                   format === 'landscape'
                     ? 'bg-[#009639] text-white font-bold shadow-sm'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
-                <Monitor className="w-3.5 h-3.5" />
+                <Monitor className="w-3.5 h-3.5 shrink-0" />
                 <span>Landscape (16:9)</span>
               </button>
               <button
                 onClick={() => setFormat('story')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
+                className={`flex-1 xs:flex-initial flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl transition text-[11px] sm:text-xs ${
                   format === 'story'
                     ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold shadow-sm'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>Instagram Story (9:16)</span>
+                <Smartphone className="w-3.5 h-3.5 shrink-0" />
+                <span>Story (9:16)</span>
               </button>
             </div>
           </div>
@@ -399,16 +399,16 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
           </div>
 
           {/* 1-Click Action Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
             {/* 1. Download / Save High-Res PNG */}
             <button
               onClick={handleDownload}
               disabled={isRendering}
-              className={`py-3 px-4 rounded-2xl bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all active:scale-95 ${
+              className={`py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl sm:rounded-2xl bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all active:scale-95 ${
                 isRendering ? 'opacity-60 cursor-not-allowed' : ''
               }`}
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 shrink-0" />
               <span>{isRendering ? 'Generating...' : 'Save / Download (Full HD)'}</span>
             </button>
 
@@ -416,11 +416,11 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
             <button
               onClick={handleLinkedInShare}
               disabled={isRendering}
-              className={`py-3 px-4 rounded-2xl bg-[#0A66C2] hover:bg-[#0077B5] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-950/50 transition-all active:scale-95 ${
+              className={`py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl sm:rounded-2xl bg-[#0A66C2] hover:bg-[#0077B5] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-950/50 transition-all active:scale-95 ${
                 isRendering ? 'opacity-60 cursor-not-allowed' : ''
               }`}
             >
-              {copiedType === 'linkedin' ? <Check className="w-4 h-4 text-green-300" /> : <Linkedin className="w-4 h-4 fill-current" />}
+              {copiedType === 'linkedin' ? <Check className="w-4 h-4 text-green-300 shrink-0" /> : <Linkedin className="w-4 h-4 fill-current shrink-0" />}
               <span>Share to LinkedIn</span>
             </button>
 
@@ -428,11 +428,11 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
             <button
               onClick={handleInstagramShare}
               disabled={isRendering}
-              className={`py-3 px-4 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-pink-950/50 transition-all active:scale-95 ${
+              className={`py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:opacity-90 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-pink-950/50 transition-all active:scale-95 ${
                 isRendering ? 'opacity-60 cursor-not-allowed' : ''
               }`}
             >
-              {copiedType === 'instagram' ? <Check className="w-4 h-4 text-green-300" /> : <Instagram className="w-4 h-4" />}
+              {copiedType === 'instagram' ? <Check className="w-4 h-4 text-green-300 shrink-0" /> : <Instagram className="w-4 h-4 shrink-0" />}
               <span>Share to Instagram</span>
             </button>
           </div>

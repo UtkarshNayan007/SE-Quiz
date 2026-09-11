@@ -62,23 +62,25 @@ export default function LandingPage() {
               alt="Schneider Electric"
               className="w-10 h-10 object-contain drop-shadow-sm"
             />
-            <img
-              src="/cyber-shield-logo.png"
-              alt="Cyber Security Shield"
-              className="w-10 h-10 object-contain drop-shadow-sm"
-            />
             <div>
               <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
                 Schneider <span className="text-schneider-brand">Electric</span>
               </h1>
-              <p className="text-xs font-semibold text-schneider-brand uppercase tracking-widest">
-                Managed Security Services (MSS)
+              <p className="text-xs font-bold text-schneider-brand uppercase tracking-widest">
+                CCSH MSS OPERATIONS
               </p>
             </div>
           </div>
-          <div className="hidden sm:flex items-center space-x-2 bg-emerald-50 text-schneider-darkgreen px-3 py-1.5 rounded-full text-xs font-bold border border-emerald-200">
-            <ShieldCheck className="w-4 h-4 text-schneider-green" />
-            <span>Fastest Finger First • Live Local Network</span>
+          <div className="flex items-center gap-3">
+            <img
+              src="/cyber-shield-logo.png"
+              alt="Cyber Security Shield"
+              className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-md transition-transform hover:scale-105"
+            />
+            <div className="hidden sm:flex items-center space-x-2 bg-emerald-50 text-schneider-darkgreen px-3.5 py-2 rounded-full text-xs font-bold border border-emerald-200 shadow-sm">
+              <ShieldCheck className="w-4 h-4 text-schneider-green" />
+              <span>Fastest Finger First • Live Local Network</span>
+            </div>
           </div>
         </div>
       </header>

@@ -4,19 +4,19 @@ let socket: Socket | null = null;
 
 export const getSocket = (): Socket => {
   if (!socket) {
-    // Dynamically detect server host so local Wi-Fi IP works seamlessly, and fallback to Render in production
-    let serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
+    // Dynamically detect server host: if running on localhost or local LAN, ALWAYS connect to local port 4000
+    let serverUrl = '';
     
-    if (!serverUrl && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
       const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.');
       if (isLocal) {
         serverUrl = `http://${hostname}:4000`;
       } else {
-        serverUrl = 'https://se-quiz-server.onrender.com';
+        serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://se-quiz-server.onrender.com';
       }
-    } else if (!serverUrl) {
-      serverUrl = 'http://localhost:4000';
+    } else {
+      serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
     }
 
     socket = io(serverUrl, {

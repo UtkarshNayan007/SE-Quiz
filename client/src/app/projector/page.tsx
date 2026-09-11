@@ -3,9 +3,11 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getSocket } from '../../lib/socket';
-import { ShieldCheck, Users, Timer, Trophy, CheckCircle2, Zap, Hash, HelpCircle, UserCheck, Lock, Award, Sparkles, Crown, Clock } from 'lucide-react';
+import { ShieldCheck, Users, Timer, Trophy, CheckCircle2, Zap, Hash, HelpCircle, UserCheck, Lock, Award, Sparkles, Crown, Clock, BookOpen } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
+import { ProjectorRulesGuide } from '../../components/RulesAndGuide';
+import { InteractiveQuestionVisual } from '../../components/InteractiveQuestionVisual';
 
 interface Question {
   questionIndex: number;
@@ -14,12 +16,19 @@ interface Question {
   category: string;
   durationSeconds: number;
   totalQuestions?: number;
+  type?: string;
+  visualData?: any;
+  instruction?: string;
+  revealVisual?: any;
 }
 
 interface RevealResult {
   correctAnswerIndex: number;
   correctOptionText: string;
   explanation: string;
+  type?: string;
+  visualData?: any;
+  revealVisual?: any;
   winner?: {
     socketId: string;
     name: string;
@@ -40,7 +49,8 @@ function ProjectorComponent() {
 
   const [participantCount, setParticipantCount] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(10);
-  const [gameState, setGameState] = useState<'LOBBY' | 'READING' | 'ANSWERING' | 'REVEAL' | 'QUIZ_ENDED' | 'RESULTS_PUBLISHED'>('LOBBY');
+  const [gameState, setGameState] = useState<'LOBBY' | 'RULES' | 'READING' | 'ANSWERING' | 'REVEAL' | 'QUIZ_ENDED' | 'RESULTS_PUBLISHED'>('LOBBY');
+  const [showRulesInLobby, setShowRulesInLobby] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [countdown, setCountdown] = useState(10);
   
@@ -205,8 +215,14 @@ function ProjectorComponent() {
       triggerConfettiExplosion();
     });
 
+    socket.on('rules_started', () => {
+      setGameState('RULES');
+      setShowRulesInLobby(false);
+    });
+
     return () => {
       socket.off('room_updated');
+      socket.off('rules_started');
       socket.off('question_pushed');
       socket.off('answering_started');
       socket.off('answering_closed');
@@ -229,15 +245,11 @@ function ProjectorComponent() {
             <img
               src="/se-logo.png"
               alt="Schneider Electric"
-              className="w-14 h-14 object-contain drop-shadow-sm"
-            />
-            <img
-              src="/cyber-shield-logo.png"
-              alt="Cyber Security Shield"
-              className="w-14 h-14 object-contain drop-shadow-sm"
+              className="w-16 h-16 object-contain drop-shadow-sm"
             />
           </div>
-          <h2 className="text-2xl font-black mb-2 text-slate-900">Projector Display</h2>
+          <h2 className="text-2xl font-black mb-1 text-slate-900">Projector Display</h2>
+          <p className="text-xs font-bold text-[#009639] uppercase tracking-widest mb-4">CCSH MSS OPERATIONS</p>
           <p className="text-slate-600 text-sm mb-6">Enter the 6-digit Room PIN created on the Host Dashboard to launch the stage screen view.</p>
 
           <form onSubmit={(e) => {
@@ -274,24 +286,25 @@ function ProjectorComponent() {
           <img
             src="/se-logo.png"
             alt="Schneider Electric"
-            className="w-11 h-11 object-contain drop-shadow-sm"
-          />
-          <img
-            src="/cyber-shield-logo.png"
-            alt="Cyber Security Shield"
-            className="w-11 h-11 object-contain drop-shadow-sm"
+            className="w-12 h-12 object-contain drop-shadow-sm"
           />
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
               Schneider <span className="text-[#009639]">Electric</span>
             </h1>
             <p className="text-xs font-bold text-[#009639] uppercase tracking-widest">
-              Managed Security Services (MSS) Quiz
+              CCSH MSS OPERATIONS
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
+          <img
+            src="/cyber-shield-logo.png"
+            alt="Cyber Security Shield"
+            className="w-16 h-16 lg:w-20 lg:h-20 object-contain drop-shadow-md"
+          />
+
           <div className="flex items-center gap-2.5 bg-slate-100 border border-slate-300 py-2 px-5 rounded-full shadow-sm">
             <HelpCircle className="w-5 h-5 text-[#009639]" />
             <span className="text-xl font-bold font-mono text-slate-800">{totalQuestions}</span>
@@ -313,7 +326,8 @@ function ProjectorComponent() {
 
       {/* MAIN STAGE CONTENT AREA */}
       <main className="flex-grow p-8 flex flex-col relative overflow-hidden">
-        {gameState === 'LOBBY' && (
+        {/* LOBBY STATE (QR Code & Join Info) */}
+        {gameState === 'LOBBY' && !showRulesInLobby && (
           <div className="flex-grow flex flex-col items-center justify-center max-w-5xl mx-auto w-full">
             <div className="bg-white border-2 border-slate-200 rounded-3xl p-14 w-full max-w-4xl flex flex-col md:flex-row items-center gap-14 shadow-xl relative overflow-hidden">
               <div className="flex-1 text-center md:text-left z-10">
@@ -324,9 +338,20 @@ function ProjectorComponent() {
                 </h2>
                 <p className="text-xl text-slate-600 mb-8 font-medium">Scan the QR code to join on your mobile device and prepare for the quiz round.</p>
                 
-                <div className="inline-flex items-center gap-4 bg-slate-50 border border-slate-300 py-3.5 px-7 rounded-2xl shadow-inner">
-                  <span className="text-slate-600 text-sm uppercase tracking-widest font-bold">Room Join PIN</span>
-                  <span className="text-3xl font-black font-mono text-[#009639]">{roomPin}</span>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="inline-flex items-center gap-4 bg-slate-50 border border-slate-300 py-3.5 px-7 rounded-2xl shadow-inner">
+                    <span className="text-slate-600 text-sm uppercase tracking-widest font-bold">Room Join PIN</span>
+                    <span className="text-3xl font-black font-mono text-[#009639]">{roomPin}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowRulesInLobby(true)}
+                    className="inline-flex items-center gap-2 bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white text-xs font-black px-4 py-3.5 rounded-2xl shadow transition-all"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    <span>View Rules & Interface Guide</span>
+                  </button>
                 </div>
               </div>
               
@@ -356,6 +381,24 @@ function ProjectorComponent() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* RULES / INTERFACE GUIDE STATE */}
+        {(gameState === 'RULES' || (gameState === 'LOBBY' && showRulesInLobby)) && (
+          <div className="flex-grow flex flex-col h-full">
+            {gameState === 'LOBBY' && (
+              <div className="mb-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowRulesInLobby(false)}
+                  className="text-xs text-slate-700 hover:text-slate-950 font-bold bg-white border border-slate-300 px-3 py-1.5 rounded-xl shadow-sm transition-all"
+                >
+                  ← Back to QR Lobby
+                </button>
+              </div>
+            )}
+            <ProjectorRulesGuide />
           </div>
         )}
 
@@ -623,15 +666,28 @@ function ProjectorComponent() {
             </div>
 
             {/* Question Text Card */}
-            <div className="bg-white border-2 border-slate-200 rounded-3xl p-8 mb-6 shadow-lg relative overflow-hidden shrink-0">
-              <div className="absolute top-0 left-0 w-full h-2 bg-[#009639]" />
-              <h2 className="text-3xl md:text-4xl font-black leading-relaxed text-slate-900">
+            <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 md:p-6 mb-4 shadow-md relative overflow-hidden shrink-0">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-[#009639]" />
+              <h2 className="text-2xl md:text-3xl font-black leading-snug text-slate-900">
                 {currentQuestion.question}
               </h2>
             </div>
 
+            {/* Interactive Question Visual (Widescreen Projector View) */}
+            {currentQuestion.type && currentQuestion.type !== 'theory' && (
+              <div className="mb-4 shrink-0">
+                <InteractiveQuestionVisual
+                  type={currentQuestion.type}
+                  visualData={currentQuestion.visualData}
+                  revealVisual={revealResult?.revealVisual || (currentQuestion as any).revealVisual}
+                  isReveal={gameState === 'REVEAL'}
+                  compact={false}
+                />
+              </div>
+            )}
+
             {/* MCQ Options Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6 flex-grow">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-4 flex-grow">
               {currentQuestion.options.map((option, index) => {
                 let isCorrect = false;
                 let isWrong = false;
@@ -645,23 +701,23 @@ function ProjectorComponent() {
                   <div
                     key={index}
                     className={`
-                      relative p-6 rounded-2xl border-2 flex items-center gap-5 transition-all duration-300
-                      ${isCorrect ? 'bg-[#00E676]/20 border-[#009639] shadow-xl z-10 scale-[1.02] text-[#009639]' : ''}
+                      relative p-4 md:p-5 rounded-2xl border-2 flex items-center gap-4 transition-all duration-300
+                      ${isCorrect ? 'bg-[#00E676]/20 border-[#009639] shadow-lg z-10 scale-[1.01] text-[#009639]' : ''}
                       ${isWrong ? 'bg-slate-50 border-slate-200 opacity-50 text-slate-400' : ''}
                       ${!isCorrect && !isWrong ? 'bg-white border-slate-200 text-slate-800 shadow-sm' : ''}
                     `}
                   >
                     <div className={`
-                      flex items-center justify-center w-12 h-12 rounded-xl text-xl font-black shrink-0
+                      flex items-center justify-center w-10 h-10 rounded-xl text-lg font-black shrink-0
                       ${isCorrect ? 'bg-[#009639] text-white' : 'bg-slate-100 text-slate-700'}
                     `}>
                       {optionLabels[index]}
                     </div>
-                    <span className={`text-xl md:text-2xl font-bold ${isCorrect ? 'text-[#009639]' : 'text-slate-800'}`}>
+                    <span className={`text-lg md:text-xl font-bold ${isCorrect ? 'text-[#009639]' : 'text-slate-800'}`}>
                       {option}
                     </span>
                     {isCorrect && (
-                      <CheckCircle2 className="absolute right-6 w-10 h-10 text-[#009639]" />
+                      <CheckCircle2 className="absolute right-5 w-8 h-8 text-[#009639]" />
                     )}
                   </div>
                 );

@@ -28,8 +28,10 @@ import {
   Crown,
   SlidersHorizontal,
   LogOut,
-  X
+  X,
+  BookOpen
 } from 'lucide-react';
+import { InteractiveQuestionVisual } from '../../components/InteractiveQuestionVisual';
 
 const deduplicateParticipants = (list: any[]) => {
   if (!Array.isArray(list)) return [];
@@ -61,8 +63,8 @@ export default function HostDashboard() {
   const [roomPin, setRoomPin] = useState('');
   const [participantCount, setParticipantCount] = useState(0);
   const [participants, setParticipants] = useState<any[]>([]);
-  const [totalQuestions, setTotalQuestions] = useState(10);
-  const [configuredQuestionCount, setConfiguredQuestionCount] = useState(10);
+  const [totalQuestions, setTotalQuestions] = useState(30);
+  const [configuredQuestionCount, setConfiguredQuestionCount] = useState(30);
   const [customQuestionInput, setCustomQuestionInput] = useState('');
   const [currentQIndex, setCurrentQIndex] = useState(-1);
   const [activeQuestion, setActiveQuestion] = useState<any>(null);
@@ -114,15 +116,15 @@ export default function HostDashboard() {
       setAuthError('Connection timed out. Please check if the server is online and try again.');
     }, 10000);
 
-    socket.emit('create_room', { passcode: inputPasscode, roomPin: pinToUse }, (res: any) => {
+    socket.emit('create_room', { passcode: inputPasscode, roomPin: pinToUse, questionCount: 30 }, (res: any) => {
       clearTimeout(timeout);
       setLoading(false);
       setIsRestoring(false);
       if (res && res.success) {
         setIsAuthenticated(true);
         setRoomPin(res.roomPin);
-        setTotalQuestions(res.totalQuestions || 10);
-        setConfiguredQuestionCount(res.configuredQuestionCount || res.totalQuestions || 10);
+        setTotalQuestions(res.totalQuestions || 30);
+        setConfiguredQuestionCount(res.configuredQuestionCount || res.totalQuestions || 30);
         if (res.participants) setParticipants(deduplicateParticipants(res.participants));
         if (res.participantCount !== undefined) setParticipantCount(res.participantCount);
         if (res.gameState) setGameState(res.gameState);
@@ -233,11 +235,7 @@ export default function HostDashboard() {
     };
 
     const handleQuestionPushed = (data: any) => {
-      setActiveQuestion({
-        questionIndex: data.questionIndex,
-        question: data.question,
-        options: data.options,
-      });
+      setActiveQuestion(data);
       setCurrentQIndex(data.questionIndex);
       if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
       setGameState('READING');
@@ -275,7 +273,7 @@ export default function HostDashboard() {
         const savedPass = localStorage.getItem('se_host_passcode') || sessionStorage.getItem('se_host_passcode');
         const activePin = roomPin || (new URLSearchParams(window.location.search).get('pin') || '') || localStorage.getItem('se_host_room_pin') || sessionStorage.getItem('se_host_room_pin');
         if (savedPass) {
-          socket.emit('create_room', { passcode: savedPass, roomPin: activePin || undefined }, () => {});
+          socket.emit('create_room', { passcode: savedPass, roomPin: activePin || undefined, questionCount: 30 }, () => {});
         }
       }
     };
@@ -319,6 +317,34 @@ export default function HostDashboard() {
     });
   };
 
+  const handleShowRules = () => {
+    if (!roomPin) return;
+    setLoading(true);
+    const socket = getSocket();
+    socket.emit('show_rules', { roomPin }, (res: any) => {
+      setLoading(false);
+      if (res?.success) {
+        setGameState('RULES');
+      } else {
+        setError(res?.message || 'Failed to display rules');
+      }
+    });
+  };
+
+  const handleReturnToLobby = () => {
+    if (!roomPin) return;
+    setLoading(true);
+    const socket = getSocket();
+    socket.emit('return_to_lobby', { roomPin }, (res: any) => {
+      setLoading(false);
+      if (res?.success) {
+        setGameState('LOBBY');
+      } else {
+        setError(res?.message || 'Failed to return to lobby');
+      }
+    });
+  };
+
   const handlePushQuestion = () => {
     setLoading(true);
     const nextIndex = currentQIndex + 1;
@@ -326,11 +352,7 @@ export default function HostDashboard() {
     socket.emit('push_question', { roomPin, questionIndex: nextIndex }, (res: any) => {
       setLoading(false);
       if (res.success) {
-        setActiveQuestion({
-          questionIndex: res.questionIndex,
-          question: res.question,
-          options: res.options,
-        });
+        setActiveQuestion(res.activeQuestion || res);
         setCurrentQIndex(res.questionIndex);
         setGameState('READING');
         setRevealResult(null);
@@ -449,16 +471,11 @@ export default function HostDashboard() {
               <img
                 src="/se-logo.png"
                 alt="Schneider Electric"
-                className="w-12 h-12 object-contain drop-shadow-sm"
-              />
-              <img
-                src="/cyber-shield-logo.png"
-                alt="Cyber Security Shield"
-                className="w-12 h-12 object-contain drop-shadow-sm"
+                className="w-14 h-14 object-contain drop-shadow-sm"
               />
             </div>
             <h1 className="text-2xl font-bold text-white">Admin Access Gate</h1>
-            <p className="text-sm text-slate-400 mt-1">SE Quiz Host Dashboard Protection</p>
+            <p className="text-xs font-bold text-[#00E676] uppercase tracking-widest mt-1">CCSH MSS OPERATIONS</p>
           </div>
 
           {authError && (
@@ -548,19 +565,23 @@ export default function HostDashboard() {
           <img
             src="/se-logo.png"
             alt="Schneider Electric"
-            className="w-10 h-10 object-contain drop-shadow-sm"
-          />
-          <img
-            src="/cyber-shield-logo.png"
-            alt="Cyber Security Shield"
-            className="w-10 h-10 object-contain drop-shadow-sm"
+            className="w-11 h-11 object-contain drop-shadow-sm"
           />
           <div>
-            <h1 className="text-xl font-bold text-[#009639]">Schneider Electric MSS</h1>
-            <p className="text-xs text-gray-500 font-semibold">Fastest Finger First • Host Control Center</p>
+            <h1 className="text-xl font-black text-slate-900">
+              Schneider <span className="text-[#009639]">Electric</span>
+            </h1>
+            <p className="text-xs font-bold text-[#009639] uppercase tracking-widest">
+              CCSH MSS OPERATIONS
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3 md:gap-4 mt-4 md:mt-0 flex-wrap justify-center">
+          <img
+            src="/cyber-shield-logo.png"
+            alt="Cyber Security Shield"
+            className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-md"
+          />
           <div className="flex items-center gap-2 bg-[#00E676]/20 px-4 py-2 rounded-full border border-[#009639]/30">
             <Users className="w-5 h-5 text-[#009639]" />
             <span className="font-bold text-[#009639]">{participantCount} Players</span>
@@ -918,42 +939,171 @@ export default function HostDashboard() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  {currentQIndex + 1 >= totalQuestions && gameState === 'REVEAL' ? (
-                    <button
-                      onClick={() => setShowEndConfirm(true)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition shadow animate-pulse"
-                    >
-                      <PowerOff className="w-5 h-5" />
-                      <span>End Quiz & Review Results</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handlePushQuestion}
-                      disabled={loading || gameState === 'READING'}
-                      className="bg-[#009639] hover:bg-[#00E676] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors disabled:opacity-50 shadow"
-                    >
-                      {loading && gameState !== 'READING' ? (
-                        <RefreshCw className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <Play className="w-5 h-5" />
+                <div className="flex flex-wrap items-center gap-3">
+                  {gameState === 'LOBBY' && (
+                    <>
+                      <button
+                        onClick={handleShowRules}
+                        disabled={loading}
+                        className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-colors shadow"
+                      >
+                        <BookOpen className="w-4 h-4 text-[#00E676]" />
+                        <span>Rules & Guide</span>
+                      </button>
+                      <button
+                        onClick={handlePushQuestion}
+                        disabled={loading}
+                        className="bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white px-6 py-2.5 rounded-xl font-black text-sm flex items-center gap-2 transition-all shadow-md active:scale-95"
+                      >
+                        <Play className="w-4 h-4" />
+                        <span>Start Quiz</span>
+                      </button>
+                    </>
+                  )}
+
+                  {gameState === 'RULES' && (
+                    <>
+                      <button
+                        onClick={handleReturnToLobby}
+                        disabled={loading}
+                        className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3.5 py-2.5 rounded-xl font-bold text-xs transition-colors shadow-sm"
+                      >
+                        ↩ Return to Lobby
+                      </button>
+                      <button
+                        onClick={handlePushQuestion}
+                        disabled={loading}
+                        className="bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white px-5 py-2.5 rounded-xl font-black text-sm flex items-center gap-2 shadow-md transition-all active:scale-95"
+                      >
+                        <Play className="w-4 h-4" />
+                        <span>Launch Question 1</span>
+                      </button>
+                    </>
+                  )}
+
+                  {/* DURING READING OR ANSWERING: BRING REVEAL BUTTON RIGHT HERE AT THE TOP! */}
+                  {(gameState === 'READING' || gameState === 'ANSWERING') && (
+                    <div className="flex items-center gap-2.5">
+                      {gameState === 'READING' && (
+                        <span className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 flex items-center gap-1.5">
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Reading ({countdown}s)</span>
+                        </span>
                       )}
-                      {currentQIndex === -1 ? 'Start Quiz' : 'Push Next Question'}
-                    </button>
+                      {gameState === 'ANSWERING' && (
+                        <span className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-200 flex items-center gap-1.5">
+                          <Zap className="w-3.5 h-3.5 text-blue-600" />
+                          <span>{progressData.answeredCount}/{participantCount} Answered ({countdown}s)</span>
+                        </span>
+                      )}
+                      <button
+                        onClick={handleRevealAnswer}
+                        disabled={loading}
+                        className="bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white px-6 py-2.5 rounded-xl font-black text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-95 animate-pulse"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>Reveal Answer to All</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* REVEAL STATE: PUSH NEXT OR END */}
+                  {gameState === 'REVEAL' && (
+                    currentQIndex + 1 >= totalQuestions ? (
+                      <button
+                        onClick={() => setShowEndConfirm(true)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-xl font-black text-sm flex items-center gap-2 transition shadow-md animate-pulse active:scale-95"
+                      >
+                        <PowerOff className="w-4 h-4" />
+                        <span>End Quiz & Review Results</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handlePushQuestion}
+                        disabled={loading}
+                        className="bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white px-6 py-2.5 rounded-xl font-black text-sm flex items-center gap-2 transition-all shadow-md active:scale-95"
+                      >
+                        {loading ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Play className="w-4 h-4" />
+                        )}
+                        <span>Push Next Question ({currentQIndex + 2} of {totalQuestions})</span>
+                      </button>
+                    )
                   )}
                 </div>
               </div>
             </div>
 
+            {/* RULES Active Banner */}
+            {gameState === 'RULES' && (
+              <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-slate-50 border-2 border-[#009639]/40 rounded-2xl p-6 shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#009639] text-white flex items-center justify-center shadow">
+                    <BookOpen className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900">
+                      Rules & Interface Guide Active
+                    </h3>
+                    <p className="text-xs text-slate-600 font-medium">
+                      All participant phones and the projector screen are currently displaying the tournament briefing and interactive guide.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleReturnToLobby}
+                    disabled={loading}
+                    className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl font-bold text-xs transition-colors"
+                  >
+                    ↩ Return to Lobby
+                  </button>
+                  <button
+                    onClick={handlePushQuestion}
+                    disabled={loading}
+                    className="px-6 py-2.5 bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white rounded-xl font-black text-sm flex items-center gap-2 shadow transition-all"
+                  >
+                    <Play className="w-4 h-4" />
+                    <span>Launch Question 1</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Active Question Display Card */}
             {activeQuestion && (
               <div className="bg-white rounded-2xl shadow p-6 border border-gray-200">
-                <div className="inline-block bg-[#00E676]/20 text-[#009639] px-3 py-1 rounded-full text-xs font-bold mb-4 uppercase">
-                  Question {activeQuestion.questionIndex + 1}
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="inline-block bg-[#00E676]/20 text-[#009639] px-3 py-1 rounded-full text-xs font-bold uppercase">
+                    Question {activeQuestion.questionIndex + 1}
+                  </span>
+                  {activeQuestion.type && activeQuestion.type !== 'theory' && (
+                    <span className="inline-block bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                      {activeQuestion.type === 'spot_the_difference' ? '🔍 Spot the Difference' :
+                       activeQuestion.type === 'picture_mcq' ? '👤 Risk Profile Analysis' :
+                       activeQuestion.type === 'memory_check' ? '🧠 Memory & Vigilance Check' :
+                       activeQuestion.type === 'crossword' ? '🧩 Cyber Crossword' : activeQuestion.type}
+                    </span>
+                  )}
                 </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-6 leading-relaxed">
+                <h3 className="text-2xl font-bold text-gray-800 mb-4 leading-relaxed">
                   {activeQuestion.question}
                 </h3>
+
+                {activeQuestion.type && activeQuestion.type !== 'theory' && (
+                  <div className="mb-5">
+                    <InteractiveQuestionVisual
+                      type={activeQuestion.type}
+                      visualData={activeQuestion.visualData}
+                      revealVisual={revealResult?.revealVisual || activeQuestion.revealVisual}
+                      isReveal={gameState === 'REVEAL'}
+                      compact={true}
+                    />
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {activeQuestion.options.map((opt: string, idx: number) => {
@@ -989,25 +1139,24 @@ export default function HostDashboard() {
               </div>
             )}
 
-            {/* Show Answer Action Box */}
+            {/* Secondary Show Answer Bar (if host scrolls down) */}
             {gameState !== 'LOBBY' && gameState !== 'REVEAL' && (
-              <div className="bg-gray-50 rounded-2xl shadow p-6 border border-gray-200 text-center space-y-4">
-                <p className="text-gray-600 font-medium">
-                  {gameState === 'READING' && `📖 10s Question Reading in progress (${countdown}s remaining)...`}
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 text-center flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+                <p className="text-xs text-slate-600 font-medium">
+                  {gameState === 'READING' && `📖 10s Reading in progress (${countdown}s remaining)...`}
                   {gameState === 'ANSWERING' && (
                     countdown > 0 && !isAnsweringClosed
-                      ? `⚡ 30s Answering window is LIVE (${countdown}s remaining) • ${progressData.answeredCount} of ${participantCount} answered`
-                      : `⏳ Answering closed (${progressData.answeredCount} of ${participantCount} answered). Click below to reveal answer to everyone!`
+                      ? `⚡ Answering window LIVE • ${progressData.answeredCount} of ${participantCount} answered (${countdown}s remaining)`
+                      : `⏳ Answering closed (${progressData.answeredCount} of ${participantCount} answered)`
                   )}
                 </p>
-
                 <button
                   onClick={handleRevealAnswer}
                   disabled={loading}
-                  className="bg-[#009639] hover:bg-[#00E676] text-white px-8 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 w-full mx-auto max-w-md shadow-md transition-transform hover:scale-105"
+                  className="bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white px-5 py-2 rounded-xl font-black text-xs flex items-center gap-1.5 shadow transition-all shrink-0 active:scale-95"
                 >
-                  <Eye className="w-6 h-6" />
-                  Show Answer to All
+                  <Eye className="w-4 h-4" />
+                  <span>Reveal Answer to All</span>
                 </button>
               </div>
             )}
