@@ -504,8 +504,11 @@ function executeRevealAnswer(roomPin) {
 }
 
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
   socket.isHost = false;
+
+  socket.on('ping', (callback) => {
+    if (typeof callback === 'function') callback();
+  });
 
   socket.on('create_room', (data, callback) => {
     let cb = typeof callback === 'function' ? callback : (typeof data === 'function' ? data : null);
