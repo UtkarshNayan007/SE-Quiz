@@ -10,6 +10,7 @@ import { ProjectorRulesGuide } from '../../components/RulesAndGuide';
 import { InteractiveQuestionVisual } from '../../components/InteractiveQuestionVisual';
 
 interface Question {
+  id?: number;
   questionIndex: number;
   question: string;
   options: string[];
@@ -17,6 +18,7 @@ interface Question {
   durationSeconds: number;
   totalQuestions?: number;
   type?: string;
+  imageUrl?: string;
   visualData?: any;
   instruction?: string;
   revealVisual?: any;
@@ -674,10 +676,13 @@ function ProjectorComponent() {
             </div>
 
             {/* Interactive Question Visual (Widescreen Projector View) */}
-            {currentQuestion.type && currentQuestion.type !== 'theory' && (
+            {((currentQuestion.type && currentQuestion.type !== 'theory') || currentQuestion.imageUrl || currentQuestion.visualData?.imageUrl || (currentQuestion.id && [8, 9, 11, 16].includes(currentQuestion.id))) && (
               <div className="mb-4 shrink-0">
                 <InteractiveQuestionVisual
                   type={currentQuestion.type}
+                  imageUrl={currentQuestion.imageUrl || currentQuestion.visualData?.imageUrl}
+                  questionId={currentQuestion.id}
+                  questionText={currentQuestion.question}
                   visualData={currentQuestion.visualData}
                   revealVisual={revealResult?.revealVisual || (currentQuestion as any).revealVisual}
                   isReveal={gameState === 'REVEAL'}

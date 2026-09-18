@@ -47,8 +47,14 @@ export interface ProfileItem {
   quote?: string;
 }
 
+export interface ImageFinding {
+  id: number | string;
+  title: string;
+  desc?: string;
+}
+
 export interface VisualData {
-  type: 'spot_the_difference' | 'picture_mcq' | 'picture_base' | 'memory_check' | 'crossword' | 'fill_in_the_blank' | 'riddle';
+  type: 'spot_the_difference' | 'picture_mcq' | 'picture_base' | 'memory_check' | 'crossword' | 'fill_in_the_blank' | 'riddle' | 'image';
   // Spot the Difference
   sceneType?: 'office_delegation' | 'soc_gate' | 'turnstile_tailgate' | 'conference_leak' | 'cafe_eavesdrop' | string;
   sceneTitle?: string;
@@ -109,6 +115,10 @@ export interface VisualData {
     decodedTitle?: string;
     iconType?: 'lock' | 'shield' | 'terminal' | 'phone' | 'usb' | 'eye';
   };
+  // Real Image Scenario
+  imageUrl?: string;
+  imageCaption?: string;
+  findings?: ImageFinding[];
 }
 
 export interface RevealVisual {
@@ -130,6 +140,10 @@ export interface RevealVisual {
 
 interface Props {
   type?: string;
+  imageUrl?: string;
+  imageCaption?: string;
+  questionId?: number;
+  questionText?: string;
   visualData?: VisualData | null;
   revealVisual?: RevealVisual | null;
   isReveal?: boolean;
@@ -1073,16 +1087,219 @@ export const RiddleVisual: React.FC<{
 };
 
 /* =========================================================================
+   7. REAL IMAGE SCENARIO VISUAL
+   ========================================================================= */
+export const ImageVisual: React.FC<{
+  visualData?: VisualData | null;
+  revealVisual?: RevealVisual | null;
+  isReveal?: boolean;
+  compact?: boolean;
+  imageUrl?: string;
+  imageCaption?: string;
+  questionId?: number;
+  questionText?: string;
+}> = ({ visualData, revealVisual, isReveal, compact, imageUrl, imageCaption, questionId, questionText }) => {
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [imgErrorCount, setImgErrorCount] = useState(0);
+
+  // Derive target image URL
+  let resolvedUrl = imageUrl || visualData?.imageUrl || '';
+
+  // Smart fallback by questionId or question content if resolvedUrl is missing
+  if (!resolvedUrl) {
+    if (questionId === 11 || (questionText && /shoulder surfing|commuter|physical security/i.test(questionText))) {
+      resolvedUrl = '/questions/question_11_shoulder_surfing.png';
+    } else if (questionId === 16 || (questionText && /phishing attempt|compare the.*email/i.test(questionText))) {
+      resolvedUrl = '/questions/question_16_compare_emails.png';
+    } else if (questionId === 8 || (questionText && /workstation setup|security risk/i.test(questionText))) {
+      resolvedUrl = '/questions/question_8_office_risks.png';
+    } else if (questionId === 9 || (questionText && /pingid|approve sign-in/i.test(questionText))) {
+      resolvedUrl = '/questions/question_9_phone_login.png';
+    }
+  }
+
+  if (!resolvedUrl) return null;
+
+  const caption = imageCaption || visualData?.imageCaption || (
+    questionId === 11 || (questionText && /shoulder surfing|commuter/i.test(questionText))
+      ? 'Public Transport Commuter Scenario'
+      : questionId === 16 || (questionText && /phishing/i.test(questionText))
+      ? 'Compare the Emails (Panels A & B)'
+      : questionId === 8
+      ? 'Spotting Security Risks in the Office'
+      : questionId === 9
+      ? 'PingID Authentication Request Notification'
+      : 'Visual Security Scenario'
+  );
+
+  const findings = (visualData?.findings && visualData.findings.length > 0)
+    ? visualData.findings
+    : questionId === 11 || (questionText && /shoulder surfing|commuter/i.test(questionText))
+    ? [{ id: 1, title: 'Shoulder Surfing Risk', desc: 'Bystander leaning over to observe business charts and sensitive work on laptop screen.' }]
+    : questionId === 16 || (questionText && /phishing/i.test(questionText))
+    ? [
+        { id: 1, title: 'Spoofed Sender Domain', desc: 'Sender is support@se.co.ck (.co.ck is the Cook Islands ccTLD, not se.com).' },
+        { id: 2, title: 'Executable Attachment', desc: "Attachment is 'Urgent_Security_Patch.exe' which can execute malicious payload." },
+        { id: 3, title: 'Urgency & Coercion', desc: "Subject and body use artificial panic ('URGENT: SECURITY ALERT', threat of permanent data loss)." }
+      ]
+    : [];
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const img = e.currentTarget;
+    const currentSrc = img.src;
+    if (imgErrorCount === 0) {
+      setImgErrorCount(1);
+      if (currentSrc.endsWith('.jpg')) {
+        img.src = currentSrc.replace('.jpg', '.png');
+      } else if (currentSrc.endsWith('.png')) {
+        img.src = currentSrc.replace('.png', '.jpg');
+      }
+    } else if (imgErrorCount === 1) {
+      setImgErrorCount(2);
+      try {
+        const u = new URL(currentSrc);
+        if (u.port !== '4000') {
+          u.port = '4000';
+          img.src = u.toString();
+        }
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  return (
+    <div className="w-full bg-slate-900 text-white rounded-2xl overflow-hidden border border-slate-700 shadow-xl">
+      {/* Header Bar */}
+      <div className="bg-slate-800/90 px-4 py-2.5 border-b border-slate-700 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-500/20 text-[#00E676] border border-emerald-500/30 font-black text-xs">
+            <Eye className="w-4 h-4" />
+          </span>
+          <div>
+            <h4 className="text-xs sm:text-sm font-black tracking-wide text-white uppercase flex items-center gap-2">
+              <span>{caption}</span>
+            </h4>
+            <p className="text-[10px] sm:text-[11px] text-slate-400">
+              Inspect the visual scenario carefully to evaluate security risks
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsZoomed(!isZoomed)}
+          className="text-[11px] px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg flex items-center gap-1 transition cursor-pointer"
+        >
+          <Search className="w-3.5 h-3.5" />
+          <span>{isZoomed ? 'Reset View' : 'Zoom'}</span>
+        </button>
+      </div>
+
+      {/* Main Image Container */}
+      <div className="p-3 sm:p-4 bg-slate-950 flex flex-col items-center justify-center">
+        <div
+          className={`relative w-full overflow-hidden rounded-xl border border-slate-800 bg-black/60 flex items-center justify-center transition-all ${
+            isZoomed
+              ? 'max-h-[80vh] cursor-zoom-out'
+              : compact
+              ? 'max-h-[260px] cursor-zoom-in'
+              : 'max-h-[460px] cursor-zoom-in'
+          }`}
+          onClick={() => setIsZoomed(!isZoomed)}
+        >
+          <img
+            src={resolvedUrl}
+            alt={caption}
+            onError={handleImageError}
+            className={`w-full object-contain mx-auto transition-transform duration-300 ${
+              isZoomed ? 'scale-110 sm:scale-125' : 'scale-100'
+            }`}
+            style={{ maxHeight: isZoomed ? '75vh' : compact ? '250px' : '440px' }}
+          />
+        </div>
+
+        {/* REVEAL CALLOUTS & FINDINGS */}
+        {isReveal && (findings.length > 0 || revealVisual?.vulnerabilitySummary) && (
+          <div className="w-full mt-3 pt-3 border-t border-slate-800 animate-in fade-in duration-300">
+            {revealVisual?.vulnerabilitySummary && (
+              <div className="mb-2.5 px-3 py-2 bg-emerald-500/15 border border-emerald-500/40 rounded-xl flex items-center gap-2 text-emerald-300 text-xs font-bold">
+                <Sparkles className="w-4 h-4 text-[#00E676] shrink-0" />
+                <span>{revealVisual.vulnerabilitySummary}</span>
+              </div>
+            )}
+
+            {findings.length > 0 && (
+              <div className={`grid gap-2 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4'}`}>
+                {findings.map((f) => (
+                  <div
+                    key={f.id}
+                    className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-left"
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                        {f.id}
+                      </span>
+                      <span className="text-[11px] font-black text-amber-300 leading-tight">
+                        {f.title}
+                      </span>
+                    </div>
+                    {f.desc && (
+                      <p className="text-[10px] text-slate-300 leading-tight">
+                        {f.desc}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* =========================================================================
    MAIN ROUTER COMPONENT
    ========================================================================= */
 export const InteractiveQuestionVisual: React.FC<Props> = ({
   type,
+  imageUrl,
+  imageCaption,
+  questionId,
+  questionText,
   visualData,
   revealVisual,
   isReveal = false,
   compact = false
 }) => {
   const effectiveType = type || visualData?.type;
+  const isImageQuestion = Boolean(
+    effectiveType === 'image' ||
+    imageUrl ||
+    visualData?.imageUrl ||
+    questionId === 8 ||
+    questionId === 9 ||
+    questionId === 11 ||
+    questionId === 16 ||
+    (questionText && /shoulder surfing|commuter|physical security|compare the.*email|phishing attempt|office workstation|pingid/i.test(questionText))
+  );
+
+  if (isImageQuestion) {
+    return (
+      <ImageVisual
+        imageUrl={imageUrl}
+        imageCaption={imageCaption}
+        questionId={questionId}
+        questionText={questionText}
+        visualData={visualData}
+        revealVisual={revealVisual}
+        isReveal={isReveal}
+        compact={compact}
+      />
+    );
+  }
 
   switch (effectiveType) {
     case 'spot_the_difference':

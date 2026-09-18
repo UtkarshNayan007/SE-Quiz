@@ -63,8 +63,8 @@ export default function HostDashboard() {
   const [roomPin, setRoomPin] = useState('');
   const [participantCount, setParticipantCount] = useState(0);
   const [participants, setParticipants] = useState<any[]>([]);
-  const [totalQuestions, setTotalQuestions] = useState(30);
-  const [configuredQuestionCount, setConfiguredQuestionCount] = useState(30);
+  const [totalQuestions, setTotalQuestions] = useState(20);
+  const [configuredQuestionCount, setConfiguredQuestionCount] = useState(20);
   const [customQuestionInput, setCustomQuestionInput] = useState('');
   const [currentQIndex, setCurrentQIndex] = useState(-1);
   const [activeQuestion, setActiveQuestion] = useState<any>(null);
@@ -116,15 +116,15 @@ export default function HostDashboard() {
       setAuthError('Connection timed out. Please check if the server is online and try again.');
     }, 10000);
 
-    socket.emit('create_room', { passcode: inputPasscode, roomPin: pinToUse, questionCount: 30 }, (res: any) => {
+    socket.emit('create_room', { passcode: inputPasscode, roomPin: pinToUse, questionCount: 20 }, (res: any) => {
       clearTimeout(timeout);
       setLoading(false);
       setIsRestoring(false);
       if (res && res.success) {
         setIsAuthenticated(true);
         setRoomPin(res.roomPin);
-        setTotalQuestions(res.totalQuestions || 30);
-        setConfiguredQuestionCount(res.configuredQuestionCount || res.totalQuestions || 30);
+        setTotalQuestions(res.totalQuestions || 20);
+        setConfiguredQuestionCount(res.configuredQuestionCount || res.totalQuestions || 20);
         if (res.participants) setParticipants(deduplicateParticipants(res.participants));
         if (res.participantCount !== undefined) setParticipantCount(res.participantCount);
         if (res.gameState) setGameState(res.gameState);
@@ -273,7 +273,7 @@ export default function HostDashboard() {
         const savedPass = localStorage.getItem('se_host_passcode') || sessionStorage.getItem('se_host_passcode');
         const activePin = roomPin || (new URLSearchParams(window.location.search).get('pin') || '') || localStorage.getItem('se_host_room_pin') || sessionStorage.getItem('se_host_room_pin');
         if (savedPass) {
-          socket.emit('create_room', { passcode: savedPass, roomPin: activePin || undefined, questionCount: 30 }, () => {});
+          socket.emit('create_room', { passcode: savedPass, roomPin: activePin || undefined, questionCount: 20 }, () => {});
         }
       }
     };
@@ -306,7 +306,7 @@ export default function HostDashboard() {
   }, []);
 
   const handleSetQuestionLimit = (count: number) => {
-    const val = Math.min(Math.max(count, 1), 30);
+    const val = Math.min(Math.max(count, 1), 20);
     setConfiguredQuestionCount(val);
     setTotalQuestions(val);
     const socket = getSocket();
@@ -844,7 +844,7 @@ export default function HostDashboard() {
                   <h3 className="text-base font-bold text-gray-900">Quiz Questions Limit</h3>
                 </div>
                 <span className="text-xs font-bold text-[#009639] bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                  {totalQuestions} of 30 Questions Configured
+                  {totalQuestions} of 20 Questions Configured
                 </span>
               </div>
               <p className="text-xs text-gray-500 mb-4">
@@ -853,7 +853,7 @@ export default function HostDashboard() {
 
               {/* Presets */}
               <div className="flex flex-wrap items-center gap-2">
-                {[5, 10, 15, 20, 30].map((preset) => (
+                {[5, 10, 15, 20].map((preset) => (
                   <button
                     key={preset}
                     type="button"
@@ -865,7 +865,7 @@ export default function HostDashboard() {
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                     } ${currentQIndex >= 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
                   >
-                    <span>{preset === 30 ? '30 (All Questions)' : `${preset} Questions`}</span>
+                    <span>{preset === 20 ? '20 (All Questions)' : `${preset} Questions`}</span>
                   </button>
                 ))}
 
@@ -875,7 +875,7 @@ export default function HostDashboard() {
                     <input
                       type="number"
                       min={1}
-                      max={30}
+                      max={20}
                       placeholder="Custom"
                       value={customQuestionInput}
                       onChange={(e) => setCustomQuestionInput(e.target.value)}
@@ -1079,13 +1079,17 @@ export default function HostDashboard() {
                 <div className="flex items-center gap-2 mb-4">
                   <span className="inline-block bg-[#00E676]/20 text-[#009639] px-3 py-1 rounded-full text-xs font-bold uppercase">
                     Question {activeQuestion.questionIndex + 1}
+                    {activeQuestion.id && (
+                      <span className="ml-1 text-slate-500 font-semibold text-[11px]">(PDF Q#{activeQuestion.id})</span>
+                    )}
                   </span>
                   {activeQuestion.type && activeQuestion.type !== 'theory' && (
                     <span className="inline-block bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
                       {activeQuestion.type === 'spot_the_difference' ? '🔍 Spot the Difference' :
                        activeQuestion.type === 'picture_mcq' ? '👤 Risk Profile Analysis' :
                        activeQuestion.type === 'memory_check' ? '🧠 Memory & Vigilance Check' :
-                       activeQuestion.type === 'crossword' ? '🧩 Cyber Crossword' : activeQuestion.type}
+                       activeQuestion.type === 'crossword' ? '🧩 Cyber Crossword' :
+                       activeQuestion.type === 'image' ? '📸 Image Scenario' : activeQuestion.type}
                     </span>
                   )}
                 </div>
@@ -1093,10 +1097,13 @@ export default function HostDashboard() {
                   {activeQuestion.question}
                 </h3>
 
-                {activeQuestion.type && activeQuestion.type !== 'theory' && (
+                {((activeQuestion.type && activeQuestion.type !== 'theory') || activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl || [8, 9, 11, 16].includes(activeQuestion.id)) && (
                   <div className="mb-5">
                     <InteractiveQuestionVisual
                       type={activeQuestion.type}
+                      imageUrl={activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl}
+                      questionId={activeQuestion.id}
+                      questionText={activeQuestion.question}
                       visualData={activeQuestion.visualData}
                       revealVisual={revealResult?.revealVisual || activeQuestion.revealVisual}
                       isReveal={gameState === 'REVEAL'}

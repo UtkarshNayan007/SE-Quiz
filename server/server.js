@@ -18,6 +18,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const app = express();
 app.use(cors());
+app.use(express.static(path.join(__dirname, 'public')));
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -54,57 +55,24 @@ function loadQuestions() {
 loadQuestions();
 
 /**
- * Build room questions with category interleaving / shuffling.
- * The 6 requested categories:
- * 1. Picture Base
- * 2. Find out the Difference in Image
- * 3. Crossword
- * 4. Fill in the Blank (Choose from options)
- * 5. Riddles
- * 6. Theory
- *
- * If count = 5: 1 from 5 distinct categories (Picture Base, Diff, Crossword, Fill Blank, Riddles).
- * If count = 10: round-robin interleaved across 6 categories.
- * If count = 15: round-robin interleaved.
- * If count = 30: all 5 questions from all 6 categories, interleaved.
+ * Build room questions with pure random shuffling (non-section based).
+ * Implements Fisher-Yates shuffle across the full question pool.
  */
-function buildRoomQuestions(count = 30) {
+function buildRoomQuestions(count = 20) {
   if (!questions || questions.length === 0) {
     loadQuestions();
   }
 
-  const categoryOrder = [
-    'Picture Base',
-    'Find out the Difference in Image',
-    'Crossword',
-    'Fill in the Blank (Choose from options)',
-    'Riddles',
-    'Theory'
-  ];
+  const safeCount = Math.min(Math.max(parseInt(count) || questions.length, 1), questions.length);
 
-  const pools = {};
-  for (const cat of categoryOrder) {
-    pools[cat] = questions.filter(q => q.category === cat);
+  // Fisher-Yates shuffle across all questions
+  const pool = [...questions];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 
-  const selected = [];
-  let round = 0;
-
-  while (selected.length < count) {
-    let addedInRound = 0;
-    for (const cat of categoryOrder) {
-      if (selected.length >= count) break;
-      const pool = pools[cat];
-      if (pool && round < pool.length) {
-        selected.push(pool[round]);
-        addedInRound++;
-      }
-    }
-    if (addedInRound === 0) break;
-    round++;
-  }
-
-  return selected.length > 0 ? selected : questions.slice(0, count);
+  return pool.slice(0, safeCount);
 }
 
 function getRoomQuestion(room, index) {
@@ -465,10 +433,12 @@ function executeRevealAnswer(roomPin) {
   const totalQ = room.configuredQuestionCount || questions.length;
 
   room.currentRevealResult = {
+    id: question.id,
     correctAnswerIndex: question.correctAnswer,
     correctOptionText: question.options[question.correctAnswer],
     explanation: question.explanation,
     type: question.type || 'theory',
+    imageUrl: question.imageUrl || question.visualData?.imageUrl || null,
     visualData: question.visualData || null,
     revealVisual: question.revealVisual || null,
     winner: winnerData, // Fastest participant who answered correctly
@@ -632,7 +602,7 @@ io.on('connection', (socket) => {
     });
 
     socket.join(roomPin);
-    console.log(`Room created: ${roomPin} by authenticated host ${socket.id} (Configured interleaved questions: ${roomQuestions.length}/${questions.length})`);
+    console.log(`Room created: ${roomPin} by authenticated host ${socket.id} (Configured randomized questions: ${roomQuestions.length}/${questions.length})`);
     
     if (cb) cb({
       success: true,
@@ -799,13 +769,15 @@ io.on('connection', (socket) => {
       const q = getRoomQuestion(room, room.currentQuestionIndex);
       if (q) {
         activeQuestion = {
+          id: q.id,
           questionIndex: room.currentQuestionIndex,
           totalQuestions: totalQ,
           question: q.question,
           options: q.options,
           category: q.category,
           type: q.type || 'theory',
-          visualData: q.visualData || null,
+          imageUrl: q.imageUrl || q.visualData?.imageUrl || null,
+          visualData: q.visualData || (q.imageUrl ? { type: 'image', imageUrl: q.imageUrl } : null),
           instruction: q.instruction || null,
           durationSeconds: room.gameState === 'READING' ? 10 : 30
         };
@@ -918,30 +890,34 @@ io.on('connection', (socket) => {
     }
 
     const safeQuestion = {
+      id: questionData.id,
       questionIndex,
       totalQuestions: maxQuestions,
       question: questionData.question,
       options: questionData.options,
       category: questionData.category,
       type: questionData.type || 'theory',
-      visualData: questionData.visualData || null,
+      imageUrl: questionData.imageUrl || questionData.visualData?.imageUrl || null,
+      visualData: questionData.visualData || (questionData.imageUrl ? { type: 'image', imageUrl: questionData.imageUrl } : null),
       instruction: questionData.instruction || null,
       durationSeconds: 10,
       readingEndTime: room.readingEndTime
     };
 
-    console.log(`Room ${roomPin}: Host pushed Question ${questionIndex + 1}/${maxQuestions}. 10s reading phase initiated.`);
+    console.log(`Room ${roomPin}: Host pushed Question ${questionIndex + 1}/${maxQuestions} (id=${safeQuestion.id}, type=${safeQuestion.type}, img=${safeQuestion.imageUrl || 'none'}). 10s reading phase initiated.`);
 
     io.to(roomPin).emit('question_pushed', safeQuestion);
     broadcastRoomUpdate(roomPin);
 
     if (callback) callback({
       success: true,
+      id: safeQuestion.id,
       questionIndex,
       question: safeQuestion.question,
       options: safeQuestion.options,
       category: safeQuestion.category,
       type: safeQuestion.type,
+      imageUrl: safeQuestion.imageUrl,
       visualData: safeQuestion.visualData,
       instruction: safeQuestion.instruction,
       durationSeconds: safeQuestion.durationSeconds,
@@ -1217,7 +1193,7 @@ io.on('connection', (socket) => {
     const roomQuestions = buildRoomQuestions(count);
     room.roomQuestions = roomQuestions;
     room.configuredQuestionCount = roomQuestions.length;
-    console.log(`Room ${roomPin}: Host set question limit to ${count} (generated ${roomQuestions.length} interleaved questions across 6 categories)`);
+    console.log(`Room ${roomPin}: Host set question limit to ${count} (generated ${roomQuestions.length} randomized questions)`);
 
     io.to(roomPin).emit('question_limit_updated', {
       configuredQuestionCount: roomQuestions.length,

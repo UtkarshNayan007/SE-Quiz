@@ -1,945 +1,67 @@
 [
   {
     "id": 1,
-    "category": "Picture Base",
-    "type": "picture_base",
-    "question": "Physical Access Control & SOC Entry: Four individuals approach the restricted Security Operations Center (SOC) entrance. Which request represents an active social engineering attempt that must be DENIED immediately?",
+    "category": "Riddle",
+    "type": "riddle",
+    "question": "The Tailgater Riddle: \"I wear no burglar mask and pick no lock; I wait by the speed gate around 9 o'clock. When you tap your badge with a polite smile, I slip right behind you and walk the aisle.\"",
     "options": [
-      "A) Person A: External HVAC tech demanding immediate unescorted entry for an 'emergency repair' without an approved Change Ticket",
-      "B) Person B: Senior Director who forgot their badge requesting a junior analyst buzz them in without verification",
-      "C) Person C: Certified SE engineer presenting approved Change Request #CR-8892 and scanning registered biometric badge",
-      "D) Person D: Scheduled third-party auditor accompanied by the Information Security Officer wearing an active Visitor badge"
+      "A) The Tailgater (Piggybacking)",
+      "B) The Shoulder Surfer",
+      "C) The Social Engineer",
+      "D) The Impersonator"
     ],
     "correctAnswer": 0,
-    "explanation": "Social engineers frequently pose as urgent maintenance or emergency technicians (pretexting) to bypass physical access controls. Unescorted entry into high-security zones like the SOC without an authorized Change Ticket and visitor escort is a severe violation.",
+    "explanation": "Tailgating (also called piggybacking) occurs when an unauthorized person closely follows an authorized employee through an access-controlled speed gate or doorway without scanning their own badge.",
     "visualData": {
-      "type": "picture_mcq",
-      "profiles": [
-        {
-          "id": "A",
-          "label": "Person A: Urgent HVAC Contractor",
-          "role": "External Vendor",
-          "environment": "Restricted SOC Doorway",
-          "connection": "No Badge / Toolbag in hand",
-          "securityControls": "Claims 'Emergency AC Outage'",
-          "quote": "Open the SOC door right now! The main datacenter AC compressor is smoking and will trip the fire alarms!",
-          "riskRating": "CRITICAL",
-          "isVulnerable": true,
-          "threatCallouts": [
-            "No valid Change Ticket or Work Order",
-            "Urgency hook to pressure staff into bypassing badge reader",
-            "Demanding unescorted physical access to core infrastructure"
-          ]
-        },
-        {
-          "id": "B",
-          "label": "Person B: Forgotten Badge Director",
-          "role": "Internal Executive",
-          "environment": "Restricted SOC Doorway",
-          "connection": "No Badge / Holding Phone",
-          "securityControls": "Requests peer door buzz",
-          "quote": "I left my badge in my gym locker. Can someone buzz me through the doors real quick? I'm late for the VP briefing.",
-          "riskRating": "HIGH",
-          "isVulnerable": false,
-          "threatCallouts": [
-            "Executive pressure on junior staff to bypass badging protocol"
-          ]
-        },
-        {
-          "id": "C",
-          "label": "Person C: Automation Lead",
-          "role": "Authorized Engineer",
-          "environment": "Restricted SOC Doorway",
-          "connection": "RFID Smartcard + Biometric",
-          "securityControls": "Approved CR-8892 Ticket Logged",
-          "quote": "Good morning. Presenting approved Change Request #CR-8892 and scanning my biometric smartcard for scheduled maintenance.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        },
-        {
-          "id": "D",
-          "label": "Person D: ISO Compliance Auditor",
-          "role": "Escorted Visitor",
-          "environment": "Restricted SOC Doorway",
-          "connection": "Numbered Orange Visitor Pass",
-          "securityControls": "Continuously Escorted by CISO",
-          "quote": "Scheduled ISO compliance audit. Accompanied continuously by your CISO with our visitor badges displayed.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        }
-      ]
+      "type": "riddle",
+      "riddleData": {
+        "title": "PHYSICAL ACCESS ENIGMA",
+        "riddleText": "I wear no burglar mask and pick no lock;\nI wait by the speed gate around 9 o'clock.\nWhen you tap your badge with a polite smile,\nI slip right behind you and walk the aisle.",
+        "hintCategory": "Physical Security & Access Control",
+        "hint": "Someone slipping through the speed gate behind an authorized badge tap.",
+        "enigmaTag": "SECURITY ENIGMA",
+        "decodedTitle": "THE TAILGATER (PIGGYBACKING)",
+        "iconType": "lock"
+      }
     },
     "revealVisual": {
-      "vulnerableProfileId": "A"
+      "riddleAnswer": "The Tailgater (Piggybacking)",
+      "vulnerabilitySummary": "Tailgating (Piggybacking) bypasses physical access controls by closely following an authorized employee through speed gates."
     }
   },
   {
     "id": 2,
-    "category": "Picture Base",
-    "type": "picture_base",
-    "question": "Workplace Credential Sharing: Four employees face urgent operational deadlines. Which employee's proposed action represents an active identity security violation?",
+    "category": "Workstation Security",
+    "type": "fill_in_the_blank",
+    "question": "Under corporate Clean Desk and Clear Screen policy, before stepping away from your workstation for any reason, you must immediately lock your screen using the shortcut ________.",
     "options": [
-      "A) Kevin (Finance) asks his peer to log in with his domain credentials to approve an invoice because his token battery died",
-      "B) Sarah (DevOps) requests temporary 4-hour privilege elevation through CyberArk PAM with automated peer approval",
-      "C) Marcus (Support) creates a ServiceNow ticket requesting the identity team reset a locked user account via callback verification",
-      "D) Elena (HR) locks her workstation with Win+L before leaving her desk for a 15-minute off-site coffee run"
+      "A) Windows key + L",
+      "B) Alt + F4",
+      "C) Ctrl + Shift + Esc",
+      "D) Windows Key + D"
     ],
     "correctAnswer": 0,
-    "explanation": "Under corporate Identity & Access Management (IAM) policy, corporate user credentials, smartcards, and MFA tokens are non-transferable. Sharing credentials invalidates accountability, audit trails, and non-repudiation.",
+    "explanation": "Under corporate Clean Desk and Clear Screen policy, before stepping away from your workstation for any reason, you must immediately lock your screen using Windows key + L.",
     "visualData": {
-      "type": "picture_mcq",
-      "profiles": [
-        {
-          "id": "A",
-          "label": "Kevin (Finance Approver)",
-          "role": "Finance Lead",
-          "environment": "Accounts Payable Desk",
-          "connection": "Shared Domain Login",
-          "securityControls": "Hands colleague credentials",
-          "quote": "Dave, my MFA token died. Here is my domain login and password—can you approve this $50,000 vendor invoice before 5 PM?",
-          "riskRating": "CRITICAL",
-          "isVulnerable": true,
-          "threatCallouts": [
-            "Direct violation of non-repudiation and IAM policy",
-            "Bypasses dual-authorization approval controls",
-            "Destroys forensic audit trail for financial transactions"
-          ]
-        },
-        {
-          "id": "B",
-          "label": "Sarah (DevOps Engineer)",
-          "role": "Cloud Ops",
-          "environment": "CI/CD Deployment Station",
-          "connection": "Privileged Access Mgmt (PAM)",
-          "securityControls": "Time-bound JIT elevation",
-          "quote": "Submitting a 4-hour break-glass elevation request through CyberArk PAM with automated manager sign-off.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        },
-        {
-          "id": "C",
-          "label": "Marcus (IT Support Specialist)",
-          "role": "Helpdesk Tier 2",
-          "environment": "Support Center",
-          "connection": "Ticket Callback Protocol",
-          "securityControls": "Out-of-band verification",
-          "quote": "Calling the employee back on their registered corporate desk phone to verify identity before initiating a credential reset.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        },
-        {
-          "id": "D",
-          "label": "Elena (HR Specialist)",
-          "role": "Personnel Relations",
-          "environment": "Open Floor Plan Desk",
-          "connection": "Clear Desk / Win+L Lock",
-          "securityControls": "Workstation securely locked",
-          "quote": "Pressing Win+L to lock my display before walking to the breakroom so sensitive personnel files stay confidential.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        }
-      ]
+      "type": "fill_in_the_blank",
+      "fillBlankData": {
+        "prefixText": "Under corporate Clean Desk and Clear Screen policy, before stepping away from your workstation for any reason, you must immediately lock your screen using the shortcut",
+        "blankPlaceholder": "[ SHORTCUT ]",
+        "blank": "Windows key + L",
+        "contextBadge": "Workstation Security Policy",
+        "correctAnswerText": "Windows key + L"
+      }
     },
     "revealVisual": {
-      "vulnerableProfileId": "A"
+      "fillBlankAnswer": "Windows key + L",
+      "vulnerabilitySummary": "Windows key + L instantly locks your computer screen, securing sensitive files and sessions while away."
     }
   },
   {
     "id": 3,
-    "category": "Picture Base",
-    "type": "picture_base",
-    "question": "Facility Entrance & Tailgating: Four situations occur at the turnstiles of the corporate campus. Which scenario represents an active 'Tailgating / Piggybacking' security breach?",
-    "options": [
-      "A) An individual carrying coffee cups slipping through the optical speed gate right behind an employee without scanning",
-      "B) An employee waiting for the turnstile barrier arms to fully close before tapping their personal badge",
-      "C) A postal courier directed to the security desk to sign the physical visitor registry and receive an escort badge",
-      "D) A visiting contractor tapping their RFID badge and placing their index finger on the biometric scanner"
-    ],
-    "correctAnswer": 0,
-    "explanation": "Tailgating (or piggybacking) occurs when an unauthorized person closely follows an authorized employee through an access-controlled portal without presenting individual credentials.",
-    "visualData": {
-      "type": "picture_mcq",
-      "profiles": [
-        {
-          "id": "A",
-          "label": "Individual with Coffee Box",
-          "role": "Unidentified Visitor",
-          "environment": "Main Campus Speed Gates",
-          "connection": "No Badge Scanned",
-          "securityControls": "Slips through open gate flap",
-          "quote": "Hold the turnstile, hurry! Both my hands are carrying these coffee trays and I can't reach my badge!",
-          "riskRating": "CRITICAL",
-          "isVulnerable": true,
-          "threatCallouts": [
-            "Bypasses optical sensor barrier without badge swipe",
-            "Exploits employee's polite instinct to hold the gate",
-            "Unauthorized physical presence inside secure facility"
-          ]
-        },
-        {
-          "id": "B",
-          "label": "Patient Employee",
-          "role": "Schneider Staff",
-          "environment": "Main Campus Speed Gates",
-          "connection": "Individual RFID Swipe",
-          "securityControls": "Waits for barrier closure",
-          "quote": "Waiting for the optical speed gate arms to fully close behind the person ahead before scanning my own badge.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        },
-        {
-          "id": "C",
-          "label": "Courier at Security Desk",
-          "role": "External Delivery",
-          "environment": "Visitor Check-in Bay",
-          "connection": "Government Photo ID Check",
-          "securityControls": "Signed Visitor Log + Escort",
-          "quote": "Delivery for Floor 4. Signing the physical visitor registry at the security reception desk to obtain an escort pass.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        },
-        {
-          "id": "D",
-          "label": "Contractor at Biometric Gate",
-          "role": "Facilities Vendor",
-          "environment": "Contractor Gate",
-          "connection": "Badge + Fingerprint Scan",
-          "securityControls": "Two-factor physical entry",
-          "quote": "Scanning RFID credential and completing fingerprint verification at the contractor speed gate.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        }
-      ]
-    },
-    "revealVisual": {
-      "vulnerableProfileId": "A"
-    }
-  },
-  {
-    "id": 4,
-    "category": "Picture Base",
-    "type": "picture_base",
-    "question": "OT & Industrial Equipment Interfacing: Four technicians are servicing an automated manufacturing plant. Which technician is introducing a severe malware or firmware tampering hazard?",
-    "options": [
-      "A) A third-party technician plugging their personal smartphone into the USB maintenance port of an operational PLC/SCADA terminal to charge it",
-      "B) An automation engineer using an IT-scanned, encrypted corporate maintenance laptop connected via isolated engineering subnet",
-      "C) A technician viewing equipment schematics on a corporate tablet connected exclusively to the segregated Guest Wi-Fi",
-      "D) An engineer verifying cryptographic SHA-256 firmware hashes before deploying updates to a safety instrumented system"
-    ],
-    "correctAnswer": 0,
-    "explanation": "Plugging untrusted consumer devices (like smartphones) into Industrial Control Systems (ICS/PLC) breaches the air-gap and introduces significant risk of malicious firmware alteration or automated keystroke injection.",
-    "visualData": {
-      "type": "picture_mcq",
-      "profiles": [
-        {
-          "id": "A",
-          "label": "Technician Charging Phone",
-          "role": "Third-Party Vendor",
-          "environment": "OT Factory Floor SCADA",
-          "connection": "USB Cable to PLC Port",
-          "securityControls": "Charging personal mobile phone",
-          "quote": "My phone battery is at 2%. I'll just plug my USB charging cable into this PLC controller's maintenance port on the shop floor.",
-          "riskRating": "CRITICAL",
-          "isVulnerable": true,
-          "threatCallouts": [
-            "Bypasses OT air-gap perimeter",
-            "Smartphones can act as rogue USB mass storage or cellular modems",
-            "Severe risk of firmware tampering or malware bridge"
-          ]
-        },
-        {
-          "id": "B",
-          "label": "Lead Automation Engineer",
-          "role": "Internal Controls Team",
-          "environment": "Engineering Workstation",
-          "connection": "Isolated Engineering VLAN",
-          "securityControls": "IT-scanned & hardened laptop",
-          "quote": "Connecting our corporate air-gapped maintenance laptop that passed IT security scanning directly to the isolated OT subnet.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        },
-        {
-          "id": "C",
-          "label": "Maintenance Tech on Tablet",
-          "role": "Plant Operations",
-          "environment": "Machinery Enclosure",
-          "connection": "Segregated Guest Wi-Fi",
-          "securityControls": "No physical link to control bus",
-          "quote": "Reviewing pump manuals on this IT-managed tablet connected exclusively to the segregated guest Wi-Fi.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        },
-        {
-          "id": "D",
-          "label": "Safety Systems Engineer",
-          "role": "Safety Integrity Team",
-          "environment": "Emergency Shutdown Cabinet",
-          "connection": "Signed Binary Verification",
-          "securityControls": "Cryptographic SHA-256 check",
-          "quote": "Verifying the SHA-256 cryptographic hash against the vendor's signature before uploading safety controller firmware.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        }
-      ]
-    },
-    "revealVisual": {
-      "vulnerableProfileId": "A"
-    }
-  },
-  {
-    "id": 5,
-    "category": "Picture Base",
-    "type": "picture_base",
-    "question": "Remote Work & Public Eavesdropping: Four remote employees are handling business communications in transit. Which employee's behavior presents the HIGHEST risk of industrial espionage?",
-    "options": [
-      "A) An employee sitting in an airport lounge discussing confidential customer acquisition pricing loudly on speakerphone",
-      "B) An employee working in a private soundproof phone booth at a coworking center using a wired headset",
-      "C) An employee reviewing encrypted PDF invoices on a laptop equipped with a polarizing privacy screen filter",
-      "D) An employee tethered to a private 5G cellular hotspot while working inside a locked hotel room"
-    ],
-    "correctAnswer": 0,
-    "explanation": "Speaking loudly about proprietary company financials or customer contracts on speakerphone in public areas exposes sensitive data to eavesdroppers, competitors, and hostile surveillance without technical defense.",
-    "visualData": {
-      "type": "picture_mcq",
-      "profiles": [
-        {
-          "id": "A",
-          "label": "Speakerphone Traveler",
-          "role": "Sales Director",
-          "environment": "Busy Airport Terminal",
-          "connection": "Public Speakerphone Call",
-          "securityControls": "No headset / No screen filter",
-          "quote": "Put the vendor on speakerphone! Yes, we can discount the contract to $1.2M for Client Alpha, but keep it strictly confidential!",
-          "riskRating": "CRITICAL",
-          "isVulnerable": true,
-          "threatCallouts": [
-            "Acoustic eavesdropping by nearby travelers",
-            "Disclosing proprietary pricing and customer names",
-            "Complete absence of physical privacy safeguards"
-          ]
-        },
-        {
-          "id": "B",
-          "label": "Soundproof Booth Worker",
-          "role": "Account Manager",
-          "environment": "Coworking Acoustic Pod",
-          "connection": "Wired Noise-Cancelling Mic",
-          "securityControls": "Enclosed acoustic isolation",
-          "quote": "Taking this client financial discussion inside a soundproof acoustic pod using a wired noise-canceling headset.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        },
-        {
-          "id": "C",
-          "label": "Privacy Screen User",
-          "role": "Procurement Analyst",
-          "environment": "High-Speed Rail Seat",
-          "connection": "Polarized Privacy Filter",
-          "securityControls": "Screen unreadable at 30° angles",
-          "quote": "Reviewing quarterly financial statements with my 3M polarized privacy filter attached so row 14 passengers cannot see my screen.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        },
-        {
-          "id": "D",
-          "label": "Hotel Tethering Worker",
-          "role": "Solutions Architect",
-          "environment": "Private Hotel Room",
-          "connection": "Encrypted 5G Cellular",
-          "securityControls": "Isolated private network & VPN",
-          "quote": "Working inside my locked hotel room connected through an encrypted private 5G cellular hotspot and enterprise VPN.",
-          "riskRating": "LOW",
-          "isVulnerable": false,
-          "threatCallouts": []
-        }
-      ]
-    },
-    "revealVisual": {
-      "vulnerableProfileId": "A"
-    }
-  },
-  {
-    "id": 6,
-    "category": "Find out the Difference in Image",
-    "type": "spot_the_difference",
-    "question": "Workplace Security Audit: Compare Picture B with the compliant employee in Picture A. How many human & operational security violations can you identify in Picture B?",
-    "options": [
-      "A) 4 Violations",
-      "B) 5 Violations",
-      "C) 6 Violations",
-      "D) 7 Violations"
-    ],
-    "correctAnswer": 2,
-    "explanation": "Picture B exhibits 6 critical violations: 1) Person A handing smartcard badge to Colleague B, 2) Password written on notepad being exchanged, 3) Workstation left unlocked while turned away, 4) Colleague B has no visible badge, 5) Unshredded payroll printout left on desk, and 6) Rogue personal USB plugged into workstation.",
-    "visualData": {
-      "type": "spot_the_difference",
-      "sceneType": "office_delegation",
-      "sceneTitle": "Workstation Credential Sharing & Desk Audit",
-      "violations": [
-        {
-          "id": 1,
-          "x": 58,
-          "y": 46,
-          "title": "Badge Handover Violation",
-          "description": "Person A is physically handing their corporate smartcard badge to Colleague B to work in their place."
-        },
-        {
-          "id": 2,
-          "x": 50,
-          "y": 65,
-          "title": "Cleartext Password Handed Over",
-          "description": "Sticky note with admin password being handed to colleague instead of using formal access."
-        },
-        {
-          "id": 3,
-          "x": 42,
-          "y": 38,
-          "title": "Unlocked Unattended Workstation",
-          "description": "Monitor displays sensitive system data while employee is turned around talking."
-        },
-        {
-          "id": 4,
-          "x": 75,
-          "y": 35,
-          "title": "Unbadged Individual in Work Area",
-          "description": "Colleague B is inside a restricted departmental floor with no badge or visitor credential."
-        },
-        {
-          "id": 5,
-          "x": 22,
-          "y": 72,
-          "title": "Exposed Confidential Document",
-          "description": "Unredacted salary & employee appraisal printout left exposed on desk edge."
-        },
-        {
-          "id": 6,
-          "x": 30,
-          "y": 55,
-          "title": "Rogue Unauthorized USB Device",
-          "description": "Unmarked personal flash drive inserted into the front USB port of corporate workstation."
-        }
-      ]
-    },
-    "revealVisual": {
-      "violationHighlights": [
-        {
-          "id": 1,
-          "x": 58,
-          "y": 46,
-          "title": "Badge Handover Violation",
-          "description": "Person A is physically handing their corporate smartcard badge to Colleague B to work in their place."
-        },
-        {
-          "id": 2,
-          "x": 50,
-          "y": 65,
-          "title": "Cleartext Password Handed Over",
-          "description": "Sticky note with admin password being handed to colleague instead of using formal access."
-        },
-        {
-          "id": 3,
-          "x": 42,
-          "y": 38,
-          "title": "Unlocked Unattended Workstation",
-          "description": "Monitor displays sensitive system data while employee is turned around talking."
-        },
-        {
-          "id": 4,
-          "x": 75,
-          "y": 35,
-          "title": "Unbadged Individual in Work Area",
-          "description": "Colleague B is inside a restricted departmental floor with no badge or visitor credential."
-        },
-        {
-          "id": 5,
-          "x": 22,
-          "y": 72,
-          "title": "Exposed Confidential Document",
-          "description": "Unredacted salary & employee appraisal printout left exposed on desk edge."
-        },
-        {
-          "id": 6,
-          "x": 30,
-          "y": 55,
-          "title": "Rogue Unauthorized USB Device",
-          "description": "Unmarked personal flash drive inserted into the front USB port of corporate workstation."
-        }
-      ]
-    }
-  },
-  {
-    "id": 7,
-    "category": "Find out the Difference in Image",
-    "type": "spot_the_difference",
-    "question": "High-Security SOC Door Access: Compare Picture B against the compliant security officer in Picture A. How many physical security breaches are occurring in Picture B?",
-    "options": [
-      "A) 3 Breaches",
-      "B) 4 Breaches",
-      "C) 5 Breaches",
-      "D) 6 Breaches"
-    ],
-    "correctAnswer": 2,
-    "explanation": "Picture B shows 5 severe security breaches: 1) Holding heavy magnetic door open for unverified person, 2) Unknown contractor has no visitor pass or photo badge, 3) Bypassing the wall-mounted biometric fingerprint reader, 4) Unescorted heavy equipment box brought inside without security inspection, and 5) Door prop wedge inserted preventing automatic closure.",
-    "visualData": {
-      "type": "spot_the_difference",
-      "sceneType": "soc_gate",
-      "sceneTitle": "Restricted SOC Doorway & Pretexting Audit",
-      "violations": [
-        {
-          "id": 1,
-          "x": 45,
-          "y": 50,
-          "title": "Door Propped Open for Stranger",
-          "description": "Employee holding open magnetic high-security door for an unverified person."
-        },
-        {
-          "id": 2,
-          "x": 70,
-          "y": 42,
-          "title": "No Visitor or Employee Badge",
-          "description": "Contractor in plain clothes has no visitor badge, photo ID, or escort."
-        },
-        {
-          "id": 3,
-          "x": 25,
-          "y": 40,
-          "title": "Bypassed Biometric Terminal",
-          "description": "Entry granted without requiring the visitor to scan or register biometric verification."
-        },
-        {
-          "id": 4,
-          "x": 68,
-          "y": 78,
-          "title": "Uninspected Heavy Equipment Case",
-          "description": "Large unvetted metallic flight case brought directly into SOC without baggage scan."
-        },
-        {
-          "id": 5,
-          "x": 38,
-          "y": 92,
-          "title": "Door Prop Wedge on Threshold",
-          "description": "Rubber doorstop placed under heavy fire door to defeat automatic magnetic latching."
-        }
-      ]
-    },
-    "revealVisual": {
-      "violationHighlights": [
-        {
-          "id": 1,
-          "x": 45,
-          "y": 50,
-          "title": "Door Propped Open for Stranger",
-          "description": "Employee holding open magnetic high-security door for an unverified person."
-        },
-        {
-          "id": 2,
-          "x": 70,
-          "y": 42,
-          "title": "No Visitor or Employee Badge",
-          "description": "Contractor in plain clothes has no visitor badge, photo ID, or escort."
-        },
-        {
-          "id": 3,
-          "x": 25,
-          "y": 40,
-          "title": "Bypassed Biometric Terminal",
-          "description": "Entry granted without requiring the visitor to scan or register biometric verification."
-        },
-        {
-          "id": 4,
-          "x": 68,
-          "y": 78,
-          "title": "Uninspected Heavy Equipment Case",
-          "description": "Large unvetted metallic flight case brought directly into SOC without baggage scan."
-        },
-        {
-          "id": 5,
-          "x": 38,
-          "y": 92,
-          "title": "Door Prop Wedge on Threshold",
-          "description": "Rubber doorstop placed under heavy fire door to defeat automatic magnetic latching."
-        }
-      ]
-    }
-  },
-  {
-    "id": 8,
-    "category": "Find out the Difference in Image",
-    "type": "spot_the_difference",
-    "question": "Campus Speed-Gate Turnstiles: Compare the tailgating event in Picture B with compliant single-entry in Picture A. How many perimeter access violations are present?",
-    "options": [
-      "A) 3 Violations",
-      "B) 4 Violations",
-      "C) 5 Violations",
-      "D) 6 Violations"
-    ],
-    "correctAnswer": 1,
-    "explanation": "Picture B exhibits 4 distinct perimeter violations: 1) Tailgater slipping through glass flap directly behind badge holder, 2) Tailgater has no visible badge on lanyard, 3) Authorized employee holding gate flap open out of politeness, and 4) Tailgater deliberately concealing face with large takeaway coffee tray.",
-    "visualData": {
-      "type": "spot_the_difference",
-      "sceneType": "turnstile_tailgate",
-      "sceneTitle": "Optical Speed-Gate Tailgating Incident",
-      "violations": [
-        {
-          "id": 1,
-          "x": 55,
-          "y": 48,
-          "title": "Tailgating Through Open Barrier",
-          "description": "Unauthorized individual slips through the speed gate flap before it closes."
-        },
-        {
-          "id": 2,
-          "x": 68,
-          "y": 40,
-          "title": "No Access Card / Empty Lanyard",
-          "description": "Tailgater is wearing no badge or security credential whatsoever."
-        },
-        {
-          "id": 3,
-          "x": 38,
-          "y": 50,
-          "title": "Employee Holding Flap Open",
-          "description": "Authorized worker actively holds the automated acrylic barrier flap open for the stranger."
-        },
-        {
-          "id": 4,
-          "x": 62,
-          "y": 58,
-          "title": "Face Concealed Behind Coffee Box",
-          "description": "Individual uses a large coffee carrier to obscure their face from security CCTV cameras."
-        }
-      ]
-    },
-    "revealVisual": {
-      "violationHighlights": [
-        {
-          "id": 1,
-          "x": 55,
-          "y": 48,
-          "title": "Tailgating Through Open Barrier",
-          "description": "Unauthorized individual slips through the speed gate flap before it closes."
-        },
-        {
-          "id": 2,
-          "x": 68,
-          "y": 40,
-          "title": "No Access Card / Empty Lanyard",
-          "description": "Tailgater is wearing no badge or security credential whatsoever."
-        },
-        {
-          "id": 3,
-          "x": 38,
-          "y": 50,
-          "title": "Employee Holding Flap Open",
-          "description": "Authorized worker actively holds the automated acrylic barrier flap open for the stranger."
-        },
-        {
-          "id": 4,
-          "x": 62,
-          "y": 58,
-          "title": "Face Concealed Behind Coffee Box",
-          "description": "Individual uses a large coffee carrier to obscure their face from security CCTV cameras."
-        }
-      ]
-    }
-  },
-  {
-    "id": 9,
-    "category": "Find out the Difference in Image",
-    "type": "spot_the_difference",
-    "question": "Executive Conference Room Hygiene: Compare the post-meeting room in Picture B with the sanitized room in Picture A. How many confidentiality and data leakage violations exist?",
-    "options": [
-      "A) 3 Violations",
-      "B) 4 Violations",
-      "C) 5 Violations",
-      "D) 6 Violations"
-    ],
-    "correctAnswer": 2,
-    "explanation": "Picture B contains 5 critical conference room data leakage violations: 1) Whiteboard left unerased showing internal server IPs and admin credentials, 2) Corporate laptop left unlocked on the table, 3) Confidential project proposal documents left on chairs, 4) Meeting room speakerphone left off the hook in active bridge call, and 5) Unescorted cleaning contractor inside room without supervision.",
-    "visualData": {
-      "type": "spot_the_difference",
-      "sceneType": "conference_leak",
-      "sceneTitle": "Meeting Room Data Sanitization Audit",
-      "violations": [
-        {
-          "id": 1,
-          "x": 28,
-          "y": 35,
-          "title": "Credentials on Unerased Whiteboard",
-          "description": "Whiteboard reveals internal subnet IPs, database passwords, and architectural blueprints."
-        },
-        {
-          "id": 2,
-          "x": 55,
-          "y": 60,
-          "title": "Unlocked Unattended Laptop",
-          "description": "Workstation left powered on with active session displayed to anyone entering the room."
-        },
-        {
-          "id": 3,
-          "x": 72,
-          "y": 68,
-          "title": "Confidential Printed Pitch Deck",
-          "description": "Physical presentation marked 'STRICTLY CONFIDENTIAL' abandoned on meeting table."
-        },
-        {
-          "id": 4,
-          "x": 45,
-          "y": 55,
-          "title": "Open Speakerphone Conference Line",
-          "description": "Conference phone left connected to an active remote call line listening to room audio."
-        },
-        {
-          "id": 5,
-          "x": 82,
-          "y": 40,
-          "title": "Unescorted Person in Executive Room",
-          "description": "Unsupervised individual present in meeting room with access to confidential assets."
-        }
-      ]
-    },
-    "revealVisual": {
-      "violationHighlights": [
-        {
-          "id": 1,
-          "x": 28,
-          "y": 35,
-          "title": "Credentials on Unerased Whiteboard",
-          "description": "Whiteboard reveals internal subnet IPs, database passwords, and architectural blueprints."
-        },
-        {
-          "id": 2,
-          "x": 55,
-          "y": 60,
-          "title": "Unlocked Unattended Laptop",
-          "description": "Workstation left powered on with active session displayed to anyone entering the room."
-        },
-        {
-          "id": 3,
-          "x": 72,
-          "y": 68,
-          "title": "Confidential Printed Pitch Deck",
-          "description": "Physical presentation marked 'STRICTLY CONFIDENTIAL' abandoned on meeting table."
-        },
-        {
-          "id": 4,
-          "x": 45,
-          "y": 55,
-          "title": "Open Speakerphone Conference Line",
-          "description": "Conference phone left connected to an active remote call line listening to room audio."
-        },
-        {
-          "id": 5,
-          "x": 82,
-          "y": 40,
-          "title": "Unescorted Person in Executive Room",
-          "description": "Unsupervised individual present in meeting room with access to confidential assets."
-        }
-      ]
-    }
-  },
-  {
-    "id": 10,
-    "category": "Find out the Difference in Image",
-    "type": "spot_the_difference",
-    "question": "Public Area Remote Working: Compare the remote worker in Picture B against the compliant worker in Picture A. How many visual and operational security violations can you spot in Picture B?",
-    "options": [
-      "A) 3 Violations",
-      "B) 4 Violations",
-      "C) 5 Violations",
-      "D) 6 Violations"
-    ],
-    "correctAnswer": 1,
-    "explanation": "Picture B exhibits 4 clear public security hazards: 1) Laptop screen directly faces high-traffic public aisle without privacy filter, 2) Employee speaking on speakerphone about customer contracts, 3) Shoulder surfer standing right behind taking notes, and 4) Connected to free unencrypted 'Public_Cafe_Wi-Fi' without VPN.",
-    "visualData": {
-      "type": "spot_the_difference",
-      "sceneType": "cafe_eavesdrop",
-      "sceneTitle": "Public Coffee Shop & Transit Working Audit",
-      "violations": [
-        {
-          "id": 1,
-          "x": 42,
-          "y": 55,
-          "title": "No Screen Privacy Filter",
-          "description": "Laptop screen displaying customer database is fully visible to anyone walking by."
-        },
-        {
-          "id": 2,
-          "x": 45,
-          "y": 42,
-          "title": "Loud Call on Public Speakerphone",
-          "description": "Employee discussing confidential financial terms without using a headset."
-        },
-        {
-          "id": 3,
-          "x": 65,
-          "y": 36,
-          "title": "Shoulder Surfer Directly Behind",
-          "description": "Unidentified person leaning over the booth reading confidential details off the screen."
-        },
-        {
-          "id": 4,
-          "x": 28,
-          "y": 62,
-          "title": "Unencrypted Public Wi-Fi (No VPN)",
-          "description": "Device connected to open, unauthenticated cafe network with VPN disabled."
-        }
-      ]
-    },
-    "revealVisual": {
-      "violationHighlights": [
-        {
-          "id": 1,
-          "x": 42,
-          "y": 55,
-          "title": "No Screen Privacy Filter",
-          "description": "Laptop screen displaying customer database is fully visible to anyone walking by."
-        },
-        {
-          "id": 2,
-          "x": 45,
-          "y": 42,
-          "title": "Loud Call on Public Speakerphone",
-          "description": "Employee discussing confidential financial terms without using a headset."
-        },
-        {
-          "id": 3,
-          "x": 65,
-          "y": 36,
-          "title": "Shoulder Surfer Directly Behind",
-          "description": "Unidentified person leaning over the booth reading confidential details off the screen."
-        },
-        {
-          "id": 4,
-          "x": 28,
-          "y": 62,
-          "title": "Unencrypted Public Wi-Fi (No VPN)",
-          "description": "Device connected to open, unauthenticated cafe network with VPN disabled."
-        }
-      ]
-    }
-  },
-  {
-    "id": 11,
-    "category": "Crossword",
+    "category": "Malware & Threats",
     "type": "crossword",
-    "question": "Solve the Cyber Crossword: Which 10-letter term describes the physical security breach where an unauthorized individual slips through a secure door closely behind an authorized employee?",
-    "options": [
-      "A) TRESPASSING",
-      "B) TAILGATING",
-      "C) TAMPERING",
-      "D) TUNNELING"
-    ],
-    "correctAnswer": 1,
-    "explanation": "TAILGATING (10 letters) is the physical security violation where an unauthorized person follows closely behind an employee through an access portal without presenting individual credentials.",
-    "visualData": {
-      "type": "crossword",
-      "crosswordData": {
-        "clueNumber": 1,
-        "direction": "ACROSS",
-        "length": 10,
-        "solutionWord": "TAILGATING",
-        "clue": "Physical security violation of slipping through an access door directly behind an authorized badge holder without scanning",
-        "revealedIndices": [
-          0,
-          3,
-          4,
-          7,
-          8
-        ]
-      }
-    },
-    "revealVisual": {
-      "crosswordSolution": "TAILGATING"
-    }
-  },
-  {
-    "id": 12,
-    "category": "Crossword",
-    "type": "crossword",
-    "question": "Solve the Cyber Crossword: Which 10-letter social engineering technique involves inventing a fabricated persona or urgent scenario to manipulate an employee into surrendering confidential access?",
-    "options": [
-      "A) PHISHING",
-      "B) PROFILING",
-      "C) PRETEXTING",
-      "D) PHARMING"
-    ],
-    "correctAnswer": 2,
-    "explanation": "PRETEXTING (10 letters) is the social engineering technique of establishing a fabricated scenario or false persona (such as posing as an IT technician or director) to manipulate an employee into surrendering credentials.",
-    "visualData": {
-      "type": "crossword",
-      "crosswordData": {
-        "clueNumber": 2,
-        "direction": "DOWN",
-        "length": 10,
-        "solutionWord": "PRETEXTING",
-        "clue": "Fabricating an invented scenario or false persona (e.g. Helpdesk) to manipulate a victim into surrendering access credentials",
-        "revealedIndices": [
-          0,
-          2,
-          4,
-          5,
-          8,
-          9
-        ]
-      }
-    },
-    "revealVisual": {
-      "crosswordSolution": "PRETEXTING"
-    }
-  },
-  {
-    "id": 13,
-    "category": "Crossword",
-    "type": "crossword",
-    "question": "Solve the Cyber Crossword: Which 8-letter surveillance threat describes an unauthorized person covertly looking over an employee's screen or keyboard to steal passwords or confidential data?",
-    "options": [
-      "A) SNOOPING",
-      "B) SKIMMING",
-      "C) SNIFFING",
-      "D) SHOULDER"
-    ],
-    "correctAnswer": 3,
-    "explanation": "SHOULDER (8 letters, as in 'Shoulder Surfing') is the direct observational threat of looking over an employee's shoulder to capture passwords, PINs, or confidential client records off a screen.",
-    "visualData": {
-      "type": "crossword",
-      "crosswordData": {
-        "clueNumber": 3,
-        "direction": "ACROSS",
-        "length": 8,
-        "solutionWord": "SHOULDER",
-        "clue": "The stealthy visual spying technique of watching an employee's screen or keypad over their shoulder to capture credentials",
-        "revealedIndices": [
-          0,
-          1,
-          4,
-          5,
-          7
-        ]
-      }
-    },
-    "revealVisual": {
-      "crosswordSolution": "SHOULDER"
-    }
-  },
-  {
-    "id": 14,
-    "category": "Crossword",
-    "type": "crossword",
-    "question": "Solve the Cyber Crossword: Which 10-letter extortion threat encrypts corporate data repositories and demands cryptocurrency payment in exchange for the decryption key?",
+    "question": "Which 10-letter extortion threat encrypts corporate data repositories and demands cryptocurrency payment in exchange for the decryption key?",
     "options": [
       "A) RANSOMWARE",
       "B) ROGUEWARE",
@@ -947,397 +69,341 @@
       "D) REDIRECTOR"
     ],
     "correctAnswer": 0,
-    "explanation": "RANSOMWARE (10 letters) is extortion malware that covertly encrypts organizational files and databases, demanding cryptocurrency payment in exchange for a decryption key.",
+    "explanation": "Ransomware is malicious extortion software that encrypts corporate data repositories and demands cryptocurrency payment in exchange for the decryption key.",
     "visualData": {
       "type": "crossword",
       "crosswordData": {
-        "clueNumber": 4,
+        "clueNumber": 1,
         "direction": "ACROSS",
         "length": 10,
         "solutionWord": "RANSOMWARE",
-        "clue": "Extortion software that stealthily encrypts corporate data files and demands cryptocurrency before unlocking them",
-        "revealedIndices": [
-          0,
-          2,
-          3,
-          5,
-          7,
-          9
-        ]
+        "clue": "10-letter extortion threat encrypting corporate data repositories for cryptocurrency payment",
+        "revealedIndices": [0, 6]
       }
     },
     "revealVisual": {
-      "crosswordSolution": "RANSOMWARE"
+      "crosswordSolution": "RANSOMWARE",
+      "vulnerabilitySummary": "RANSOMWARE (10 letters) encrypts data repositories and extorts organizations for ransom."
     }
   },
   {
-    "id": 15,
-    "category": "Crossword",
-    "type": "crossword",
-    "question": "Solve the Cyber Crossword: Which 10-letter defense strategy involves physically and logically isolating a mission-critical control network from all external networks and the Internet?",
-    "options": [
-      "A) ACCESSLIST",
-      "B) AIRWALLING",
-      "C) AIRGAPPING",
-      "D) ANONYMIZER"
-    ],
-    "correctAnswer": 2,
-    "explanation": "AIRGAPPING (10 letters) is the physical and logical defense strategy of isolating a critical industrial automation (OT) or classified network completely from external connections and the Internet.",
-    "visualData": {
-      "type": "crossword",
-      "crosswordData": {
-        "clueNumber": 5,
-        "direction": "DOWN",
-        "length": 10,
-        "solutionWord": "AIRGAPPING",
-        "clue": "Physical and electrical isolation of a critical control network from the public Internet and corporate IT networks",
-        "revealedIndices": [
-          0,
-          2,
-          4,
-          5,
-          8,
-          9
-        ]
-      }
-    },
-    "revealVisual": {
-      "crosswordSolution": "AIRGAPPING"
-    }
-  },
-  {
-    "id": 16,
-    "category": "Fill in the Blank (Choose from options)",
+    "id": 4,
+    "category": "Access Control",
     "type": "fill_in_the_blank",
-    "question": "Fill in the Blank: To prevent fraud and unauthorized privilege escalation, critical financial or infrastructure actions require ________, ensuring no single employee has unilateral authority to execute them.",
-    "options": [
-      "A) Dual Authorization (Four-Eyes Principle)",
-      "B) Single Sign-On (SSO)",
-      "C) Asymmetric Key Pair",
-      "D) Heuristic Antivirus Inspection"
-    ],
-    "correctAnswer": 0,
-    "explanation": "Dual Authorization (the Four-Eyes Principle) ensures that high-impact actions—such as releasing high-value wire transfers or modifying critical production access rules—require approval from two distinct authorized individuals.",
-    "visualData": {
-      "type": "fill_in_the_blank",
-      "fillBlankData": {
-        "prefixText": "To prevent fraud and unauthorized privilege escalation, critical actions require",
-        "blankPlaceholder": "DUAL AUTHORIZATION",
-        "suffixText": ", ensuring no single employee has unilateral authority to execute them."
-      }
-    },
-    "revealVisual": {
-      "fillBlankAnswer": "Dual Authorization (Four-Eyes Principle)"
-    }
-  },
-  {
-    "id": 17,
-    "category": "Fill in the Blank (Choose from options)",
-    "type": "fill_in_the_blank",
-    "question": "Fill in the Blank: Under corporate Clean Desk and Clear Screen policy, before stepping away from your workstation for any reason, you must immediately lock your screen using the shortcut ________.",
-    "options": [
-      "A) Windows Key + L (or Ctrl + Cmd + Q on Mac)",
-      "B) Alt + F4 (or Cmd + Q on Mac)",
-      "C) Ctrl + Shift + Esc (or Cmd + Opt + Esc)",
-      "D) Windows Key + D (or Cmd + F3)"
-    ],
-    "correctAnswer": 0,
-    "explanation": "Pressing Windows Key + L (or Ctrl + Command + Q on macOS) locks the computer session immediately, preventing unauthorized passersby or opportunistic intruders from accessing confidential systems.",
-    "visualData": {
-      "type": "fill_in_the_blank",
-      "fillBlankData": {
-        "prefixText": "Under corporate policy, before stepping away from your workstation, you must lock your screen using",
-        "blankPlaceholder": "WIN + L / CTRL+CMD+Q",
-        "suffixText": "to prevent unauthorized physical session tampering."
-      }
-    },
-    "revealVisual": {
-      "fillBlankAnswer": "Windows Key + L (or Ctrl + Cmd + Q on Mac)"
-    }
-  },
-  {
-    "id": 18,
-    "category": "Fill in the Blank (Choose from options)",
-    "type": "fill_in_the_blank",
-    "question": "Fill in the Blank: When an existing supplier requests urgent updates to their banking remittance account via email, corporate policy strictly prohibits processing payment until ________ is conducted.",
-    "options": [
-      "A) out-of-band telephone callback verification using a known trusted number",
-      "B) replying directly to the email to ask if the sender is genuine",
-      "C) checking if the supplier's website has posted an updated bank number",
-      "D) inspecting the digital certificate of the supplier's web domain"
-    ],
-    "correctAnswer": 0,
-    "explanation": "Business Email Compromise (BEC) often mimics suppliers requesting bank routing changes. The mandatory defense is 'out-of-band verification'—calling a pre-established, trusted phone number from corporate records to confirm.",
-    "visualData": {
-      "type": "fill_in_the_blank",
-      "fillBlankData": {
-        "prefixText": "When an existing supplier requests banking changes by email, policy prohibits payment until",
-        "blankPlaceholder": "OUT-OF-BAND CALLBACK",
-        "suffixText": "is conducted using a verified corporate contact number."
-      }
-    },
-    "revealVisual": {
-      "fillBlankAnswer": "out-of-band telephone callback verification using a known trusted number"
-    }
-  },
-  {
-    "id": 19,
-    "category": "Fill in the Blank (Choose from options)",
-    "type": "fill_in_the_blank",
-    "question": "Fill in the Blank: In Operational Technology (OT) and SCADA environments, any external USB drive must first be sanitized at an isolated ________ before any files may be loaded onto engineering workstations.",
-    "options": [
-      "A) IT-certified Kiosk / Optical Data Diode",
-      "B) Public Cloud Drive",
-      "C) Unmanaged Office Wi-Fi Network",
-      "D) Standard Commercial Bluetooth Dongle"
-    ],
-    "correctAnswer": 0,
-    "explanation": "Air-gapped industrial environments use dedicated USB sanitization kiosks or unidirectional optical data diodes to scan and scrub removable storage media before allowing any interaction with critical controllers.",
-    "visualData": {
-      "type": "fill_in_the_blank",
-      "fillBlankData": {
-        "prefixText": "In operational technology environments, external USB drives must first be sanitized at an isolated",
-        "blankPlaceholder": "CERTIFIED SCAN KIOSK",
-        "suffixText": "before files may be transferred to engineering workstations."
-      }
-    },
-    "revealVisual": {
-      "fillBlankAnswer": "IT-certified Kiosk / Optical Data Diode"
-    }
-  },
-  {
-    "id": 20,
-    "category": "Fill in the Blank (Choose from options)",
-    "type": "fill_in_the_blank",
-    "question": "Fill in the Blank: The foundational security principle of ________ mandates that employees, contractors, and applications are allocated only the minimum necessary permissions required to fulfill their approved duties.",
+    "question": "The foundational security principle of ________ mandates that employees, contractors, and applications are allocated only the minimum necessary permissions required to fulfil their approved duties.",
     "options": [
       "A) Least Privilege",
-      "B) Defense in Depth",
+      "B) Defence in Depth",
       "C) Fail-Safe Defaults",
       "D) Security through Obscurity"
     ],
     "correctAnswer": 0,
-    "explanation": "The Principle of Least Privilege (PoLP) dictates that identities should possess solely the minimal access levels required to perform their explicit job roles, curtailing the blast radius of any credential breach.",
+    "explanation": "The foundational security principle of Least Privilege mandates that employees, contractors, and applications are allocated only the minimum necessary permissions required to fulfil their approved duties.",
     "visualData": {
       "type": "fill_in_the_blank",
       "fillBlankData": {
-        "prefixText": "The foundational security principle of",
-        "blankPlaceholder": "LEAST PRIVILEGE",
-        "suffixText": "mandates that users and services receive only the minimum permissions required to perform their authorized duties."
+        "sentenceBefore": "The foundational security principle of",
+        "blankPlaceholder": "[ PRINCIPLE ]",
+        "blank": "Least Privilege",
+        "sentenceAfter": "mandates that employees, contractors, and applications are allocated only the minimum necessary permissions required to fulfil their approved duties.",
+        "contextBadge": "Access Control Principle",
+        "correctAnswerText": "Least Privilege"
       }
     },
     "revealVisual": {
-      "fillBlankAnswer": "Least Privilege"
+      "fillBlankAnswer": "Least Privilege",
+      "vulnerabilitySummary": "Least Privilege ensures accounts and services receive only the bare minimum permissions required."
     }
   },
   {
-    "id": 21,
-    "category": "Riddles",
-    "type": "riddle",
-    "question": "Cyber Riddle: 'I wear no burglar mask and pick no lock; I wait by the speed gate around 9 o'clock. When you tap your badge with a polite smile, I slip right behind you and walk the aisle. What physical threat am I?'",
+    "id": 5,
+    "category": "Core Cybersecurity",
+    "type": "theory",
+    "question": "What does Integrity in the CIA Triad ensure?",
     "options": [
-      "A) The Tailgater (Piggybacking)",
-      "B) The Wi-Fi Sniffer",
-      "C) The Phishing Email",
-      "D) The Rogue DHCP Server"
+      "A) Data is always deleted",
+      "B) Data remains accurate and unchanged",
+      "C) Data is shared publicly",
+      "D) Data is stored in multiple devices"
+    ],
+    "correctAnswer": 1,
+    "explanation": "In the CIA Triad (Confidentiality, Integrity, Availability), Integrity ensures that data remains accurate, authentic, and protected against unauthorized alteration or deletion."
+  },
+  {
+    "id": 6,
+    "category": "Incident Response",
+    "type": "theory",
+    "question": "Is it a cybersecurity incident: “You accidentally sent sensitive data to the wrong email.”",
+    "options": [
+      "A) Yes",
+      "B) No"
     ],
     "correctAnswer": 0,
-    "explanation": "Tailgaters exploit social courtesy, relying on polite employees holding doors open or not challenging individuals walking directly behind them without badging.",
-    "visualData": {
-      "type": "riddle",
-      "riddleData": {
-        "title": "Enigma of the Courteous Intruder",
-        "riddleText": "I wear no burglar mask and pick no lock;\nI wait by the speed gate around 9 o'clock.\nWhen you tap your badge with a polite smile,\nI slip right behind you and walk the aisle.",
-        "hintCategory": "Physical Workplace Security",
-        "iconType": "shield"
-      }
-    },
-    "revealVisual": {
-      "riddleAnswer": "The Tailgater (Piggybacking)"
-    }
+    "explanation": "Yes. Accidentally sending sensitive or confidential corporate data to an unintended email recipient is a security incident (data breach/leak) and must be reported to IT/Security immediately."
   },
   {
-    "id": 22,
-    "category": "Riddles",
-    "type": "riddle",
-    "question": "Cyber Riddle: 'I call your desk phone with urgency in my tone, claiming your workstation is infected and alone. I need no zero-day exploit or brute-force tool; your helpful human nature is my favorite rule. What threat am I?'",
+    "id": 7,
+    "category": "Device Security",
+    "type": "theory",
+    "question": "You lost your corporate mobile phone. What is the next step?",
     "options": [
-      "A) Social Engineering / Pretexting Call (Vishing)",
-      "B) DDoS Attack",
-      "C) SQL Injection",
-      "D) Buffer Overflow"
+      "A) Ignore it",
+      "B) Report it immediately to IT/Security",
+      "C) Post about it on social media",
+      "D) Wait until the next working day"
     ],
-    "correctAnswer": 0,
-    "explanation": "Vishing (Voice Phishing / Pretexting) preys on human psychology—urgency, authority, and helpfulness—to convince employees into surrendering credentials or granting remote desktop control.",
-    "visualData": {
-      "type": "riddle",
-      "riddleData": {
-        "title": "Enigma of the Urgent Caller",
-        "riddleText": "I call your desk phone with urgency in my tone,\nclaiming your workstation is infected and alone.\nI need no zero-day exploit or brute-force tool;\nyour helpful human nature is my favorite rule.",
-        "hintCategory": "Social Engineering Tactics",
-        "iconType": "phone"
-      }
-    },
-    "revealVisual": {
-      "riddleAnswer": "Social Engineering / Pretexting Call (Vishing)"
-    }
+    "correctAnswer": 1,
+    "explanation": "Report it immediately to IT/Security. Quick reporting helps protect company data and enables actions like remote lock or wipe of the device."
   },
   {
-    "id": 23,
-    "category": "Riddles",
-    "type": "riddle",
-    "question": "Cyber Riddle: 'I lie on the concrete outside your facility gate, labeled \"Executive Bonuses 2026\" to tempt your fate. Plug me into your PC for curiosity's sake, and keystroke injection is the path I take. What am I?'",
+    "id": 8,
+    "category": "Risk Identification",
+    "type": "image",
+    "imageUrl": "/questions/question_8_office_risks.png",
+    "question": "Examine the office workstation setup in the image. How many security risks can you identify?",
     "options": [
-      "A) Baiting Attack / Malicious USB Drive",
-      "B) Hardware Token (FIDO2)",
-      "C) Optical Fiber Patch Cable",
-      "D) DisplayPort Monitor Adapter"
+      "A) 1",
+      "B) 2",
+      "C) 3",
+      "D) 4"
     ],
-    "correctAnswer": 0,
-    "explanation": "Baiting attacks drop weaponized USB flash drives (or BadUSB keystroke injection tools) in corporate parking lots or lobbies, betting that curiosity will entice an employee into plugging it into an internal PC.",
+    "correctAnswer": 3,
+    "explanation": "Four security risks are present: 1) Unlocked laptop screen unattended, 2) Password written on a yellow sticky note on the monitor ('Pw: Acct!_2024'), 3) Unattended USB flash drive plugged into the laptop, and 4) Confidential documents ('TOP SECRET - CONFIDENTIAL PROJECT PLAN') left unattended on the desk.",
     "visualData": {
-      "type": "riddle",
-      "riddleData": {
-        "title": "Enigma of the Dropped Flash Drive",
-        "riddleText": "I lie on the concrete outside your facility gate,\nlabeled 'Executive Bonuses 2026' to tempt your fate.\nPlug me into your PC for curiosity's sake,\nand keystroke injection is the path I take.",
-        "hintCategory": "Hardware & Removable Media",
-        "iconType": "usb"
-      }
+      "type": "image",
+      "imageUrl": "/questions/question_8_office_risks.png",
+      "imageCaption": "Spotting Security Risks in the Office",
+      "findings": [
+        { "id": 1, "title": "Unlocked Screen", "desc": "Laptop left unlocked and unattended in an open office." },
+        { "id": 2, "title": "Password Sticky Note", "desc": "Password written on monitor sticky note (Pw: Acct!_2024)." },
+        { "id": 3, "title": "Unattended USB Drive", "desc": "Unknown USB storage device plugged into workstation." },
+        { "id": 4, "title": "Confidential Papers Exposed", "desc": "Top Secret project plan documents left unattended on desk." }
+      ]
     },
     "revealVisual": {
-      "riddleAnswer": "Baiting Attack / Malicious USB Drive"
+      "vulnerabilitySummary": "4 Critical Risks: 1) Unlocked screen, 2) Sticky note password, 3) Unattended USB drive, 4) Confidential documents exposed."
     }
   },
   {
-    "id": 24,
-    "category": "Riddles",
-    "type": "riddle",
-    "question": "Cyber Riddle: 'On the commuter train or in the crowded cafe seat, I watch your typing fingers and your screen complete. Without touching your device or hacking the line, your passwords and PINs are instantly mine. What threat am I?'",
+    "id": 9,
+    "category": "Identity & MFA",
+    "type": "image",
+    "imageUrl": "/questions/question_9_phone_login.png",
+    "question": "Your mobile phone displays an unexpected 'Approve Sign-in?' authentication request from PingID that you did not initiate. What should you do?",
     "options": [
-      "A) Shoulder Surfing",
-      "B) Man-in-the-Middle Attack",
-      "C) DNS Cache Poisoning",
-      "D) Cross-Site Scripting (XSS)"
+      "A) Approve it",
+      "B) Ignore and report it",
+      "C) Keep approving until it stops",
+      "D) Share the code with a colleague"
     ],
-    "correctAnswer": 0,
-    "explanation": "Shoulder surfing is a purely visual observation technique requiring no technical tools, where attackers spy on screens and keyboards in public transport or cafes to steal sensitive data.",
+    "correctAnswer": 1,
+    "explanation": "You did not initiate this login request. Never approve unprompted MFA requests; ignore/deny the prompt and report the incident immediately to IT/Security as your credentials may be compromised.",
     "visualData": {
-      "type": "riddle",
-      "riddleData": {
-        "title": "Enigma of the Silent Observer",
-        "riddleText": "On the commuter train or in the crowded cafe seat,\nI watch your typing fingers and your screen complete.\nWithout touching your device or hacking the line,\nyour passwords and PINs are instantly mine.",
-        "hintCategory": "Visual Privacy Hazards",
-        "iconType": "eye"
-      }
+      "type": "image",
+      "imageUrl": "/questions/question_9_phone_login.png",
+      "imageCaption": "PingID Authentication Request Notification",
+      "findings": [
+        { "id": 1, "title": "MFA Fatigue Attack", "desc": "Unsolicited login request indicates an attacker has your password. Never approve it — ignore and report immediately." }
+      ]
     },
     "revealVisual": {
-      "riddleAnswer": "Shoulder Surfing"
+      "vulnerabilitySummary": "Unsolicited MFA push notifications indicate credential compromise. Ignore and report immediately to IT/Security."
     }
   },
   {
-    "id": 25,
-    "category": "Riddles",
+    "id": 10,
+    "category": "Remote Work & Network",
+    "type": "theory",
+    "question": "WHAT IS THE MOST SECURE WAY OF GOING ON THE INTERNET WHEN WORKING OUTSIDE OF THE SCHNEIDER OFFICE?",
+    "options": [
+      "A) Use a hotspot offered by a person next to you",
+      "B) VPN combined with Wi-Fi",
+      "C) Public Wi-Fi without password",
+      "D) Password-protected Wi-Fi"
+    ],
+    "correctAnswer": 1,
+    "explanation": "GlobalProtect VPN must always be enabled – especially when working outside of the Schneider office. You should never work on sensitive or confidential matters on a public Wi-Fi network without a VPN."
+  },
+  {
+    "id": 11,
+    "category": "Physical Security",
+    "type": "image",
+    "imageUrl": "/questions/question_11_shoulder_surfing.png",
+    "question": "This scenario illustrates the risk of which physical security threat?",
+    "options": [
+      "A) DUMPSTER DIVING",
+      "B) SHOULDER SURFING",
+      "C) WIRETAPPING",
+      "D) MANTRAP EXPLOITATION"
+    ],
+    "correctAnswer": 1,
+    "explanation": "Shoulder Surfing is the practice of looking over someone's shoulder or observing their display in public settings (like trains or cafes) to view sensitive information on their screen.",
+    "visualData": {
+      "type": "image",
+      "imageUrl": "/questions/question_11_shoulder_surfing.png",
+      "imageCaption": "Public Transport Commuter Scenario",
+      "findings": [
+        { "id": 1, "title": "Shoulder Surfing Risk", "desc": "Bystander leaning over to observe business charts and sensitive work on laptop screen." }
+      ]
+    },
+    "revealVisual": {
+      "vulnerabilitySummary": "Shoulder Surfing: Working in public transit without a privacy filter allows nearby passengers to view confidential screen content."
+    }
+  },
+  {
+    "id": 12,
+    "category": "Web & Protocol Security",
+    "type": "theory",
+    "question": "When submitting login credentials or sensitive employee data on an internal portal, you notice the protocol status shown is http:// (unencrypted connection). What is the main operational risk of using http:// instead of https://?",
+    "options": [
+      "A) The website will load significantly slower on mobile devices.",
+      "B) Data sent over http:// is transmitted in plaintext and can be intercepted via a Man-in-the-Middle (MitM) attack.",
+      "C) The website database is guaranteed to be corrupted.",
+      "D) The browser will block keyboard inputs automatically."
+    ],
+    "correctAnswer": 1,
+    "explanation": "Data sent over http:// is transmitted in plaintext without TLS encryption, making it vulnerable to interception, eavesdropping, and tampering via Man-in-the-Middle (MitM) attacks."
+  },
+  {
+    "id": 13,
+    "category": "Password Security",
+    "type": "theory",
+    "question": "Why is using the same password across multiple professional and personal accounts considered dangerous?",
+    "options": [
+      "A) It makes passwords harder for system administrators to reset.",
+      "B) A single credential leak allows attackers to compromise all linked accounts via credential stuffing.",
+      "C) Web browsers will automatically block login attempts using duplicate credentials.",
+      "D) It violates standard internet browser licensing agreements."
+    ],
+    "correctAnswer": 1,
+    "explanation": "A single credential leak allows attackers to use credential stuffing to automatically compromise all other accounts where that same password was reused."
+  },
+  {
+    "id": 14,
+    "category": "Incident Response",
+    "type": "theory",
+    "question": "If you accidentally click a suspicious link in a phishing email on your work computer, what is your immediate required action?",
+    "options": [
+      "A) Shut down the monitor and hope the IT department doesn't notice.",
+      "B) Delete the email immediately and clear your browser history.",
+      "C) Disconnect from the network (Unplug Ethernet/Turn off Wi-Fi) and report the incident to IT/Security immediately.",
+      "D) Wait 24 hours to see if your computer behaves strangely before reporting."
+    ],
+    "correctAnswer": 2,
+    "explanation": "Disconnect from the network (Unplug Ethernet / Turn off Wi-Fi) to contain any malware or data exfiltration, and report the incident to IT/Security immediately."
+  },
+  {
+    "id": 15,
+    "category": "Compliance & Policy",
+    "type": "theory",
+    "question": "Which practice complies with corporate Acceptable Use Policies regarding external software installation?",
+    "options": [
+      "A) Installing non-approved freeware utilities if they help complete daily tasks faster.",
+      "B) Using only IT-approved and vetted software deployed via corporate software portals.",
+      "C) Downloading open-source software tools directly from personal repositories.",
+      "D) Sharing administrator credentials with team members to install plugin extensions."
+    ],
+    "correctAnswer": 1,
+    "explanation": "Corporate Acceptable Use Policies mandate using only IT-approved and vetted software deployed via corporate software portals to protect against malware and unauthorized applications."
+  },
+  {
+    "id": 16,
+    "category": "Phishing Detection",
+    "type": "image",
+    "imageUrl": "/questions/question_16_compare_emails.png",
+    "question": "Which email shows clear signs of a malicious phishing attempt?",
+    "options": [
+      "A) Email A, because policy documents should not be sent via email.",
+      "B) Email B, because it originates from an external domain (.co.ck) and contains an executable file attachment (.exe).",
+      "C) Both A and B are safe since they come from global finance addresses.",
+      "D) Neither email poses any risk."
+    ],
+    "correctAnswer": 1,
+    "explanation": "Email B exhibits clear phishing indicators: it originates from an external domain (support@se.co.ck instead of the legitimate se.com domain) and contains an executable file attachment (.exe) combined with an urgent fear-inducing prompt.",
+    "visualData": {
+      "type": "image",
+      "imageUrl": "/questions/question_16_compare_emails.png",
+      "imageCaption": "Compare the Emails (Panels A & B)",
+      "findings": [
+        { "id": 1, "title": "Spoofed Sender Domain", "desc": "Sender is support@se.co.ck (.co.ck is the Cook Islands ccTLD, not se.com)." },
+        { "id": 2, "title": "Executable Attachment", "desc": "Attachment is 'Urgent_Security_Patch.exe' which can execute malicious payload." },
+        { "id": 3, "title": "Urgency & Coercion", "desc": "Subject and body use artificial panic ('URGENT: SECURITY ALERT', threat of permanent data loss)." }
+      ]
+    },
+    "revealVisual": {
+      "vulnerabilitySummary": "Email B is a phishing attempt: external spoofed domain (.co.ck), urgency tactic, and executable attachment (.exe)."
+    }
+  },
+  {
+    "id": 17,
+    "category": "Riddle",
     "type": "riddle",
-    "question": "Cyber Riddle: 'I enter silently through an unpatched gateway or email link, then spread across file shares before you can think. I lock up your documents and turn them to cipher text, demanding bitcoin ransom before deciding what's next. What threat am I?'",
+    "question": "Riddle: \"I sit in the background of your laptop / Recording every single key that you press alone. / From passwords to messages, I log every stroke, / Turning your private keystrokes into an attacker's joke. / What am I?\"",
     "options": [
       "A) Ransomware",
-      "B) Adware Popup",
-      "C) Cookie Hijacking",
-      "D) ARP Spoofing"
+      "B) Keylogger",
+      "C) Adware",
+      "D) Rootkit"
     ],
-    "correctAnswer": 0,
-    "explanation": "Ransomware targets files and backups, encrypting them with strong military-grade algorithms and holding the decryption keys hostage until extortion payments are transferred.",
+    "correctAnswer": 1,
+    "explanation": "Keylogger — A type of spyware designed to record keystrokes secretly so an attacker can harvest passwords and sensitive inputs.",
     "visualData": {
       "type": "riddle",
       "riddleData": {
-        "title": "Enigma of the Digital Extortionist",
-        "riddleText": "I enter silently through an unpatched gateway or email link,\nthen spread across file shares before you can think.\nI lock up your documents and turn them to cipher text,\ndemanding bitcoin ransom before deciding what's next.",
-        "hintCategory": "Malware & Cryptographic Threats",
-        "iconType": "lock"
+        "title": "MALWARE & SPYWARE ENIGMA",
+        "riddleText": "I sit in the background of your laptop\nRecording every single key that you press alone.\nFrom passwords to messages, I log every stroke,\nTurning your private keystrokes into an attacker's joke.\n\nWhat am I?",
+        "hintCategory": "Spyware & Surveillance",
+        "hint": "Secretly logs keystrokes in the background to steal credentials.",
+        "enigmaTag": "THREAT ENIGMA",
+        "decodedTitle": "KEYLOGGER (SPYWARE)",
+        "iconType": "terminal"
       }
     },
     "revealVisual": {
-      "riddleAnswer": "Ransomware"
+      "riddleAnswer": "Keylogger",
+      "vulnerabilitySummary": "Keylogger: Covert spyware recording every key press to harvest passwords and sensitive information."
     }
   },
   {
-    "id": 26,
-    "category": "Theory",
+    "id": 18,
+    "category": "Password Security",
     "type": "theory",
-    "question": "Privileged Account Management: A senior systems administrator is going on a 2-week vacation with zero cellular connectivity during a scheduled production database upgrade. Which action complies strictly with Schneider Electric privileged access policies?",
+    "question": "What is the safest way to store and manage multiple complex passwords for your accounts?",
     "options": [
-      "A) The administrator provides their personal admin credentials to a peer in a sealed envelope",
-      "B) The backup engineer is provisioned their own named, audited privileged account through the formal PAM approval process",
-      "C) The administrator changes their password to a shared secret and sends it via Microsoft Teams chat",
-      "D) The administrator disables Multi-Factor Authentication on their account so the on-call team can log in"
+      "A) Write them in a notebook stored in your desk drawer.",
+      "B) Save them in a plain text file on your desktop.",
+      "C) Reuse one complex master password across all sites.",
+      "D) Use an encrypted, corporate-approved Password Manager."
+    ],
+    "correctAnswer": 3,
+    "explanation": "Password managers generate and store strong, unique passwords in an encrypted vault, eliminating password reuse risks."
+  },
+  {
+    "id": 19,
+    "category": "Social Engineering",
+    "type": "theory",
+    "question": "What does the term \"Social Engineering\" mean in cybersecurity?",
+    "options": [
+      "A) Building social media networks with built-in encryption.",
+      "B) Manipulating people into performing actions or divulging confidential information.",
+      "C) Programming AI models to detect malicious website traffic.",
+      "D) Reverse-engineering software applications to fix bugs."
     ],
     "correctAnswer": 1,
-    "explanation": "Sharing admin credentials under any circumstance is strictly prohibited. If operational coverage is required, the covering engineer must be granted their own unique, named, audited account with time-bound permissions via Privileged Access Management (PAM).",
-    "visualData": null,
-    "revealVisual": null
+    "explanation": "Social engineering targets human psychology (trust, fear, urgency) rather than technical flaws to manipulate people into performing actions or divulging confidential information."
   },
   {
-    "id": 27,
-    "category": "Theory",
+    "id": 20,
+    "category": "Password Security",
     "type": "theory",
-    "question": "Physical Security & Unbadged Visitors: While walking down a restricted R&D corridor, you notice an unfamiliar person in work overalls carrying a toolkit without an ID badge. They tell you: 'I'm with HVAC maintenance fixing the ceiling ducts; the reception desk was empty so I came up.' What is your mandatory action?",
+    "question": "Which of the following passwords is the strongest according to modern cybersecurity standards (such as NIST guidelines)?",
     "options": [
-      "A) Direct them to the nearest air conditioning unit and resume your work",
-      "B) Immediately escort them back to the main reception security desk to verify their credentials and sign the visitor log",
-      "C) Ask for their personal driver's license, photograph it on your personal phone, and let them continue",
-      "D) Say nothing, as challenging visitors is solely the responsibility of uniformed security guards"
+      "A) P@ssw0rd2026!",
+      "B) Tr@in$Fly#9",
+      "C) 927458103649",
+      "D) coff337#bl4nket$unset9"
     ],
-    "correctAnswer": 1,
-    "explanation": "Every employee is responsible for physical security under corporate policy. Unbadged individuals in restricted zones must be politely challenged and escorted back to the security check-in point immediately.",
-    "visualData": null,
-    "revealVisual": null
-  },
-  {
-    "id": 28,
-    "category": "Theory",
-    "type": "theory",
-    "question": "Business Email Compromise (BEC) & Whaling: An accountant receives an email purportedly from the Chief Executive Officer marked 'STRICTLY CONFIDENTIAL - URGENT ACQUISITION' instructing an immediate $450,000 wire transfer to an offshore escrow account before 5:00 PM, bypassing procurement. What is the correct protocol?",
-    "options": [
-      "A) Execute the wire transfer promptly to avoid jeopardizing a critical executive corporate transaction",
-      "B) Recognize this as a classic Business Email Compromise attack, halt the transfer, and verify verbally with the CFO using established out-of-band contact numbers",
-      "C) Reply to the email asking the CEO to attach a scanned photo of their passport as proof",
-      "D) Forward the email to a finance peer and request they co-authorize the wire immediately"
-    ],
-    "correctAnswer": 1,
-    "explanation": "Urgent, confidential wire requests bypassing standard controls are textbook Business Email Compromise (BEC/Whaling) attacks. Wire transfers must never be released without independent out-of-band voice confirmation with known finance executives.",
-    "visualData": null,
-    "revealVisual": null
-  },
-  {
-    "id": 29,
-    "category": "Theory",
-    "type": "theory",
-    "question": "Active Ransomware Containment: You arrive at your desk in the morning and notice network drive files rapidly renaming themselves to '.locked' accompanied by ransom instructions popping up on screens. What is the immediate, FIRST priority technical action?",
-    "options": [
-      "A) Immediately disconnect the physical Ethernet network cable and disable Wi-Fi/Bluetooth on affected machines to stop lateral network propagation, then notify the SOC",
-      "B) Reboot the machine in Safe Mode and initiate a standard antivirus scan",
-      "C) Pay the cryptocurrency ransom promptly from departmental funds and submit an expense report",
-      "D) Connect an external hard drive and begin copying the locked files to preserve evidence"
-    ],
-    "correctAnswer": 0,
-    "explanation": "The immediate first step in ransomware response is physical host isolation—disconnecting the network cable and turning off wireless radios—to halt lateral propagation across the corporate network before alerting the Security Operations Center (SOC).",
-    "visualData": null,
-    "revealVisual": null
-  },
-  {
-    "id": 30,
-    "category": "Theory",
-    "type": "theory",
-    "question": "Shadow IT & Data Protection: An engineer is preparing an urgent proposal for an industrial client and considers pasting proprietary Schneider Electric PLC source code and unreleased customer architecture diagrams into an unapproved, free public online AI chatbot tool. What policy violation does this constitute?",
-    "options": [
-      "A) A severe Intellectual Property and Data Confidentiality violation under corporate Information Security & Shadow IT policy",
-      "B) An approved engineering acceleration practice as long as the prompt asks the AI not to retain the data",
-      "C) An acceptable workflow provided the engineer uses their personal laptop outside business hours",
-      "D) Permitted practice provided the total pasted text does not exceed 100 lines of code"
-    ],
-    "correctAnswer": 0,
-    "explanation": "Pasting proprietary source code, system schematics, or customer data into public, unvetted AI tools constitutes a major data leakage incident and breach of Shadow IT policy, as public AI services may ingest and retain corporate secrets in training datasets.",
-    "visualData": null,
-    "revealVisual": null
+    "correctAnswer": 3,
+    "explanation": "According to modern cybersecurity standards (such as NIST SP 800-63B), length and passphrase entropy provide the strongest defense against cracking. 'coff337#bl4nket$unset9' is a long, multi-word passphrase that resists brute-force and dictionary attacks far better than short complex substitutions."
   }
 ]

@@ -1217,11 +1217,14 @@ function ParticipantComponent() {
               </h3>
             </div>
 
-            {/* Interactive Question Visual (Spot the Difference / Picture MCQ / Memory Check / Crossword) */}
-            {activeQuestion.type && activeQuestion.type !== 'theory' && (
+            {/* Interactive Question Visual (Spot the Difference / Picture MCQ / Memory Check / Crossword / Image Scenario) */}
+            {((activeQuestion.type && activeQuestion.type !== 'theory') || activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl || (activeQuestion.id && [8, 9, 11, 16].includes(activeQuestion.id))) && (
               <div className="shrink-0 w-full overflow-hidden">
                 <InteractiveQuestionVisual
                   type={activeQuestion.type}
+                  imageUrl={activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl}
+                  questionId={activeQuestion.id}
+                  questionText={activeQuestion.question}
                   visualData={activeQuestion.visualData}
                   revealVisual={revealResult?.revealVisual || activeQuestion.revealVisual}
                   isReveal={gameState === 'REVEAL'}
