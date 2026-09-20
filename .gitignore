@@ -6,6 +6,8 @@ server/node_modules/
 # Next.js build output
 .next/
 client/.next/
+out/
+client/out/
 
 # Environment files
 .env

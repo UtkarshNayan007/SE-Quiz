@@ -1,0 +1,3 @@
+# Cloudflare Pages SPA routing rewrite
+# Serves /index.html with status 200 for any unmatched route
+/*    /index.html   200

@@ -16,16 +16,59 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('CRITICAL UNHANDLED REJECTION PREVENTED:', reason);
 });
 
+// --- MULTI-CLOUD CORS CONFIGURATION (Vercel + Cloudflare Pages + Localhost) ---
+const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+function isOriginAllowed(origin) {
+  // Allow non-browser requests (e.g. Render health checks, cURL, server-to-server)
+  if (!origin) return true;
+
+  const normalizedOrigin = origin.replace(/\/$/, '');
+
+  // 1. Explicitly configured origins via ALLOWED_ORIGINS environment variable
+  if (configuredOrigins.includes(normalizedOrigin)) return true;
+
+  // 2. Cloudflare Pages domains (*.pages.dev and branch previews)
+  if (/^https:\/\/([a-zA-Z0-9-]+\.)*pages\.dev$/.test(normalizedOrigin)) return true;
+
+  // 3. Vercel deployment domains (*.vercel.app and preview deployments)
+  if (/^https:\/\/([a-zA-Z0-9-]+\.)*vercel\.app$/.test(normalizedOrigin)) return true;
+
+  // 4. Localhost and 127.0.0.1 (any port)
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:[0-9]+)?$/.test(normalizedOrigin)) return true;
+
+  // 5. Local LAN IP ranges for mobile testing on local Wi-Fi
+  if (/^https?:\/\/(192\.168|10\.|172\.(1[6-9]|2[0-9]|3[0-1]))\.[0-9.]*(:[0-9]+)?$/.test(normalizedOrigin)) return true;
+
+  return false;
+}
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS Blocked] Origin not allowed: ${origin}`);
+      callback(null, false);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 204
+};
+
 const app = express();
-app.use(cors());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.static(path.join(__dirname, 'public')));
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  },
+  cors: corsOptions,
   pingTimeout: 60000,
   pingInterval: 25000,
   maxHttpBufferSize: 1e6,
