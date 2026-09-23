@@ -45,6 +45,12 @@ interface RevealResult {
   leaderboard: Array<{ name: string; score: number }>;
 }
 
+// Helper to strip redundant option prefixes (e.g. "A) ", "B. ") since option badge [A] is already rendered in the box
+const cleanOptionText = (text: string | null | undefined): string => {
+  if (!text || typeof text !== 'string') return '';
+  return text.replace(/^[A-Da-d][\)\.\:\-]\s*/, '').trim();
+};
+
 function ProjectorComponent() {
   const searchParams = useSearchParams();
   const roomPin = searchParams.get('pin');
@@ -440,9 +446,16 @@ function ProjectorComponent() {
                       <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                       <span>Official Event Champion • Ranked by Score & Speed Tie-Breaker</span>
                     </div>
-                    <h2 className="text-5xl md:text-6xl font-black tracking-tight text-white drop-shadow-md">
-                      {publishedResults.grandChampion ? publishedResults.grandChampion.name : (publishedResults.champion?.name || 'Participant')}
-                    </h2>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-5xl md:text-6xl font-black tracking-tight text-white drop-shadow-md">
+                        {publishedResults.grandChampion ? publishedResults.grandChampion.name : (publishedResults.champion?.name || 'Participant')}
+                      </h2>
+                      {(publishedResults.grandChampion?.badgeNumber || publishedResults.champion?.badgeNumber) && (
+                        <span className="font-mono font-bold text-lg md:text-xl px-3 py-1 rounded-xl bg-amber-400 text-amber-950 shadow-md border border-amber-300">
+                          #{publishedResults.grandChampion?.badgeNumber || publishedResults.champion?.badgeNumber}
+                        </span>
+                      )}
+                    </div>
                     {(publishedResults.grandChampion?.tieBrokenByTime || publishedResults.champion?.tieBrokenByTime) && (
                       <div className="mt-2 inline-flex items-center gap-1.5 bg-amber-400 text-amber-950 px-3 py-0.5 rounded-full text-xs font-extrabold shadow">
                         <Zap className="w-3.5 h-3.5 fill-current" />
@@ -481,9 +494,16 @@ function ProjectorComponent() {
                     </span>
                     <Crown className="w-6 h-6 text-amber-500" />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900">
-                    {publishedResults.top3?.[0]?.name || publishedResults.grandChampion?.name || publishedResults.champion?.name || 'TBD'}
-                  </h3>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-2xl font-black text-slate-900 truncate">
+                      {publishedResults.top3?.[0]?.name || publishedResults.grandChampion?.name || publishedResults.champion?.name || 'TBD'}
+                    </h3>
+                    {(publishedResults.top3?.[0]?.badgeNumber || publishedResults.grandChampion?.badgeNumber || publishedResults.champion?.badgeNumber) && (
+                      <span className="shrink-0 font-mono font-bold text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                        #{publishedResults.top3?.[0]?.badgeNumber || publishedResults.grandChampion?.badgeNumber || publishedResults.champion?.badgeNumber}
+                      </span>
+                    )}
+                  </div>
                   <div className="mt-3 flex items-center gap-3">
                     <span className="text-3xl font-mono font-black text-[#009639]">
                       {publishedResults.top3?.[0]?.score ?? publishedResults.champion?.score ?? 0} pts
@@ -507,9 +527,16 @@ function ProjectorComponent() {
                     </span>
                     <Trophy className="w-6 h-6 text-slate-400" />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900">
-                    {publishedResults.top3?.[1]?.name || publishedResults.runnerUp?.name || 'TBD'}
-                  </h3>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-2xl font-black text-slate-900 truncate">
+                      {publishedResults.top3?.[1]?.name || publishedResults.runnerUp?.name || 'TBD'}
+                    </h3>
+                    {(publishedResults.top3?.[1]?.badgeNumber || publishedResults.runnerUp?.badgeNumber) && (
+                      <span className="shrink-0 font-mono font-bold text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 border border-slate-300">
+                        #{publishedResults.top3?.[1]?.badgeNumber || publishedResults.runnerUp?.badgeNumber}
+                      </span>
+                    )}
+                  </div>
                   <div className="mt-3 flex items-center gap-3">
                     <span className="text-3xl font-mono font-black text-slate-700">
                       {publishedResults.top3?.[1]?.score ?? publishedResults.runnerUp?.score ?? 0} pts
@@ -533,9 +560,16 @@ function ProjectorComponent() {
                     </span>
                     <Award className="w-6 h-6 text-amber-700" />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900">
-                    {publishedResults.top3?.[2]?.name || publishedResults.thirdPlace?.name || 'TBD'}
-                  </h3>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-2xl font-black text-slate-900 truncate">
+                      {publishedResults.top3?.[2]?.name || publishedResults.thirdPlace?.name || 'TBD'}
+                    </h3>
+                    {(publishedResults.top3?.[2]?.badgeNumber || publishedResults.thirdPlace?.badgeNumber) && (
+                      <span className="shrink-0 font-mono font-bold text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                        #{publishedResults.top3?.[2]?.badgeNumber || publishedResults.thirdPlace?.badgeNumber}
+                      </span>
+                    )}
+                  </div>
                   <div className="mt-3 flex items-center gap-3">
                     <span className="text-3xl font-mono font-black text-amber-800">
                       {publishedResults.top3?.[2]?.score ?? publishedResults.thirdPlace?.score ?? 0} pts
@@ -581,7 +615,16 @@ function ProjectorComponent() {
                         <td className="py-3 font-mono text-sm font-black text-slate-500">
                           {idx === 0 ? '🥇 #1' : idx === 1 ? '🥈 #2' : idx === 2 ? '🥉 #3' : `#${idx + 1}`}
                         </td>
-                        <td className="py-3 font-extrabold text-slate-900">{p.name}</td>
+                        <td className="py-3 font-extrabold text-slate-900">
+                          <div className="flex items-center gap-2">
+                            <span>{p.name}</span>
+                            {p.badgeNumber && (
+                              <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300">
+                                #{p.badgeNumber}
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-3 text-center text-xs font-bold text-emerald-600">
                           {p.correctCount || 0}
                         </td>
@@ -617,7 +660,13 @@ function ProjectorComponent() {
                 <div className="bg-[#009639] text-white px-5 py-2 rounded-full text-sm font-black uppercase tracking-wider shadow-sm">
                   Question {currentQuestion.questionIndex + 1} of {currentQuestion.totalQuestions || totalQuestions}
                 </div>
-                <div className="bg-[#00E676]/20 text-[#009639] border border-[#009639]/30 px-5 py-2 rounded-full text-sm font-extrabold uppercase tracking-wider">
+                <div className={`px-5 py-2 rounded-full text-sm font-extrabold uppercase tracking-wider border shadow-sm ${
+                  currentQuestion.type === 'riddle' ? 'bg-purple-50 text-purple-700 border-purple-300' :
+                  currentQuestion.type === 'crossword' ? 'bg-indigo-50 text-indigo-700 border-indigo-300' :
+                  currentQuestion.type === 'fill_in_the_blank' ? 'bg-blue-50 text-blue-700 border-blue-300' :
+                  currentQuestion.type === 'image' ? 'bg-amber-50 text-amber-800 border-amber-300' :
+                  'bg-[#00E676]/20 text-[#009639] border-[#009639]/30'
+                }`}>
                   {currentQuestion.category}
                 </div>
               </div>
@@ -719,7 +768,7 @@ function ProjectorComponent() {
                       {optionLabels[index]}
                     </div>
                     <span className={`text-lg md:text-xl font-bold ${isCorrect ? 'text-[#009639]' : 'text-slate-800'}`}>
-                      {option}
+                      {cleanOptionText(option)}
                     </span>
                     {isCorrect && (
                       <CheckCircle2 className="absolute right-5 w-8 h-8 text-[#009639]" />

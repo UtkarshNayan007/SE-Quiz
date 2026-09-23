@@ -37,7 +37,7 @@ const deduplicateParticipants = (list: any[]) => {
   if (!Array.isArray(list)) return [];
   const map = new Map<string, any>();
   for (const p of list) {
-    const key = (p.name || '').toLowerCase().trim();
+    const key = (p.participantId || p.socketId || p.id || p.name || '').trim();
     if (!key) continue;
     if (!map.has(key)) {
       map.set(key, p);
@@ -52,6 +52,12 @@ const deduplicateParticipants = (list: any[]) => {
     }
   }
   return Array.from(map.values());
+};
+
+// Helper to strip redundant option prefixes (e.g. "A) ", "B. ") since option badge [A] is already rendered in the box
+const cleanOptionText = (text: string | null | undefined): string => {
+  if (!text || typeof text !== 'string') return '';
+  return text.replace(/^[A-Da-d][\)\.\:\-]\s*/, '').trim();
 };
 
 export default function HostDashboard() {
@@ -433,7 +439,7 @@ export default function HostDashboard() {
       participantName
     }, (res: any) => {
       if (res?.success) {
-        setParticipants(prev => prev.filter(p => (p.participantId || p.id) !== participantId && p.name !== participantName));
+        setParticipants(prev => prev.filter(p => (p.participantId || p.id) !== participantId));
         setParticipantCount(prev => Math.max(0, prev - 1));
       }
     });
@@ -676,9 +682,16 @@ export default function HostDashboard() {
                     🥇 Grand Champion
                   </span>
                 </div>
-                <h4 className="text-2xl font-black text-gray-900 mt-2">
-                  {finalResults?.grandChampion ? finalResults.grandChampion.name : (finalResults?.championByScore?.name || 'No Champion')}
-                </h4>
+                <div className="flex items-center justify-between gap-2 mt-2">
+                  <h4 className="text-2xl font-black text-gray-900 truncate">
+                    {finalResults?.grandChampion ? finalResults.grandChampion.name : (finalResults?.championByScore?.name || 'No Champion')}
+                  </h4>
+                  {(finalResults?.grandChampion?.badgeNumber || finalResults?.championByScore?.badgeNumber) && (
+                    <span className="shrink-0 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                      #{finalResults?.grandChampion?.badgeNumber || finalResults?.championByScore?.badgeNumber}
+                    </span>
+                  )}
+                </div>
                 <div className="mt-3 flex items-center gap-3">
                   <span className="text-2xl font-mono font-black text-[#009639]">
                     {finalResults?.grandChampion ? finalResults.grandChampion.score : (finalResults?.championByScore?.score || 0)} pts
@@ -711,9 +724,16 @@ export default function HostDashboard() {
                     🥈 1st Runner Up
                   </span>
                 </div>
-                <h4 className="text-2xl font-black text-gray-900 mt-2">
-                  {finalResults?.top3?.[1]?.name || finalResults?.leaderboardByScore?.[1]?.name || 'TBD'}
-                </h4>
+                <div className="flex items-center justify-between gap-2 mt-2">
+                  <h4 className="text-2xl font-black text-gray-900 truncate">
+                    {finalResults?.top3?.[1]?.name || finalResults?.leaderboardByScore?.[1]?.name || 'TBD'}
+                  </h4>
+                  {(finalResults?.top3?.[1]?.badgeNumber || finalResults?.leaderboardByScore?.[1]?.badgeNumber) && (
+                    <span className="shrink-0 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 border border-slate-300">
+                      #{finalResults?.top3?.[1]?.badgeNumber || finalResults?.leaderboardByScore?.[1]?.badgeNumber}
+                    </span>
+                  )}
+                </div>
                 <div className="mt-3 flex items-center gap-3">
                   <span className="text-2xl font-mono font-black text-slate-700">
                     {finalResults?.top3?.[1]?.score ?? finalResults?.leaderboardByScore?.[1]?.score ?? 0} pts
@@ -746,9 +766,16 @@ export default function HostDashboard() {
                     🥉 2nd Runner Up
                   </span>
                 </div>
-                <h4 className="text-2xl font-black text-gray-900 mt-2">
-                  {finalResults?.top3?.[2]?.name || finalResults?.leaderboardByScore?.[2]?.name || 'TBD'}
-                </h4>
+                <div className="flex items-center justify-between gap-2 mt-2">
+                  <h4 className="text-2xl font-black text-gray-900 truncate">
+                    {finalResults?.top3?.[2]?.name || finalResults?.leaderboardByScore?.[2]?.name || 'TBD'}
+                  </h4>
+                  {(finalResults?.top3?.[2]?.badgeNumber || finalResults?.leaderboardByScore?.[2]?.badgeNumber) && (
+                    <span className="shrink-0 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                      #{finalResults?.top3?.[2]?.badgeNumber || finalResults?.leaderboardByScore?.[2]?.badgeNumber}
+                    </span>
+                  )}
+                </div>
                 <div className="mt-3 flex items-center gap-3">
                   <span className="text-2xl font-mono font-black text-amber-800">
                     {finalResults?.top3?.[2]?.score ?? finalResults?.leaderboardByScore?.[2]?.score ?? 0} pts
@@ -800,7 +827,16 @@ export default function HostDashboard() {
                       <td className="py-3 font-mono text-xs font-black text-gray-500">
                         {idx === 0 ? '🥇 #1' : idx === 1 ? '🥈 #2' : idx === 2 ? '🥉 #3' : `#${idx + 1}`}
                       </td>
-                      <td className="py-3 font-bold text-gray-900">{player.name}</td>
+                      <td className="py-3 font-bold text-gray-900">
+                        <div className="flex items-center gap-2">
+                          <span>{player.name}</span>
+                          {player.badgeNumber && (
+                            <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-300">
+                              #{player.badgeNumber}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3 text-center text-xs font-bold text-emerald-600">
                         {player.correctCount || 0}
                       </td>
@@ -1083,13 +1119,16 @@ export default function HostDashboard() {
                       <span className="ml-1 text-slate-500 font-semibold text-[11px]">(PDF Q#{activeQuestion.id})</span>
                     )}
                   </span>
-                  {activeQuestion.type && activeQuestion.type !== 'theory' && (
-                    <span className="inline-block bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-                      {activeQuestion.type === 'spot_the_difference' ? '🔍 Spot the Difference' :
+                  {activeQuestion.type && (
+                    <span className="inline-block bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                      {activeQuestion.type === 'riddle' ? '🎭 Cyber Riddle' :
+                       activeQuestion.type === 'crossword' ? '🧩 Cyber Crossword' :
+                       activeQuestion.type === 'fill_in_the_blank' ? '✍️ Fill in the Blank' :
+                       activeQuestion.type === 'image' ? '📸 Image Scenario' :
+                       activeQuestion.type === 'spot_the_difference' ? '🔍 Spot the Difference' :
                        activeQuestion.type === 'picture_mcq' ? '👤 Risk Profile Analysis' :
                        activeQuestion.type === 'memory_check' ? '🧠 Memory & Vigilance Check' :
-                       activeQuestion.type === 'crossword' ? '🧩 Cyber Crossword' :
-                       activeQuestion.type === 'image' ? '📸 Image Scenario' : activeQuestion.type}
+                       '📝 Multiple Choice (MCQ)'}
                     </span>
                   )}
                 </div>
@@ -1137,7 +1176,7 @@ export default function HostDashboard() {
                         }`}>
                           {String.fromCharCode(65 + idx)}
                         </div>
-                        <span className="font-medium text-sm">{opt}</span>
+                        <span className="font-medium text-sm">{cleanOptionText(opt)}</span>
                         {isCorrectRevealed && <CheckCircle2 className="w-5 h-5 ml-auto text-[#009639]" />}
                       </div>
                     );
@@ -1314,8 +1353,13 @@ export default function HostDashboard() {
                   <p className="text-gray-400 italic text-sm">Waiting for players to join...</p>
                 ) : (
                   participants.map((p, idx) => (
-                    <div key={idx} className="px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 border bg-gray-100 text-gray-800 border-gray-200">
-                      {p.name}
+                    <div key={p.participantId || p.socketId || idx} className="px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 border bg-gray-100 text-gray-800 border-gray-200">
+                      <span>{p.name}</span>
+                      {p.badgeNumber && (
+                        <span className="font-mono text-xs font-bold text-gray-600 bg-white/80 px-1.5 py-0.5 rounded border border-gray-300">
+                          #{p.badgeNumber}
+                        </span>
+                      )}
                       <span className="bg-[#009639] text-white text-xs px-2 py-0.5 rounded-full font-bold">
                         {p.score || 0}
                       </span>

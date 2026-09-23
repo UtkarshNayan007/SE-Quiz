@@ -72,7 +72,8 @@ const io = new Server(server, {
   pingTimeout: 60000,
   pingInterval: 25000,
   maxHttpBufferSize: 1e6,
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  perMessageDeflate: false
 });
 
 let questions = [];
@@ -82,6 +83,12 @@ function loadQuestions() {
   try {
     const raw = fs.readFileSync(questionsPath, 'utf-8');
     questions = JSON.parse(raw);
+    // Sanitize options to strip any redundant option prefixes (e.g., "A) ", "B. ", "C: ")
+    questions.forEach(q => {
+      if (Array.isArray(q.options)) {
+        q.options = q.options.map(opt => typeof opt === 'string' ? opt.replace(/^[A-Da-d][\)\.\:\-]\s*/, '').trim() : opt);
+      }
+    });
     // Log verification of what was loaded
     console.log(`Loaded ${questions.length} questions from ${questionsPath}`);
     console.log(`  First question (id=${questions[0]?.id}): "${(questions[0]?.question || '').substring(0, 60)}..."`);
@@ -98,24 +105,151 @@ function loadQuestions() {
 loadQuestions();
 
 /**
- * Build room questions with pure random shuffling (non-section based).
- * Implements Fisher-Yates shuffle across the full question pool.
+ * Category-balanced randomized question builder.
+ * Guarantees:
+ * 1. Exactly 1 question from each of the 5 categories for 5 questions (MCQ, Riddle, Image, Fill in the Blank, Crossword).
+ * 2. Exactly 2 from each for 10 questions, 3 from each for 15 questions, 4 from each for 20 questions.
+ * 3. Never allows two consecutive questions to share the same category (every next question is a different category).
+ * 4. Pure Fisher-Yates randomization within each category pool so every session gets a fresh, dynamic question set.
  */
 function buildRoomQuestions(count = 20) {
   if (!questions || questions.length === 0) {
     loadQuestions();
   }
 
-  const safeCount = Math.min(Math.max(parseInt(count) || questions.length, 1), questions.length);
+  const safeCount = Math.min(Math.max(parseInt(count) || 20, 1), questions.length);
 
-  // Fisher-Yates shuffle across all questions
-  const pool = [...questions];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+  // Group questions by the 5 primary categories
+  const categories = ['mcq', 'riddle', 'image', 'fill_in_the_blank', 'crossword'];
+  const pools = {
+    mcq: [],
+    riddle: [],
+    image: [],
+    fill_in_the_blank: [],
+    crossword: []
+  };
+
+  const getCategoryKey = (q) => {
+    if (q.type === 'image' || q.imageUrl || (q.visualData && q.visualData.type === 'image')) return 'image';
+    if (q.type === 'riddle' || (q.visualData && q.visualData.type === 'riddle')) return 'riddle';
+    if (q.type === 'crossword' || (q.visualData && q.visualData.type === 'crossword')) return 'crossword';
+    if (q.type === 'fill_in_the_blank' || (q.visualData && q.visualData.type === 'fill_in_the_blank')) return 'fill_in_the_blank';
+    return 'mcq';
+  };
+
+  for (const q of questions) {
+    const key = getCategoryKey(q);
+    pools[key].push(q);
   }
 
-  return pool.slice(0, safeCount);
+  // Shuffle each category pool with Fisher-Yates
+  for (const cat of categories) {
+    const arr = pools[cat];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  // Determine category sequence
+  const rounds = Math.floor(safeCount / 5);
+  const remainder = safeCount % 5;
+  const categorySequence = [];
+  let lastCategory = null;
+
+  for (let r = 0; r < rounds; r++) {
+    // Permute all 5 categories for this round
+    const roundCats = [...categories];
+    for (let i = roundCats.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [roundCats[i], roundCats[j]] = [roundCats[j], roundCats[i]];
+    }
+
+    // Ensure the first category of this round is not the same as the last of previous round
+    if (lastCategory && roundCats[0] === lastCategory) {
+      const swapIdx = 1 + Math.floor(Math.random() * (roundCats.length - 1));
+      [roundCats[0], roundCats[swapIdx]] = [roundCats[swapIdx], roundCats[0]];
+    }
+
+    for (const cat of roundCats) {
+      categorySequence.push(cat);
+      lastCategory = cat;
+    }
+  }
+
+  if (remainder > 0) {
+    const remCats = [...categories];
+    for (let i = remCats.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [remCats[i], remCats[j]] = [remCats[j], remCats[i]];
+    }
+
+    if (lastCategory && remCats[0] === lastCategory) {
+      const swapIdx = 1 + Math.floor(Math.random() * (remCats.length - 1));
+      [remCats[0], remCats[swapIdx]] = [remCats[swapIdx], remCats[0]];
+    }
+
+    for (let i = 0; i < remainder; i++) {
+      categorySequence.push(remCats[i]);
+      lastCategory = remCats[i];
+    }
+  }
+
+  // Draw questions according to categorySequence with strict zero-duplication guarantee
+  const selectedQuestions = [];
+  const usedIds = new Set();
+
+  for (const cat of categorySequence) {
+    const pool = pools[cat];
+    // Find first question in this category pool not yet used
+    let chosen = null;
+    for (const q of pool) {
+      if (!usedIds.has(q.id)) {
+        chosen = q;
+        break;
+      }
+    }
+
+    // In case this specific category pool is completely exhausted,
+    // fallback to any unpicked question from the rest of the question bank
+    if (!chosen) {
+      for (const q of questions) {
+        if (!usedIds.has(q.id)) {
+          chosen = q;
+          break;
+        }
+      }
+    }
+
+    if (chosen) {
+      usedIds.add(chosen.id);
+      selectedQuestions.push(chosen);
+    }
+  }
+
+  // Safety Assertion: Guarantee 100% uniqueness of every question in the room
+  const finalUniqueIds = new Set(selectedQuestions.map(q => q.id));
+  if (finalUniqueIds.size !== selectedQuestions.length) {
+    console.error('[CRITICAL] Duplicate question detected in room selection! Deduplicating...');
+    const deduped = [];
+    const seen = new Set();
+    for (const q of selectedQuestions) {
+      if (!seen.has(q.id)) {
+        seen.add(q.id);
+        deduped.push(q);
+      }
+    }
+    for (const q of questions) {
+      if (deduped.length >= safeCount) break;
+      if (!seen.has(q.id)) {
+        seen.add(q.id);
+        deduped.push(q);
+      }
+    }
+    return deduped;
+  }
+
+  return selectedQuestions;
 }
 
 function getRoomQuestion(room, index) {
@@ -166,54 +300,70 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Helper: Get unique participants deduplicated by lowercase name, merging highest scores
+// Helper: Generate collision-free random 3-digit badge number (100-999) per room
+function generateUniqueBadgeNumber(room) {
+  if (!room.assignedBadgeNumbers) {
+    room.assignedBadgeNumbers = new Set();
+  }
+  for (let attempts = 0; attempts < 1000; attempts++) {
+    const num = Math.floor(100 + Math.random() * 900);
+    if (!room.assignedBadgeNumbers.has(num)) {
+      room.assignedBadgeNumbers.add(num);
+      return String(num);
+    }
+  }
+  const fallback = 1000 + (room.participants ? room.participants.size : 0);
+  return String(fallback);
+}
+
+// Helper: Get unique participants. Each participant is uniquely identified by participantId.
+// Participants who share the exact same name are preserved as distinct individuals with unique badge numbers.
 function getUniqueParticipants(room, cleanupRoom = false) {
   if (!room || !room.participants) return [];
-  const mapByName = new Map();
-  const duplicatesToDelete = [];
 
-  // In LOBBY or RULES, prune any disconnected participants whose socket is gone (> 10s)
-  if (room.gameState === 'LOBBY' || room.gameState === 'RULES') {
-    const now = Date.now();
+  // When cleanupRoom is requested (e.g. before calculating leaderboards or host updates),
+  // prune any disconnected phantom participants who have 0 score and 0 attempts
+  if (cleanupRoom) {
     for (const [pId, p] of room.participants.entries()) {
-      if (!p.connected && p.disconnectedAt && (now - p.disconnectedAt > 10000)) {
-        duplicatesToDelete.push(p);
+      if (!p.connected && (p.score === 0 || !p.score) && (p.attemptedCount === 0 || !p.attemptedCount)) {
+        if (p.disconnectTimeout) clearTimeout(p.disconnectTimeout);
+        if (p.socketId && room.socketToParticipantId && room.socketToParticipantId.get(p.socketId) === pId) {
+          room.socketToParticipantId.delete(p.socketId);
+        }
+        if (p.badgeNumber && room.assignedBadgeNumbers) {
+          room.assignedBadgeNumbers.delete(parseInt(p.badgeNumber, 10));
+        }
+        room.participants.delete(pId);
+      }
+    }
+
+    // Also prune duplicate phantom participants: if there is an unstarted participant (0 score, 0 attempts)
+    // with the exact same name as an active participant who has attempted questions or scored points.
+    const activeNames = new Set();
+    for (const p of room.participants.values()) {
+      if ((p.score > 0) || (p.attemptedCount && p.attemptedCount > 0)) {
+        activeNames.add((p.name || '').trim().toUpperCase());
+      }
+    }
+
+    for (const [pId, p] of room.participants.entries()) {
+      const pUpper = (p.name || '').trim().toUpperCase();
+      const isUnstarted = (p.score === 0 || !p.score) && (!p.attemptedCount || p.attemptedCount === 0);
+      if (isUnstarted && activeNames.has(pUpper)) {
+        if (p.disconnectTimeout) clearTimeout(p.disconnectTimeout);
+        if (p.socketId && room.socketToParticipantId && room.socketToParticipantId.get(p.socketId) === pId) {
+          room.socketToParticipantId.delete(p.socketId);
+        }
+        if (p.badgeNumber && room.assignedBadgeNumbers) {
+          room.assignedBadgeNumbers.delete(parseInt(p.badgeNumber, 10));
+        }
+        room.participants.delete(pId);
+        console.log(`[CLEANUP] Pruned duplicate unstarted phantom participant: ${p.name} (${pId}, Badge #${p.badgeNumber})`);
       }
     }
   }
 
-  for (const p of room.participants.values()) {
-    const key = (p.name || '').toLowerCase().trim();
-    if (!key) continue;
-    if (!mapByName.has(key)) {
-      mapByName.set(key, p);
-    } else {
-      const existing = mapByName.get(key);
-      // Keep whichever record has higher score, or more correct answers, or currently connected
-      const isPBetter = (p.score > existing.score) ||
-        (p.score === existing.score && (p.correctCount || 0) > (existing.correctCount || 0)) ||
-        (p.score === existing.score && (p.correctCount || 0) === (existing.correctCount || 0) && p.connected && !existing.connected);
-
-      if (isPBetter) {
-        duplicatesToDelete.push(existing);
-        mapByName.set(key, p);
-      } else {
-        duplicatesToDelete.push(p);
-      }
-    }
-  }
-
-  if (cleanupRoom && duplicatesToDelete.length > 0) {
-    for (const dup of duplicatesToDelete) {
-      if (dup.disconnectTimeout) clearTimeout(dup.disconnectTimeout);
-      if (dup.socketId && room.socketToParticipantId && room.socketToParticipantId.get(dup.socketId) === dup.participantId) {
-        room.socketToParticipantId.delete(dup.socketId);
-      }
-      room.participants.delete(dup.participantId);
-    }
-  }
-
-  return Array.from(mapByName.values());
+  return Array.from(room.participants.values());
 }
 
 // Helper: Calculate Leaderboards and Top 3 Winners (Version 3)
@@ -252,6 +402,7 @@ function calculateLeaderboards(room) {
       return {
         rank: idx + 1,
         participantId: p.participantId || p.socketId,
+        badgeNumber: p.badgeNumber || '---',
         socketId: p.socketId,
         name: p.name,
         score: p.score,
@@ -334,6 +485,7 @@ function broadcastRoomUpdate(roomPin) {
       const uniqueParticipants = getUniqueParticipants(room, true);
       const participantsList = uniqueParticipants.map(p => ({
         participantId: p.participantId || p.socketId,
+        badgeNumber: p.badgeNumber || '---',
         socketId: p.socketId,
         name: p.name,
         score: p.score,
@@ -447,6 +599,7 @@ function executeRevealAnswer(roomPin) {
 
   const winnerData = correctSubmissions.length > 0 ? {
     participantId: correctSubmissions[0].participantId,
+    badgeNumber: correctSubmissions[0].badgeNumber || '---',
     name: correctSubmissions[0].name,
     socketId: correctSubmissions[0].socketId,
     timeMs: correctSubmissions[0].timeMs,
@@ -627,6 +780,7 @@ io.on('connection', (socket) => {
       hostDisconnectTimeout: null,
       configuredQuestionCount: roomQuestions.length,
       roomQuestions: roomQuestions,
+      assignedBadgeNumbers: new Set(),
       participants: new Map(), // participantId -> participant details
       socketToParticipantId: new Map(), // socketId -> participantId
       currentQuestionIndex: -1,
@@ -727,37 +881,33 @@ io.on('connection', (socket) => {
 
       socket.join(roomPin);
 
-      // Find any existing participant entries matching this exact sanitizedName
-      const matchingEntries = [];
-      for (const p of room.participants.values()) {
-        const pLower = (p.name || '').toLowerCase().trim();
-        // A participant record only matches if the name is identical
-        if (pLower === lowerName) {
-          matchingEntries.push(p);
+      // Session resolution & anti-hijacking:
+      // 1. If client sent participantId and it exists in room -> reconnect.
+      // 2. If client did not send participantId, check if this socket is already associated with a participant in this room.
+      if (!participantId && room.socketToParticipantId && room.socketToParticipantId.has(socket.id)) {
+        participantId = room.socketToParticipantId.get(socket.id);
+      }
+
+      // 3. If client did not send participantId, check if there's an unstarted participant with the exact same name
+      //    (0 score & 0 attempts) who is disconnected or on this socket (e.g. from an initial auto-connect or page reload before playing)
+      if (!participantId) {
+        for (const [pId, p] of room.participants.entries()) {
+          const pLower = (p.name || '').toLowerCase().trim();
+          if (pLower === lowerName && (p.score === 0 || !p.score) && (!p.attemptedCount || p.attemptedCount === 0) && (!p.connected || p.socketId === socket.id)) {
+            participantId = pId;
+            break;
+          }
         }
       }
 
-      if (matchingEntries.length > 0) {
-        // Sort to pick best entry: highest score, most correct answers, most attempted
-        matchingEntries.sort((a, b) => {
-          if (b.score !== a.score) return b.score - a.score;
-          if ((b.correctCount || 0) !== (a.correctCount || 0)) return (b.correctCount || 0) - (a.correctCount || 0);
-          if ((b.attemptedCount || 0) !== (a.attemptedCount || 0)) return (b.attemptedCount || 0) - (a.attemptedCount || 0);
-          if (a.connected !== b.connected) return a.connected ? -1 : 1;
-          return 0;
-        });
+      const isReconnecting = Boolean(participantId && room.participants.has(participantId));
 
-        participant = matchingEntries[0];
-        participantId = participant.participantId;
+      if (isReconnecting) {
+        participant = room.participants.get(participantId);
 
-        // Prune any duplicate participant records in room.participants
-        for (let i = 1; i < matchingEntries.length; i++) {
-          const dup = matchingEntries[i];
-          if (dup.disconnectTimeout) clearTimeout(dup.disconnectTimeout);
-          if (dup.socketId && room.socketToParticipantId && room.socketToParticipantId.get(dup.socketId) === dup.participantId) {
-            room.socketToParticipantId.delete(dup.socketId);
-          }
-          room.participants.delete(dup.participantId);
+        // Ensure badge number exists on existing participant
+        if (!participant.badgeNumber) {
+          participant.badgeNumber = generateUniqueBadgeNumber(room);
         }
 
         // Reconnect existing participant
@@ -775,12 +925,30 @@ io.on('connection', (socket) => {
         if (sanitizedName) participant.name = sanitizedName;
         room.socketToParticipantId.set(socket.id, participant.participantId);
 
-        console.log(`Player ${participant.name} (${participant.participantId}) reconnected with socket ${socket.id} to room ${roomPin} (Score: ${participant.score})`);
+        console.log(`Player ${participant.name} (Badge #${participant.badgeNumber}, ${participant.participantId}) reconnected with socket ${socket.id} to room ${roomPin} (Score: ${participant.score})`);
       } else {
-        // New participant: always generate a fresh unique participantId to avoid inheriting stale cached IDs
+        // If this socket was previously associated with an unstarted participant (0 score & 0 attempts),
+        // clean up the orphaned record so it never lingers on leaderboards.
+        if (room.socketToParticipantId && room.socketToParticipantId.has(socket.id)) {
+          const prevPid = room.socketToParticipantId.get(socket.id);
+          const prevP = room.participants.get(prevPid);
+          if (prevP && (prevP.score === 0 || !prevP.score) && (!prevP.attemptedCount || prevP.attemptedCount === 0)) {
+            if (prevP.disconnectTimeout) clearTimeout(prevP.disconnectTimeout);
+            if (prevP.badgeNumber && room.assignedBadgeNumbers) {
+              room.assignedBadgeNumbers.delete(parseInt(prevP.badgeNumber, 10));
+            }
+            room.participants.delete(prevPid);
+            console.log(`[CLEANUP] Pruned replaced unstarted participant on socket ${socket.id}: ${prevP.name} (${prevPid})`);
+          }
+        }
+
+        // New participant: generate a fresh unique participantId and a unique 3-digit badge number.
         participantId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        const assignedBadge = generateUniqueBadgeNumber(room);
+
         participant = {
           participantId,
+          badgeNumber: assignedBadge,
           socketId: socket.id,
           name: sanitizedName,
           score: 0,
@@ -798,7 +966,7 @@ io.on('connection', (socket) => {
         };
         room.participants.set(participantId, participant);
         room.socketToParticipantId.set(socket.id, participantId);
-        console.log(`New player ${participant.name} (${participantId}, ${socket.id}) joined room ${roomPin}`);
+        console.log(`New player ${participant.name} (Badge #${assignedBadge}, ${participantId}, ${socket.id}) joined room ${roomPin}`);
       }
     } else {
       socket.join(roomPin);
@@ -849,6 +1017,7 @@ io.on('connection', (socket) => {
     if (callback) callback({
       success: true,
       participantId: effectivePId,
+      badgeNumber: participant ? participant.badgeNumber : (myStats ? myStats.badgeNumber : null),
       roomPin,
       gameState: room.gameState,
       answeringEnded: Boolean(room.answeringEnded),
@@ -1143,6 +1312,7 @@ io.on('connection', (socket) => {
       bestLearnerWinner: null,
       allRanks: leaderboard.map(p => ({
         participantId: p.participantId,
+        badgeNumber: p.badgeNumber || '---',
         name: p.name,
         score: p.score,
         rank: p.rank,
@@ -1198,6 +1368,7 @@ io.on('connection', (socket) => {
       leaderboardByScore: leaderboard.slice(0, 20),
       allRanks: leaderboard.map(p => ({
         participantId: p.participantId,
+        badgeNumber: p.badgeNumber || '---',
         name: p.name,
         score: p.score,
         rank: p.rank,
@@ -1277,6 +1448,9 @@ io.on('connection', (socket) => {
           participant.disconnectTimeout = setTimeout(() => {
             if (!participant.connected) {
               console.log(`Participant grace period expired for ${participant.name} (${participantId}) in room ${roomPin}. Removing.`);
+              if (participant.badgeNumber && room.assignedBadgeNumbers) {
+                room.assignedBadgeNumbers.delete(parseInt(participant.badgeNumber, 10));
+              }
               room.participants.delete(participantId);
               broadcastRoomUpdate(roomPin);
             }
@@ -1368,12 +1542,9 @@ io.on('connection', (socket) => {
 
     const pName = (data?.participantName || '').toLowerCase().trim();
     let targetP = participantId ? room.participants.get(participantId) : null;
-    if (!targetP) {
+    if (!targetP && participantId) {
       for (const p of room.participants.values()) {
-        if (
-          (participantId && (p.participantId === participantId || p.socketId === participantId || p.name === participantId)) ||
-          (pName && p.name.toLowerCase().trim() === pName)
-        ) {
+        if (p.participantId === participantId || p.socketId === participantId) {
           targetP = p;
           break;
         }
@@ -1386,11 +1557,14 @@ io.on('connection', (socket) => {
       if (targetP.socketId) {
         io.to(targetP.socketId).emit('room_destroyed', { message: 'You have been removed from the session by the host.' });
       }
+      if (targetP.badgeNumber && room.assignedBadgeNumbers) {
+        room.assignedBadgeNumbers.delete(parseInt(targetP.badgeNumber, 10));
+      }
       room.participants.delete(pId);
       if (targetP.socketId && room.socketToParticipantId) {
         room.socketToParticipantId.delete(targetP.socketId);
       }
-      console.log(`Room ${roomPin}: Host removed participant ${targetP.name} (${pId})`);
+      console.log(`Room ${roomPin}: Host removed participant ${targetP.name} (Badge #${targetP.badgeNumber}, ${pId})`);
       broadcastRoomUpdate(roomPin);
       if (callback) callback({ success: true });
     } else {

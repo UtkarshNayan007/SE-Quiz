@@ -1102,18 +1102,18 @@ export const ImageVisual: React.FC<{
   const [isZoomed, setIsZoomed] = useState(false);
   const [imgErrorCount, setImgErrorCount] = useState(0);
 
-  // Derive target image URL
+  // Derive target image URL strictly from properties or known image IDs
   let resolvedUrl = imageUrl || visualData?.imageUrl || '';
 
-  // Smart fallback by questionId or question content if resolvedUrl is missing
+  // Explicit fallback by image question ID (Q8, Q9, Q11, Q16 only)
   if (!resolvedUrl) {
-    if (questionId === 11 || (questionText && /shoulder surfing|commuter|physical security/i.test(questionText))) {
+    if (questionId === 11) {
       resolvedUrl = '/questions/question_11_shoulder_surfing.png';
-    } else if (questionId === 16 || (questionText && /phishing attempt|compare the.*email/i.test(questionText))) {
+    } else if (questionId === 16) {
       resolvedUrl = '/questions/question_16_compare_emails.png';
-    } else if (questionId === 8 || (questionText && /workstation setup|security risk/i.test(questionText))) {
+    } else if (questionId === 8) {
       resolvedUrl = '/questions/question_8_office_risks.png';
-    } else if (questionId === 9 || (questionText && /pingid|approve sign-in/i.test(questionText))) {
+    } else if (questionId === 9) {
       resolvedUrl = '/questions/question_9_phone_login.png';
     }
   }
@@ -1121,9 +1121,9 @@ export const ImageVisual: React.FC<{
   if (!resolvedUrl) return null;
 
   const caption = imageCaption || visualData?.imageCaption || (
-    questionId === 11 || (questionText && /shoulder surfing|commuter/i.test(questionText))
+    questionId === 11
       ? 'Public Transport Commuter Scenario'
-      : questionId === 16 || (questionText && /phishing/i.test(questionText))
+      : questionId === 16
       ? 'Compare the Emails (Panels A & B)'
       : questionId === 8
       ? 'Spotting Security Risks in the Office'
@@ -1138,9 +1138,9 @@ export const ImageVisual: React.FC<{
     ? [{ id: 1, title: 'Shoulder Surfing Risk', desc: 'Bystander leaning over to observe business charts and sensitive work on laptop screen.' }]
     : questionId === 16 || (questionText && /phishing/i.test(questionText))
     ? [
-        { id: 1, title: 'Spoofed Sender Domain', desc: 'Sender is support@se.co.ck (.co.ck is the Cook Islands ccTLD, not se.com).' },
-        { id: 2, title: 'Executable Attachment', desc: "Attachment is 'Urgent_Security_Patch.exe' which can execute malicious payload." },
-        { id: 3, title: 'Urgency & Coercion', desc: "Subject and body use artificial panic ('URGENT: SECURITY ALERT', threat of permanent data loss)." }
+        { id: 1, title: 'Generic Greeting & Coercive Urgency', desc: "Panel B uses 'dear user' and threatens account lockout within 24 hours to induce panic." },
+        { id: 2, title: 'Suspicious External Link', desc: "Upgrade Link points to external harvester (https://secure-login-upgrade.net/update) instead of internal portal (portal.se.com)." },
+        { id: 3, title: 'Spoofed Sender Domain', desc: "Sender address is support@sc.com (typosquatted domain) instead of official support@se.com." }
       ]
     : [];
 
@@ -1275,15 +1275,12 @@ export const InteractiveQuestionVisual: React.FC<Props> = ({
   compact = false
 }) => {
   const effectiveType = type || visualData?.type;
-  const isImageQuestion = Boolean(
+  const isDedicatedNonImage = effectiveType === 'riddle' || effectiveType === 'crossword' || effectiveType === 'fill_in_the_blank';
+  const isImageQuestion = !isDedicatedNonImage && Boolean(
     effectiveType === 'image' ||
     imageUrl ||
     visualData?.imageUrl ||
-    questionId === 8 ||
-    questionId === 9 ||
-    questionId === 11 ||
-    questionId === 16 ||
-    (questionText && /shoulder surfing|commuter|physical security|compare the.*email|phishing attempt|office workstation|pingid/i.test(questionText))
+    (effectiveType !== 'theory' && (questionId === 8 || questionId === 9 || questionId === 11 || questionId === 16))
   );
 
   if (isImageQuestion) {

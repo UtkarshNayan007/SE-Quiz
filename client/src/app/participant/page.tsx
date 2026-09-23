@@ -3,17 +3,16 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getSocket } from '../../lib/socket';
-import { ShieldCheck, Timer, Zap, CheckCircle2, XCircle, Clock, Send, Lock, Volume2, UserCheck, AlertTriangle, Trophy, Crown, Sparkles, Award, LogOut, RotateCcw, Share2, Download, FileCheck, BookOpen, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Timer, Zap, CheckCircle2, XCircle, Clock, Send, Lock, Volume2, UserCheck, AlertTriangle, Trophy, Crown, Sparkles, Award, LogOut, RotateCcw, Share2, Download, BookOpen, RefreshCw } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import CertificateModal from '../../components/CertificateModal';
 import WinnerTrophyModal from '../../components/WinnerTrophyModal';
-import { CertificateData, generateVerificationId } from '../../lib/certificateGenerator';
 import { ParticipantRulesGuide } from '../../components/RulesAndGuide';
 import { InteractiveQuestionVisual } from '../../components/InteractiveQuestionVisual';
 
 const STORAGE_PIN = 'se_quiz_pin';
 const STORAGE_NAME = 'se_quiz_name';
 const STORAGE_PARTICIPANT_ID = 'se_quiz_participant_id';
+const STORAGE_BADGE_NUMBER = 'se_quiz_badge_number';
 
 // Hilarious, relatable Gen-Z cyber awareness quotes for participants who didn't reach the Top 3 podium
 const GENZ_CYBER_ACKNOWLEDGMENTS = [
@@ -61,6 +60,12 @@ const sanitizeParticipantName = (rawName: string | null | undefined): string => 
   return rawName.toUpperCase().replace(/[^A-Z\s]/g, '').trim().replace(/\s+/g, ' ');
 };
 
+// Helper to strip redundant option prefixes (e.g. "A) ", "B. ") since option badge [A] is already rendered in the box
+const cleanOptionText = (text: string | null | undefined): string => {
+  if (!text || typeof text !== 'string') return '';
+  return text.replace(/^[A-Da-d][\)\.\:\-]\s*/, '').trim();
+};
+
 function ParticipantComponent() {
   const searchParams = useSearchParams();
   const urlPin = (searchParams?.get('pin') || '').trim().toUpperCase();
@@ -68,8 +73,9 @@ function ParticipantComponent() {
   const [pin, setPin] = useState(urlPin);
   const [name, setName] = useState(urlName);
   const [participantId, setParticipantId] = useState('');
+  const [badgeNumber, setBadgeNumber] = useState('');
   const [joined, setJoined] = useState(false);
-  const [isAutoConnecting, setIsAutoConnecting] = useState(true);
+  const [isAutoConnecting, setIsAutoConnecting] = useState(false);
   const [error, setError] = useState('');
   
   // Game States: 'LOBBY', 'READING', 'ANSWERING', 'REVEAL', 'QUIZ_ENDED', 'RESULTS_PUBLISHED'
@@ -88,13 +94,33 @@ function ParticipantComponent() {
   const [isAnsweringClosed, setIsAnsweringClosed] = useState(false);
   const [myScore, setMyScore] = useState(0);
   const [publishedResults, setPublishedResults] = useState<any>(null);
-  const [isCertificateOpen, setIsCertificateOpen] = useState(false);
   const [isTrophyOpen, setIsTrophyOpen] = useState(false);
   const [genzQuoteIndex, setGenzQuoteIndex] = useState(0);
   const [showRulesGuide, setShowRulesGuide] = useState(true);
   const [isGuideCompleted, setIsGuideCompleted] = useState(false);
 
   const initialMountDone = useRef(false);
+  const isJoiningRef = useRef(false);
+  const nameRef = useRef(name);
+  const participantIdRef = useRef(participantId);
+  const badgeNumberRef = useRef(badgeNumber);
+  const myScoreRef = useRef(myScore);
+
+  useEffect(() => {
+    nameRef.current = name;
+  }, [name]);
+
+  useEffect(() => {
+    participantIdRef.current = participantId;
+  }, [participantId]);
+
+  useEffect(() => {
+    badgeNumberRef.current = badgeNumber;
+  }, [badgeNumber]);
+
+  useEffect(() => {
+    myScoreRef.current = myScore;
+  }, [myScore]);
 
   const triggerConfettiExplosion = () => {
     const duration = 3 * 1000;
@@ -121,131 +147,109 @@ function ParticipantComponent() {
     setRevealResult(null);
     setMyScore(0);
     setPublishedResults(null);
-    setIsCertificateOpen(false);
     setIsTrophyOpen(false);
     setGenzQuoteIndex(0);
     setError('');
   };
 
-  // Compute Participant Certificate Data
-  const getParticipantCertificateData = (): CertificateData => {
-    const myLower = (name || '').trim().toLowerCase();
-    const allList = publishedResults?.allRanks || publishedResults?.leaderboard || [];
-    const myEntry = allList.find((p: any) => (p.name || '').trim().toLowerCase() === myLower);
-
-    const finalScore = myEntry?.score ?? myScore ?? 0;
-    const myRank = myEntry?.rank;
-    const finalSpeed = myEntry?.totalTimeFormatted || undefined;
-    const attemptedCount = myEntry?.attemptedCount ?? 0;
-
-    const isGrandChamp = (publishedResults?.grandChampion?.name?.trim().toLowerCase() === myLower) ||
-                         (publishedResults?.championByScore?.name?.trim().toLowerCase() === myLower) ||
-                         (publishedResults?.champion?.name?.trim().toLowerCase() === myLower) ||
-                         myRank === 1;
-
-    const isRunnerUp = (publishedResults?.top3?.[1]?.name?.trim().toLowerCase() === myLower) || myRank === 2;
-    const isThirdPlace = (publishedResults?.top3?.[2]?.name?.trim().toLowerCase() === myLower) || myRank === 3;
-
-    let tier: 'winner' | 'participant' = 'participant';
-    let awardTitle = typeof myRank === 'number' ? `Cyber Defender • Rank #${myRank}` : 'Certified Cyber Defender';
-
-    if (isGrandChamp) {
-      tier = 'winner';
-      awardTitle = 'Grand Champion • 1st Place';
-    } else if (isRunnerUp) {
-      tier = 'winner';
-      awardTitle = '1st Runner Up • 2nd Place';
-    } else if (isThirdPlace) {
-      tier = 'winner';
-      awardTitle = '2nd Runner Up • 3rd Place';
-    }
-
-    return {
-      name: name || 'Participant',
-      tier,
-      awardTitle,
-      rank: myRank,
-      totalParticipants: publishedResults?.participantCount || allList.length || 1,
-      score: finalScore,
-      speed: finalSpeed,
-      attemptedCount,
-      totalQuestions: publishedResults?.totalQuestions || totalQuestions,
-      verificationId: generateVerificationId(name || 'Participant', finalScore),
-      dateStr: '7 October 2026',
-      locationStr: 'Avinya Campus, Bangalore'
-    };
-  };
-
   // Helper to determine if current participant is in Top 3 and get trophy celebration details
-  const getWinnerTrophyData = (resultsData = publishedResults): { name: string; rank: 1 | 2 | 3; score: number; totalTimeFormatted?: string; correctCount?: number } | null => {
+  const getWinnerTrophyData = (resultsData = publishedResults): { name: string; rank: 1 | 2 | 3; score: number; totalTimeFormatted?: string; correctCount?: number; badgeNumber?: string | number } | null => {
     if (!resultsData) return null;
-    const myLower = (name || '').trim().toLowerCase();
+    const currentName = (name || nameRef.current || (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_NAME) : '') || '').trim();
+    const currentPid = (participantId || participantIdRef.current || (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_PARTICIPANT_ID) : '') || '').trim();
+    const currentBadge = (badgeNumber || badgeNumberRef.current || (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_BADGE_NUMBER) : '') || '').trim();
+    const myLower = currentName.toLowerCase();
+    if (!myLower && !currentPid && !currentBadge) return null;
+
+    // Strict identity predicate: match by participantId first, then badgeNumber, fallback to name only if neither ID nor badge exists
+    const isMe = (p: any): boolean => {
+      if (!p) return false;
+      if (currentPid && p.participantId) {
+        return p.participantId === currentPid;
+      }
+      if (currentBadge && p.badgeNumber) {
+        return String(p.badgeNumber) === String(currentBadge);
+      }
+      if (!currentPid && !currentBadge && myLower && p.name) {
+        return (p.name || '').trim().toLowerCase() === myLower;
+      }
+      return false;
+    };
 
     // 1. Check data.top3 array
     if (Array.isArray(resultsData.top3)) {
-      const foundIdx = resultsData.top3.findIndex((p: any) => 
-        (participantId && p.participantId === participantId) || 
-        ((p.name || '').trim().toLowerCase() === myLower)
-      );
+      const foundIdx = resultsData.top3.findIndex(isMe);
       if (foundIdx !== -1 && foundIdx < 3) {
         const p = resultsData.top3[foundIdx];
         return {
-          name: p.name || name || 'Champion',
+          name: p.name || currentName || 'Champion',
           rank: (foundIdx + 1) as 1 | 2 | 3,
-          score: p.score ?? myScore ?? 0,
+          score: p.score ?? myScoreRef.current ?? myScore ?? 0,
           totalTimeFormatted: p.totalTimeFormatted,
-          correctCount: p.correctCount
+          correctCount: p.correctCount,
+          badgeNumber: p.badgeNumber || currentBadge || '---'
         };
       }
     }
 
     // 2. Check grandChampion, runnerUp, thirdPlace explicit fields
-    if (resultsData.grandChampion && (((resultsData.grandChampion.name || '').trim().toLowerCase() === myLower) || (participantId && resultsData.grandChampion.participantId === participantId))) {
+    if (resultsData.grandChampion && isMe(resultsData.grandChampion)) {
       return {
-        name: resultsData.grandChampion.name || name || 'Grand Champion',
+        name: resultsData.grandChampion.name || currentName || 'Grand Champion',
         rank: 1,
-        score: resultsData.grandChampion.score ?? myScore ?? 0,
+        score: resultsData.grandChampion.score ?? myScoreRef.current ?? myScore ?? 0,
         totalTimeFormatted: resultsData.grandChampion.totalTimeFormatted,
-        correctCount: resultsData.grandChampion.correctCount
+        correctCount: resultsData.grandChampion.correctCount,
+        badgeNumber: resultsData.grandChampion.badgeNumber || currentBadge || '---'
       };
     }
-    if (resultsData.runnerUp && (((resultsData.runnerUp.name || '').trim().toLowerCase() === myLower) || (participantId && resultsData.runnerUp.participantId === participantId))) {
+    if (resultsData.runnerUp && isMe(resultsData.runnerUp)) {
       return {
-        name: resultsData.runnerUp.name || name || 'Runner Up',
+        name: resultsData.runnerUp.name || currentName || 'Runner Up',
         rank: 2,
-        score: resultsData.runnerUp.score ?? myScore ?? 0,
+        score: resultsData.runnerUp.score ?? myScoreRef.current ?? myScore ?? 0,
         totalTimeFormatted: resultsData.runnerUp.totalTimeFormatted,
-        correctCount: resultsData.runnerUp.correctCount
+        correctCount: resultsData.runnerUp.correctCount,
+        badgeNumber: resultsData.runnerUp.badgeNumber || currentBadge || '---'
       };
     }
-    if (resultsData.thirdPlace && (((resultsData.thirdPlace.name || '').trim().toLowerCase() === myLower) || (participantId && resultsData.thirdPlace.participantId === participantId))) {
+    if (resultsData.thirdPlace && isMe(resultsData.thirdPlace)) {
       return {
-        name: resultsData.thirdPlace.name || name || 'Third Place',
+        name: resultsData.thirdPlace.name || currentName || 'Third Place',
         rank: 3,
-        score: resultsData.thirdPlace.score ?? myScore ?? 0,
+        score: resultsData.thirdPlace.score ?? myScoreRef.current ?? myScore ?? 0,
         totalTimeFormatted: resultsData.thirdPlace.totalTimeFormatted,
-        correctCount: resultsData.thirdPlace.correctCount
+        correctCount: resultsData.thirdPlace.correctCount,
+        badgeNumber: resultsData.thirdPlace.badgeNumber || currentBadge || '---'
       };
     }
 
     // 3. Check allRanks or leaderboard for rank <= 3
     const allList = resultsData.allRanks || resultsData.leaderboard || [];
-    const foundInAll = allList.find((p: any) => 
-      (participantId && p.participantId === participantId) || 
-      ((p.name || '').trim().toLowerCase() === myLower)
-    );
+    const foundInAll = allList.find(isMe);
     if (foundInAll && typeof foundInAll.rank === 'number' && foundInAll.rank >= 1 && foundInAll.rank <= 3) {
       return {
-        name: foundInAll.name || name || 'Winner',
+        name: foundInAll.name || currentName || 'Winner',
         rank: foundInAll.rank as 1 | 2 | 3,
-        score: foundInAll.score ?? myScore ?? 0,
+        score: foundInAll.score ?? myScoreRef.current ?? myScore ?? 0,
         totalTimeFormatted: foundInAll.totalTimeFormatted,
-        correctCount: foundInAll.correctCount
+        correctCount: foundInAll.correctCount,
+        badgeNumber: foundInAll.badgeNumber || currentBadge || '---'
       };
     }
 
     return null;
   };
+
+  // Automatically pop up animated 3D trophy for Top 3 Winners as soon as results are published
+  useEffect(() => {
+    if (gameState === 'RESULTS_PUBLISHED' && publishedResults) {
+      const winnerData = getWinnerTrophyData(publishedResults);
+      if (winnerData) {
+        setIsTrophyOpen(true);
+      }
+    }
+  }, [gameState, publishedResults, name, participantId]);
 
   const performJoin = (roomPinToUse: string, nameToUse: string, pIdToUse?: string) => {
     const cleanPin = (roomPinToUse || '').trim().toUpperCase();
@@ -254,6 +258,18 @@ function ParticipantComponent() {
       setIsAutoConnecting(false);
       return;
     }
+
+    if (isJoiningRef.current) {
+      console.log('[JOIN] Join request already in-flight, skipping duplicate call');
+      return;
+    }
+    isJoiningRef.current = true;
+
+    // Safety timeout in case socket callback drops
+    const joinTimeout = setTimeout(() => {
+      isJoiningRef.current = false;
+    }, 6000);
+
     const socket = getSocket();
     if (!socket.connected) {
       socket.connect();
@@ -264,6 +280,8 @@ function ParticipantComponent() {
       participantId: pIdToUse || undefined,
       role: 'participant'
     }, (res: any) => {
+      clearTimeout(joinTimeout);
+      isJoiningRef.current = false;
       setIsAutoConnecting(false);
       if (res?.success) {
         setJoined(true);
@@ -281,6 +299,13 @@ function ParticipantComponent() {
             const url = new URL(window.location.href);
             url.searchParams.set('pin', cleanPin);
             window.history.replaceState({}, '', url.toString());
+          }
+        }
+
+        if (res.badgeNumber) {
+          setBadgeNumber(String(res.badgeNumber));
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(STORAGE_BADGE_NUMBER, String(res.badgeNumber));
           }
         }
 
@@ -318,9 +343,11 @@ function ParticipantComponent() {
         if (typeof window !== 'undefined') {
           localStorage.removeItem(STORAGE_PIN);
           localStorage.removeItem(STORAGE_PARTICIPANT_ID);
+          localStorage.removeItem(STORAGE_BADGE_NUMBER);
           // Preserve STORAGE_NAME so user doesn't need to retype their name
         }
         setJoined(false);
+        setBadgeNumber('');
         setError(res?.message || 'Room not found or session expired');
       }
     });
@@ -332,15 +359,17 @@ function ParticipantComponent() {
 
     const savedPin = (localStorage.getItem(STORAGE_PIN) || '').trim().toUpperCase();
     const savedName = sanitizeParticipantName(localStorage.getItem(STORAGE_NAME));
-    const savedPid = localStorage.getItem(STORAGE_PARTICIPANT_ID) || '';
+    const savedPid = (localStorage.getItem(STORAGE_PARTICIPANT_ID) || '').trim();
+    const savedBadge = (localStorage.getItem(STORAGE_BADGE_NUMBER) || '').trim();
 
     const isDifferentRoom = Boolean(urlPin && savedPin && urlPin !== savedPin);
     const isDifferentName = Boolean(urlName && savedName && urlName.toLowerCase() !== savedName.toLowerCase());
 
-    // If new room or new name is passed -> FRESH SESSION! Clear old participant ID
+    // If new room or new name is passed -> FRESH SESSION! Clear old participant ID & badge
     if (isDifferentRoom || isDifferentName) {
       console.log(`[SESSION RESET] Resetting participant session (diffRoom: ${isDifferentRoom}, diffName: ${isDifferentName})`);
       localStorage.removeItem(STORAGE_PARTICIPANT_ID);
+      localStorage.removeItem(STORAGE_BADGE_NUMBER);
       if (urlPin) localStorage.setItem(STORAGE_PIN, urlPin);
       if (urlName) localStorage.setItem(STORAGE_NAME, urlName);
 
@@ -350,14 +379,11 @@ function ParticipantComponent() {
       setPin(targetPin);
       setName(targetName);
       setParticipantId('');
+      setBadgeNumber('');
       setJoined(false);
       resetQuizState();
-
-      if (targetPin && targetName && targetName.replace(/\s/g, '').length >= 2) {
-        performJoin(targetPin, targetName, undefined);
-      } else {
-        setIsAutoConnecting(false);
-      }
+      // DO NOT auto-join! Wait for user to confirm details and click Enter Lobby
+      setIsAutoConnecting(false);
       return;
     }
 
@@ -370,11 +396,17 @@ function ParticipantComponent() {
 
     if (effectivePin) setPin(effectivePin);
     if (effectiveName) setName(effectiveName);
-    if (savedPid) setParticipantId(savedPid);
 
-    if (effectivePin && effectiveName && effectiveName.replace(/\s/g, '').length >= 2) {
-      performJoin(effectivePin, effectiveName, savedPid || undefined);
+    // ONLY auto-reconnect if there was already an active session for THIS room
+    if (savedPid && savedPin && effectivePin === savedPin && effectiveName && effectiveName.replace(/\s/g, '').length >= 2) {
+      setParticipantId(savedPid);
+      if (savedBadge) setBadgeNumber(savedBadge);
+      setIsAutoConnecting(true);
+      performJoin(effectivePin, effectiveName, savedPid);
     } else {
+      setParticipantId('');
+      setBadgeNumber('');
+      setJoined(false);
       setIsAutoConnecting(false);
     }
   }, [urlPin, urlName]);
@@ -452,31 +484,28 @@ function ParticipantComponent() {
       if (typeof window !== 'undefined') {
         localStorage.removeItem(STORAGE_PIN);
         localStorage.removeItem(STORAGE_PARTICIPANT_ID);
+        localStorage.removeItem(STORAGE_BADGE_NUMBER);
       }
       setJoined(false);
+      setBadgeNumber('');
       resetQuizState();
       setError(data?.message || 'Session ended by host');
     };
 
     // Auto re-join when socket reconnects (after network drop, phone call, background wake)
+    // ONLY reconnect if this participant has an existing session ID for THIS exact room PIN
     const handleConnect = () => {
       if (typeof window !== 'undefined') {
         const urlParams = new URLSearchParams(window.location.search);
         const currentUrlPin = (urlParams.get('pin') || '').trim().toUpperCase();
-        const currentUrlName = sanitizeParticipantName(urlParams.get('name'));
         const savedP = (localStorage.getItem(STORAGE_PIN) || '').trim().toUpperCase();
         const savedN = sanitizeParticipantName(localStorage.getItem(STORAGE_NAME));
-        const savedId = localStorage.getItem(STORAGE_PARTICIPANT_ID);
+        const savedId = (localStorage.getItem(STORAGE_PARTICIPANT_ID) || '').trim();
         
         const targetPin = currentUrlPin || savedP;
-        const targetName = currentUrlName || savedN;
 
-        const isNameMismatch = Boolean(currentUrlName && savedN && currentUrlName.toLowerCase() !== savedN.toLowerCase());
-        const isPinMismatch = Boolean(currentUrlPin && savedP && currentUrlPin !== savedP);
-
-        if (targetPin && targetName && targetName.replace(/\s/g, '').length >= 2) {
-          const pidToUse = (!isPinMismatch && !isNameMismatch) ? (savedId || undefined) : undefined;
-          performJoin(targetPin, targetName, pidToUse);
+        if (savedId && savedP && targetPin === savedP && savedN && savedN.replace(/\s/g, '').length >= 2) {
+          performJoin(targetPin, savedN, savedId);
         }
       }
     };
@@ -532,11 +561,10 @@ function ParticipantComponent() {
         const currentUrlPin = (new URLSearchParams(window.location.search).get('pin') || '').trim().toUpperCase();
         const savedP = (localStorage.getItem(STORAGE_PIN) || '').trim().toUpperCase();
         const savedN = sanitizeParticipantName(localStorage.getItem(STORAGE_NAME));
-        const savedId = localStorage.getItem(STORAGE_PARTICIPANT_ID);
+        const savedId = (localStorage.getItem(STORAGE_PARTICIPANT_ID) || '').trim();
         const targetPin = currentUrlPin || savedP;
-        if (targetPin && savedN && savedN.replace(/\s/g, '').length >= 2) {
-          const pidToUse = (targetPin === savedP) ? (savedId || undefined) : undefined;
-          performJoin(targetPin, savedN, pidToUse);
+        if (savedId && savedP && targetPin === savedP && savedN && savedN.replace(/\s/g, '').length >= 2) {
+          performJoin(targetPin, savedN, savedId);
         }
       }
     };
@@ -575,6 +603,8 @@ function ParticipantComponent() {
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isJoiningRef.current) return;
+
     const cleanPin = (pin || '').trim().toUpperCase();
     const cleanName = sanitizeParticipantName(name);
 
@@ -605,7 +635,8 @@ function ParticipantComponent() {
 
     setError('');
     setName(cleanName);
-    performJoin(cleanPin, cleanName, participantId);
+    const existingPid = participantId || (typeof window !== 'undefined' ? (localStorage.getItem(STORAGE_PARTICIPANT_ID) || undefined) : undefined);
+    performJoin(cleanPin, cleanName, existingPid);
   };
 
   const handleLeaveRoom = () => {
@@ -614,6 +645,7 @@ function ParticipantComponent() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_PIN);
       localStorage.removeItem(STORAGE_PARTICIPANT_ID);
+      localStorage.removeItem(STORAGE_BADGE_NUMBER);
       const url = new URL(window.location.href);
       url.searchParams.delete('pin');
       window.history.replaceState({}, '', url.toString());
@@ -621,6 +653,7 @@ function ParticipantComponent() {
     setJoined(false);
     setPin('');
     setParticipantId('');
+    setBadgeNumber('');
     resetQuizState();
   };
 
@@ -737,7 +770,14 @@ function ParticipantComponent() {
             />
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] text-[#009639] font-bold uppercase tracking-wider truncate">CCSH MSS OPERATIONS</p>
-              <p className="font-bold text-gray-900 text-sm sm:text-base leading-tight truncate max-w-[90px] xs:max-w-[130px] sm:max-w-[180px]">{name}</p>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p className="font-bold text-gray-900 text-sm sm:text-base leading-tight truncate max-w-[90px] xs:max-w-[130px] sm:max-w-[180px]">{name}</p>
+                {badgeNumber && (
+                  <span className="shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 shadow-xs">
+                    #{badgeNumber}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -779,7 +819,13 @@ function ParticipantComponent() {
             <div className="animate-pulse flex justify-center mb-4">
               <Zap className="w-16 h-16 text-[#009639]" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">You are in the Lobby!</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">You are in the Lobby!</h2>
+            {badgeNumber && (
+              <div className="mb-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-900 font-mono text-xs font-bold shadow-xs">
+                <span className="text-amber-700">Event Badge:</span>
+                <span className="text-amber-950 font-black text-sm">#{badgeNumber}</span>
+              </div>
+            )}
             <p className="text-gray-500 text-sm mb-4">Waiting for the host to push the first question...</p>
             <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-2 rounded-xl text-xs font-bold">
               <Sparkles className="w-4 h-4 text-emerald-600" />
@@ -934,12 +980,17 @@ function ParticipantComponent() {
 
             {/* Winner Trophy Card OR Gen-Z Participant Acknowledgment Card */}
             {(() => {
-              const certData = getParticipantCertificateData();
               const winnerTrophy = getWinnerTrophyData();
-              const isWinner = certData.tier === 'winner' || Boolean(winnerTrophy);
+              const isWinner = Boolean(winnerTrophy);
               const genzQuote = GENZ_CYBER_ACKNOWLEDGMENTS[genzQuoteIndex % GENZ_CYBER_ACKNOWLEDGMENTS.length];
 
               if (isWinner && winnerTrophy) {
+                const awardTitle = winnerTrophy.rank === 1
+                  ? 'Grand Champion • 1st Place'
+                  : winnerTrophy.rank === 2
+                  ? '1st Runner Up • 2nd Place'
+                  : '2nd Runner Up • 3rd Place';
+
                 return (
                   <div className="rounded-2xl sm:rounded-3xl p-4 sm:p-5 border shadow-xl relative overflow-hidden transition-all bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 border-amber-400/60 text-white">
                     <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
@@ -959,33 +1010,30 @@ function ParticipantComponent() {
                             <span className="text-[10px] font-mono text-amber-200/70 truncate">
                               Rank #{winnerTrophy.rank}
                             </span>
+                            {(winnerTrophy.badgeNumber || badgeNumber) && (
+                              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-400/30 text-amber-200 border border-amber-400/50">
+                                Badge #{winnerTrophy.badgeNumber || badgeNumber}
+                              </span>
+                            )}
                           </div>
                           <h3 className="text-lg sm:text-xl font-black mt-0.5 text-amber-300 truncate">
                             Virtual Trophy & Podium Honor!
                           </h3>
                           <p className="text-xs text-slate-300 truncate">
-                            {certData.awardTitle} • Cyber Day 2026 by Schneider Electric
+                            {awardTitle} • Cyber Day 2026 by Schneider Electric
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    {/* Winner Action Buttons */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 mt-3 sm:mt-4">
+                    {/* Winner Action Button */}
+                    <div className="mt-3 sm:mt-4">
                       <button
                         onClick={() => setIsTrophyOpen(true)}
-                        className="py-3 px-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 shadow-lg shadow-amber-500/25 transition active:scale-95 cursor-pointer"
+                        className="w-full py-3 px-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 shadow-lg shadow-amber-500/25 transition active:scale-95 cursor-pointer"
                       >
                         <Trophy className="w-4 h-4 shrink-0 text-slate-950" />
                         <span>🏆 Open Animated 3D Trophy</span>
-                      </button>
-
-                      <button
-                        onClick={() => setIsCertificateOpen(true)}
-                        className="py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition active:scale-95 cursor-pointer"
-                      >
-                        <Sparkles className="w-4 h-4 shrink-0 text-amber-300" />
-                        <span>View E-Certificate</span>
                       </button>
                     </div>
 
@@ -1009,9 +1057,11 @@ function ParticipantComponent() {
                           <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/40">
                             🛡️ {genzQuote.tag}
                           </span>
-                          <span className="text-[10px] font-mono text-gray-400 truncate">
-                            {certData.verificationId}
-                          </span>
+                          {badgeNumber && (
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/50">
+                              Badge #{badgeNumber}
+                            </span>
+                          )}
                         </div>
                         <h3 className="text-base sm:text-lg font-black mt-0.5 text-white truncate">
                           Thanks for Playing, Cyber Defender!
@@ -1041,28 +1091,16 @@ function ParticipantComponent() {
                     </div>
                   </div>
 
-                  {/* Action Buttons: Next Laugh + View Defender Certificate */}
-                  <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 sm:gap-2.5 mt-3.5 sm:mt-4">
+                  {/* Action Button: Next Laugh */}
+                  <div className="mt-3.5 sm:mt-4">
                     <button
                       onClick={() => setGenzQuoteIndex((prev) => (prev + 1) % GENZ_CYBER_ACKNOWLEDGMENTS.length)}
-                      className="py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 bg-indigo-600/60 hover:bg-indigo-600/80 border border-indigo-400/30 text-white transition active:scale-95 cursor-pointer"
+                      className="w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 bg-indigo-600/60 hover:bg-indigo-600/80 border border-indigo-400/30 text-white transition active:scale-95 cursor-pointer"
                     >
                       <RefreshCw className="w-3.5 h-3.5 shrink-0" />
                       <span>Next Cyber Laugh 🎲</span>
                     </button>
-
-                    <button
-                      onClick={() => setIsCertificateOpen(true)}
-                      className="py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 bg-[#009639] hover:bg-[#00E676] text-white shadow-md shadow-emerald-600/30 transition active:scale-95 cursor-pointer"
-                    >
-                      <Sparkles className="w-4 h-4 shrink-0" />
-                      <span>Claim Defender Certificate</span>
-                    </button>
                   </div>
-
-                  <p className="text-[10px] sm:text-[11px] text-center mt-2 sm:mt-2.5 text-indigo-300/70">
-                    Official Tier 2 Defender Certificate with 1-click LinkedIn & Instagram sharing!
-                  </p>
                 </div>
               );
             })()}
@@ -1178,7 +1216,13 @@ function ParticipantComponent() {
                   <span className="px-2.5 sm:px-3 py-1 bg-[#009639] text-white text-[11px] sm:text-xs font-black uppercase tracking-wider rounded-full shadow-sm">
                     Question {activeQuestion.questionIndex + 1} of {activeQuestion.totalQuestions || totalQuestions}
                   </span>
-                  <span className="px-2.5 sm:px-3 py-1 bg-gray-100 text-gray-700 text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-full">
+                  <span className={`px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-full border ${
+                    activeQuestion.type === 'riddle' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                    activeQuestion.type === 'crossword' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                    activeQuestion.type === 'fill_in_the_blank' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                    activeQuestion.type === 'image' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                    'bg-slate-100 text-slate-700 border-slate-200'
+                  }`}>
                     {activeQuestion.category}
                   </span>
                 </div>
@@ -1337,7 +1381,7 @@ function ParticipantComponent() {
                     className={cardClass}
                   >
                     <div className={letterClass}>{letters[idx]}</div>
-                    <span className="font-semibold text-xs sm:text-sm leading-relaxed pr-8 break-words flex-1">{optionText}</span>
+                    <span className="font-semibold text-xs sm:text-sm leading-relaxed pr-8 break-words flex-1">{cleanOptionText(optionText)}</span>
                     {Icon}
                   </button>
                 );
@@ -1430,20 +1474,9 @@ function ParticipantComponent() {
               onClose={() => setIsTrophyOpen(false)}
               winner={winnerData}
               roomPin={pin}
-              onOpenCertificate={() => {
-                setIsTrophyOpen(false);
-                setIsCertificateOpen(true);
-              }}
             />
           );
         })()}
-
-        {/* Official E-Certificate Modal */}
-        <CertificateModal
-          isOpen={isCertificateOpen}
-          onClose={() => setIsCertificateOpen(false)}
-          data={getParticipantCertificateData()}
-        />
       </div>
     </div>
   );

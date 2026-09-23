@@ -1,14 +1,14 @@
 [
   {
     "id": 1,
-    "category": "Riddle",
+    "category": "Cyber Riddle",
     "type": "riddle",
     "question": "The Tailgater Riddle: \"I wear no burglar mask and pick no lock; I wait by the speed gate around 9 o'clock. When you tap your badge with a polite smile, I slip right behind you and walk the aisle.\"",
     "options": [
-      "A) The Tailgater (Piggybacking)",
-      "B) The Shoulder Surfer",
-      "C) The Social Engineer",
-      "D) The Impersonator"
+      "The Tailgater (Piggybacking)",
+      "The Shoulder Surfer",
+      "The Social Engineer",
+      "The Impersonator"
     ],
     "correctAnswer": 0,
     "explanation": "Tailgating (also called piggybacking) occurs when an unauthorized person closely follows an authorized employee through an access-controlled speed gate or doorway without scanning their own badge.",
@@ -31,14 +31,14 @@
   },
   {
     "id": 2,
-    "category": "Workstation Security",
+    "category": "Fill in the Blank",
     "type": "fill_in_the_blank",
     "question": "Under corporate Clean Desk and Clear Screen policy, before stepping away from your workstation for any reason, you must immediately lock your screen using the shortcut ________.",
     "options": [
-      "A) Windows key + L",
-      "B) Alt + F4",
-      "C) Ctrl + Shift + Esc",
-      "D) Windows Key + D"
+      "Windows key + L",
+      "Alt + F4",
+      "Ctrl + Shift + Esc",
+      "Windows Key + D"
     ],
     "correctAnswer": 0,
     "explanation": "Under corporate Clean Desk and Clear Screen policy, before stepping away from your workstation for any reason, you must immediately lock your screen using Windows key + L.",
@@ -59,14 +59,14 @@
   },
   {
     "id": 3,
-    "category": "Malware & Threats",
+    "category": "Cyber Crossword",
     "type": "crossword",
     "question": "Which 10-letter extortion threat encrypts corporate data repositories and demands cryptocurrency payment in exchange for the decryption key?",
     "options": [
-      "A) RANSOMWARE",
-      "B) ROGUEWARE",
-      "C) ROOTKITTING",
-      "D) REDIRECTOR"
+      "RANSOMWARE",
+      "ROGUEWARE",
+      "ROOTKITTING",
+      "REDIRECTOR"
     ],
     "correctAnswer": 0,
     "explanation": "Ransomware is malicious extortion software that encrypts corporate data repositories and demands cryptocurrency payment in exchange for the decryption key.",
@@ -78,7 +78,10 @@
         "length": 10,
         "solutionWord": "RANSOMWARE",
         "clue": "10-letter extortion threat encrypting corporate data repositories for cryptocurrency payment",
-        "revealedIndices": [0, 6]
+        "revealedIndices": [
+          0,
+          6
+        ]
       }
     },
     "revealVisual": {
@@ -88,14 +91,14 @@
   },
   {
     "id": 4,
-    "category": "Access Control",
+    "category": "Fill in the Blank",
     "type": "fill_in_the_blank",
     "question": "The foundational security principle of ________ mandates that employees, contractors, and applications are allocated only the minimum necessary permissions required to fulfil their approved duties.",
     "options": [
-      "A) Least Privilege",
-      "B) Defence in Depth",
-      "C) Fail-Safe Defaults",
-      "D) Security through Obscurity"
+      "Least Privilege",
+      "Defence in Depth",
+      "Fail-Safe Defaults",
+      "Security through Obscurity"
     ],
     "correctAnswer": 0,
     "explanation": "The foundational security principle of Least Privilege mandates that employees, contractors, and applications are allocated only the minimum necessary permissions required to fulfil their approved duties.",
@@ -117,55 +120,55 @@
   },
   {
     "id": 5,
-    "category": "Core Cybersecurity",
+    "category": "Multiple Choice Question",
     "type": "theory",
     "question": "What does Integrity in the CIA Triad ensure?",
     "options": [
-      "A) Data is always deleted",
-      "B) Data remains accurate and unchanged",
-      "C) Data is shared publicly",
-      "D) Data is stored in multiple devices"
+      "Data is always deleted",
+      "Data remains accurate and unchanged",
+      "Data is shared publicly",
+      "Data is stored in multiple devices"
     ],
     "correctAnswer": 1,
     "explanation": "In the CIA Triad (Confidentiality, Integrity, Availability), Integrity ensures that data remains accurate, authentic, and protected against unauthorized alteration or deletion."
   },
   {
     "id": 6,
-    "category": "Incident Response",
+    "category": "Multiple Choice Question",
     "type": "theory",
     "question": "Is it a cybersecurity incident: “You accidentally sent sensitive data to the wrong email.”",
     "options": [
-      "A) Yes",
-      "B) No"
+      "Yes",
+      "No"
     ],
     "correctAnswer": 0,
     "explanation": "Yes. Accidentally sending sensitive or confidential corporate data to an unintended email recipient is a security incident (data breach/leak) and must be reported to IT/Security immediately."
   },
   {
     "id": 7,
-    "category": "Device Security",
+    "category": "Multiple Choice Question",
     "type": "theory",
     "question": "You lost your corporate mobile phone. What is the next step?",
     "options": [
-      "A) Ignore it",
-      "B) Report it immediately to IT/Security",
-      "C) Post about it on social media",
-      "D) Wait until the next working day"
+      "Ignore it",
+      "Report it immediately to 2929",
+      "Post about it on social media",
+      "Wait until the next working day"
     ],
     "correctAnswer": 1,
-    "explanation": "Report it immediately to IT/Security. Quick reporting helps protect company data and enables actions like remote lock or wipe of the device."
+    "explanation": "Report it immediately to 2929. Quick reporting helps protect company data and enables actions like remote lock or wipe of the device."
   },
   {
     "id": 8,
-    "category": "Risk Identification",
+    "category": "Image Scenario",
     "type": "image",
     "imageUrl": "/questions/question_8_office_risks.png",
     "question": "Examine the office workstation setup in the image. How many security risks can you identify?",
     "options": [
-      "A) 1",
-      "B) 2",
-      "C) 3",
-      "D) 4"
+      "1",
+      "2",
+      "3",
+      "4"
     ],
     "correctAnswer": 3,
     "explanation": "Four security risks are present: 1) Unlocked laptop screen unattended, 2) Password written on a yellow sticky note on the monitor ('Pw: Acct!_2024'), 3) Unattended USB flash drive plugged into the laptop, and 4) Confidential documents ('TOP SECRET - CONFIDENTIAL PROJECT PLAN') left unattended on the desk.",
@@ -174,10 +177,26 @@
       "imageUrl": "/questions/question_8_office_risks.png",
       "imageCaption": "Spotting Security Risks in the Office",
       "findings": [
-        { "id": 1, "title": "Unlocked Screen", "desc": "Laptop left unlocked and unattended in an open office." },
-        { "id": 2, "title": "Password Sticky Note", "desc": "Password written on monitor sticky note (Pw: Acct!_2024)." },
-        { "id": 3, "title": "Unattended USB Drive", "desc": "Unknown USB storage device plugged into workstation." },
-        { "id": 4, "title": "Confidential Papers Exposed", "desc": "Top Secret project plan documents left unattended on desk." }
+        {
+          "id": 1,
+          "title": "Unlocked Screen",
+          "desc": "Laptop left unlocked and unattended in an open office."
+        },
+        {
+          "id": 2,
+          "title": "Password Sticky Note",
+          "desc": "Password written on monitor sticky note (Pw: Acct!_2024)."
+        },
+        {
+          "id": 3,
+          "title": "Unattended USB Drive",
+          "desc": "Unknown USB storage device plugged into workstation."
+        },
+        {
+          "id": 4,
+          "title": "Confidential Papers Exposed",
+          "desc": "Top Secret project plan documents left unattended on desk."
+        }
       ]
     },
     "revealVisual": {
@@ -186,15 +205,15 @@
   },
   {
     "id": 9,
-    "category": "Identity & MFA",
+    "category": "Image Scenario",
     "type": "image",
     "imageUrl": "/questions/question_9_phone_login.png",
     "question": "Your mobile phone displays an unexpected 'Approve Sign-in?' authentication request from PingID that you did not initiate. What should you do?",
     "options": [
-      "A) Approve it",
-      "B) Ignore and report it",
-      "C) Keep approving until it stops",
-      "D) Share the code with a colleague"
+      "Approve it",
+      "Don’t approve, immediately report it",
+      "Keep approving until it stops",
+      "Share the code with a colleague"
     ],
     "correctAnswer": 1,
     "explanation": "You did not initiate this login request. Never approve unprompted MFA requests; ignore/deny the prompt and report the incident immediately to IT/Security as your credentials may be compromised.",
@@ -203,7 +222,11 @@
       "imageUrl": "/questions/question_9_phone_login.png",
       "imageCaption": "PingID Authentication Request Notification",
       "findings": [
-        { "id": 1, "title": "MFA Fatigue Attack", "desc": "Unsolicited login request indicates an attacker has your password. Never approve it — ignore and report immediately." }
+        {
+          "id": 1,
+          "title": "MFA Fatigue Attack",
+          "desc": "Unsolicited login request indicates an attacker has your password. Never approve it — ignore and report immediately."
+        }
       ]
     },
     "revealVisual": {
@@ -212,29 +235,29 @@
   },
   {
     "id": 10,
-    "category": "Remote Work & Network",
+    "category": "Multiple Choice Question",
     "type": "theory",
     "question": "WHAT IS THE MOST SECURE WAY OF GOING ON THE INTERNET WHEN WORKING OUTSIDE OF THE SCHNEIDER OFFICE?",
     "options": [
-      "A) Use a hotspot offered by a person next to you",
-      "B) VPN combined with Wi-Fi",
-      "C) Public Wi-Fi without password",
-      "D) Password-protected Wi-Fi"
+      "Use a hotspot offered by a person next to you",
+      "VPN combined with Wi-Fi",
+      "Public Wi-Fi without password",
+      "Password-protected Wi-Fi"
     ],
     "correctAnswer": 1,
     "explanation": "GlobalProtect VPN must always be enabled – especially when working outside of the Schneider office. You should never work on sensitive or confidential matters on a public Wi-Fi network without a VPN."
   },
   {
     "id": 11,
-    "category": "Physical Security",
+    "category": "Image Scenario",
     "type": "image",
     "imageUrl": "/questions/question_11_shoulder_surfing.png",
     "question": "This scenario illustrates the risk of which physical security threat?",
     "options": [
-      "A) DUMPSTER DIVING",
-      "B) SHOULDER SURFING",
-      "C) WIRETAPPING",
-      "D) MANTRAP EXPLOITATION"
+      "DUMPSTER DIVING",
+      "SHOULDER SURFING",
+      "WIRETAPPING",
+      "MANTRAP EXPLOITATION"
     ],
     "correctAnswer": 1,
     "explanation": "Shoulder Surfing is the practice of looking over someone's shoulder or observing their display in public settings (like trains or cafes) to view sensitive information on their screen.",
@@ -243,7 +266,11 @@
       "imageUrl": "/questions/question_11_shoulder_surfing.png",
       "imageCaption": "Public Transport Commuter Scenario",
       "findings": [
-        { "id": 1, "title": "Shoulder Surfing Risk", "desc": "Bystander leaning over to observe business charts and sensitive work on laptop screen." }
+        {
+          "id": 1,
+          "title": "Shoulder Surfing Risk",
+          "desc": "Bystander leaning over to observe business charts and sensitive work on laptop screen."
+        }
       ]
     },
     "revealVisual": {
@@ -252,98 +279,110 @@
   },
   {
     "id": 12,
-    "category": "Web & Protocol Security",
+    "category": "Multiple Choice Question",
     "type": "theory",
     "question": "When submitting login credentials or sensitive employee data on an internal portal, you notice the protocol status shown is http:// (unencrypted connection). What is the main operational risk of using http:// instead of https://?",
     "options": [
-      "A) The website will load significantly slower on mobile devices.",
-      "B) Data sent over http:// is transmitted in plaintext and can be intercepted via a Man-in-the-Middle (MitM) attack.",
-      "C) The website database is guaranteed to be corrupted.",
-      "D) The browser will block keyboard inputs automatically."
+      "The website will load significantly slower on mobile devices.",
+      "Data sent over http:// is transmitted in plaintext and can be intercepted via a Man-in-the-Middle (MitM) attack.",
+      "The website database is guaranteed to be corrupted.",
+      "The browser will block keyboard inputs automatically."
     ],
     "correctAnswer": 1,
     "explanation": "Data sent over http:// is transmitted in plaintext without TLS encryption, making it vulnerable to interception, eavesdropping, and tampering via Man-in-the-Middle (MitM) attacks."
   },
   {
     "id": 13,
-    "category": "Password Security",
+    "category": "Multiple Choice Question",
     "type": "theory",
     "question": "Why is using the same password across multiple professional and personal accounts considered dangerous?",
     "options": [
-      "A) It makes passwords harder for system administrators to reset.",
-      "B) A single credential leak allows attackers to compromise all linked accounts via credential stuffing.",
-      "C) Web browsers will automatically block login attempts using duplicate credentials.",
-      "D) It violates standard internet browser licensing agreements."
+      "It makes passwords harder for system administrators to reset.",
+      "A single credential leak allows attackers to compromise all linked accounts via credential stuffing.",
+      "Web browsers will automatically block login attempts using duplicate credentials.",
+      "It violates standard internet browser licensing agreements."
     ],
     "correctAnswer": 1,
     "explanation": "A single credential leak allows attackers to use credential stuffing to automatically compromise all other accounts where that same password was reused."
   },
   {
     "id": 14,
-    "category": "Incident Response",
+    "category": "Multiple Choice Question",
     "type": "theory",
     "question": "If you accidentally click a suspicious link in a phishing email on your work computer, what is your immediate required action?",
     "options": [
-      "A) Shut down the monitor and hope the IT department doesn't notice.",
-      "B) Delete the email immediately and clear your browser history.",
-      "C) Disconnect from the network (Unplug Ethernet/Turn off Wi-Fi) and report the incident to IT/Security immediately.",
-      "D) Wait 24 hours to see if your computer behaves strangely before reporting."
+      "Shut down the monitor and hope the IT department doesn't notice.",
+      "Delete the email immediately and clear your browser history.",
+      "Disconnect from the network (Unplug Ethernet/Turn off Wi-Fi) and report the incident to 2929 immediately.",
+      "Wait 24 hours to see if your computer behaves strangely before reporting."
     ],
     "correctAnswer": 2,
-    "explanation": "Disconnect from the network (Unplug Ethernet / Turn off Wi-Fi) to contain any malware or data exfiltration, and report the incident to IT/Security immediately."
+    "explanation": "Disconnect from the network (Unplug Ethernet / Turn off Wi-Fi) to contain any malware or data exfiltration, and report the incident to 2929 immediately."
   },
   {
     "id": 15,
-    "category": "Compliance & Policy",
+    "category": "Multiple Choice Question",
     "type": "theory",
     "question": "Which practice complies with corporate Acceptable Use Policies regarding external software installation?",
     "options": [
-      "A) Installing non-approved freeware utilities if they help complete daily tasks faster.",
-      "B) Using only IT-approved and vetted software deployed via corporate software portals.",
-      "C) Downloading open-source software tools directly from personal repositories.",
-      "D) Sharing administrator credentials with team members to install plugin extensions."
+      "Installing non-approved freeware utilities if they help complete daily tasks faster.",
+      "Using only IT-approved and vetted software deployed via corporate software portals.",
+      "Downloading open-source software tools directly from personal repositories.",
+      "Sharing administrator credentials with team members to install plugin extensions."
     ],
     "correctAnswer": 1,
     "explanation": "Corporate Acceptable Use Policies mandate using only IT-approved and vetted software deployed via corporate software portals to protect against malware and unauthorized applications."
   },
   {
     "id": 16,
-    "category": "Phishing Detection",
+    "category": "Image Scenario",
     "type": "image",
     "imageUrl": "/questions/question_16_compare_emails.png",
     "question": "Which email shows clear signs of a malicious phishing attempt?",
     "options": [
-      "A) Email A, because policy documents should not be sent via email.",
-      "B) Email B, because it originates from an external domain (.co.ck) and contains an executable file attachment (.exe).",
-      "C) Both A and B are safe since they come from global finance addresses.",
-      "D) Neither email poses any risk."
+      "Panel A – It has a link to internal company portal and uses specific words directed to an individual user.",
+      "Panel B – It uses a generic greeting, creates urgency, threatens account lockout, and includes a suspicious external link.",
+      "Both Panel A and Panel B are phishing emails.",
+      "Neither Panel A nor Panel B is a phishing email."
     ],
     "correctAnswer": 1,
-    "explanation": "Email B exhibits clear phishing indicators: it originates from an external domain (support@se.co.ck instead of the legitimate se.com domain) and contains an executable file attachment (.exe) combined with an urgent fear-inducing prompt.",
+    "explanation": "Panel B contains several phishing indicators: a generic greeting (\"dear user\"), urgent language, threats of account suspension, poor wording, and a non-corporate URL designed to capture credentials. Panel A appears to follow standard corporate communication practices.",
     "visualData": {
       "type": "image",
       "imageUrl": "/questions/question_16_compare_emails.png",
       "imageCaption": "Compare the Emails (Panels A & B)",
       "findings": [
-        { "id": 1, "title": "Spoofed Sender Domain", "desc": "Sender is support@se.co.ck (.co.ck is the Cook Islands ccTLD, not se.com)." },
-        { "id": 2, "title": "Executable Attachment", "desc": "Attachment is 'Urgent_Security_Patch.exe' which can execute malicious payload." },
-        { "id": 3, "title": "Urgency & Coercion", "desc": "Subject and body use artificial panic ('URGENT: SECURITY ALERT', threat of permanent data loss)." }
+        {
+          "id": 1,
+          "title": "Generic Greeting & Coercive Urgency",
+          "desc": "Panel B uses 'dear user' and threatens account lockout within 24 hours to induce panic."
+        },
+        {
+          "id": 2,
+          "title": "Suspicious External Link",
+          "desc": "Upgrade Link points to an external credential harvesting site (https://secure-login-upgrade.net/update) rather than the internal corporate portal (portal.se.com)."
+        },
+        {
+          "id": 3,
+          "title": "Spoofed Sender Domain",
+          "desc": "Sender address is support@sc.com (typosquatted domain) instead of legitimate support@se.com."
+        }
       ]
     },
     "revealVisual": {
-      "vulnerabilitySummary": "Email B is a phishing attempt: external spoofed domain (.co.ck), urgency tactic, and executable attachment (.exe)."
+      "vulnerabilitySummary": "Panel B exhibits classic phishing indicators: typosquatted domain (sc.com), generic greeting ('dear user'), urgent threats of suspension, and an external phishing link."
     }
   },
   {
     "id": 17,
-    "category": "Riddle",
+    "category": "Cyber Riddle",
     "type": "riddle",
     "question": "Riddle: \"I sit in the background of your laptop / Recording every single key that you press alone. / From passwords to messages, I log every stroke, / Turning your private keystrokes into an attacker's joke. / What am I?\"",
     "options": [
-      "A) Ransomware",
-      "B) Keylogger",
-      "C) Adware",
-      "D) Rootkit"
+      "Ransomware",
+      "Keylogger",
+      "Adware",
+      "Rootkit"
     ],
     "correctAnswer": 1,
     "explanation": "Keylogger — A type of spyware designed to record keystrokes secretly so an attacker can harvest passwords and sensitive inputs.",
@@ -366,44 +405,339 @@
   },
   {
     "id": 18,
-    "category": "Password Security",
+    "category": "Multiple Choice Question",
     "type": "theory",
     "question": "What is the safest way to store and manage multiple complex passwords for your accounts?",
     "options": [
-      "A) Write them in a notebook stored in your desk drawer.",
-      "B) Save them in a plain text file on your desktop.",
-      "C) Reuse one complex master password across all sites.",
-      "D) Use an encrypted, corporate-approved Password Manager."
+      "Write them in a notebook stored in your desk drawer.",
+      "Save them in a plain text file on your desktop.",
+      "Reuse one complex master password across all sites.",
+      "Use an encrypted, corporate-approved Password Manager."
     ],
     "correctAnswer": 3,
     "explanation": "Password managers generate and store strong, unique passwords in an encrypted vault, eliminating password reuse risks."
   },
   {
     "id": 19,
-    "category": "Social Engineering",
+    "category": "Multiple Choice Question",
     "type": "theory",
     "question": "What does the term \"Social Engineering\" mean in cybersecurity?",
     "options": [
-      "A) Building social media networks with built-in encryption.",
-      "B) Manipulating people into performing actions or divulging confidential information.",
-      "C) Programming AI models to detect malicious website traffic.",
-      "D) Reverse-engineering software applications to fix bugs."
+      "Building social media networks with built-in encryption.",
+      "Manipulating people into performing actions or divulging confidential information.",
+      "Programming AI models to detect malicious website traffic.",
+      "Reverse-engineering software applications to fix bugs."
     ],
     "correctAnswer": 1,
     "explanation": "Social engineering targets human psychology (trust, fear, urgency) rather than technical flaws to manipulate people into performing actions or divulging confidential information."
   },
   {
     "id": 20,
-    "category": "Password Security",
+    "category": "Multiple Choice Question",
     "type": "theory",
-    "question": "Which of the following passwords is the strongest according to modern cybersecurity standards (such as NIST guidelines)?",
+    "question": "Which of the following passwords is the strongest choice for an Administrative account according to Schneider's Password & Authentication Requirements Policy?",
     "options": [
-      "A) P@ssw0rd2026!",
-      "B) Tr@in$Fly#9",
-      "C) 927458103649",
-      "D) coff337#bl4nket$unset9"
+      "Admin!2026",
+      "ServerTeam#88",
+      "Blue!River77#Falcon$Peak",
+      "Adm1234567890!"
     ],
-    "correctAnswer": 3,
-    "explanation": "According to modern cybersecurity standards (such as NIST SP 800-63B), length and passphrase entropy provide the strongest defense against cracking. 'coff337#bl4nket$unset9' is a long, multi-word passphrase that resists brute-force and dictionary attacks far better than short complex substitutions."
+    "correctAnswer": 2,
+    "explanation": "Blue!River77#Falcon$Peak — Exceeds the 15-character minimum required for administrative accounts. Uses uppercase, lowercase, numbers, and special characters. Uses multiple unrelated words with special character padding, which is recommended in the policy. Avoids common patterns, trivial sequences, and admin-related words."
+  },
+  {
+    "id": 21,
+    "category": "Cyber Riddle",
+    "type": "riddle",
+    "question": "Cyber Riddle: 'I call your desk phone with urgency in my tone, claiming your workstation is infected and alone. I need no zero-day exploit or brute-force tool; your helpful human nature is my favorite rule. What threat am I?'",
+    "options": [
+      "Social Engineering / Pretexting Call (Vishing)",
+      "DDoS Attack",
+      "SQL Injection",
+      "Buffer Overflow"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Vishing (Voice Phishing / Pretexting) preys on human psychology—urgency, authority, and helpfulness—to convince employees into surrendering credentials or granting remote desktop control.",
+    "visualData": {
+      "type": "riddle",
+      "riddleData": {
+        "title": "Enigma of the Urgent Caller",
+        "riddleText": "I call your desk phone with urgency in my tone,\nclaiming your workstation is infected and alone.\nI need no zero-day exploit or brute-force tool;\nyour helpful human nature is my favorite rule.",
+        "hintCategory": "Social Engineering Tactics",
+        "iconType": "phone"
+      }
+    },
+    "revealVisual": {
+      "riddleAnswer": "Social Engineering / Pretexting Call (Vishing)"
+    }
+  },
+  {
+    "id": 22,
+    "category": "Cyber Riddle",
+    "type": "riddle",
+    "question": "Cyber Riddle: 'I lie on the concrete outside your facility gate, labeled \"Executive Bonuses 2026\" to tempt your fate. Plug me into your PC for curiosity's sake, and keystroke injection is the path I take. What am I?'",
+    "options": [
+      "Baiting Attack / Malicious USB Drive",
+      "Hardware Token (FIDO2)",
+      "Optical Fiber Patch Cable",
+      "DisplayPort Monitor Adapter"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Baiting attacks drop weaponized USB flash drives (or BadUSB keystroke injection tools) in corporate parking lots or lobbies, betting that curiosity will entice an employee into plugging it into an internal PC.",
+    "visualData": {
+      "type": "riddle",
+      "riddleData": {
+        "title": "Enigma of the Dropped Flash Drive",
+        "riddleText": "I lie on the concrete outside your facility gate,\nlabeled 'Executive Bonuses 2026' to tempt your fate.\nPlug me into your PC for curiosity's sake,\nand keystroke injection is the path I take.",
+        "hintCategory": "Hardware & Removable Media",
+        "iconType": "usb"
+      }
+    },
+    "revealVisual": {
+      "riddleAnswer": "Baiting Attack / Malicious USB Drive"
+    }
+  },
+  {
+    "id": 23,
+    "category": "Cyber Riddle",
+    "type": "riddle",
+    "question": "Cyber Riddle: \"I enter silently through an unpatched gateway or email link, then spread across file shares before you can think. I lock up your documents and turn them to cipher text, demanding cryptocurrency before deciding what is next. What threat am I?\"",
+    "options": [
+      "Ransomware (Crypto-Extortion)",
+      "Keylogger",
+      "Spyware",
+      "Logic Bomb"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Ransomware stealthily infiltrates corporate networks, encrypts business-critical files into unreadable ciphertext, and demands cryptocurrency ransom payment in exchange for a decryption key.",
+    "visualData": {
+      "type": "riddle",
+      "riddleData": {
+        "title": "Enigma of the Digital Extortionist",
+        "riddleText": "I enter silently through an unpatched gateway or email link,\nthen spread across file shares before you can think.\nI lock up your documents and turn them to cipher text,\ndemanding cryptocurrency before deciding what is next.",
+        "hintCategory": "Malware & Cryptographic Threats",
+        "hint": "Malicious software encrypting files for financial ransom.",
+        "enigmaTag": "SECURITY ENIGMA",
+        "decodedTitle": "RANSOMWARE (CRYPTO-EXTORTION)",
+        "iconType": "lock"
+      }
+    },
+    "revealVisual": {
+      "riddleAnswer": "Ransomware (Crypto-Extortion)",
+      "vulnerabilitySummary": "Ransomware locks corporate systems with cryptographic ciphers and demands ransom for decryption keys."
+    }
+  },
+  {
+    "id": 24,
+    "category": "Fill in the Blank",
+    "type": "fill_in_the_blank",
+    "question": "Fill in the Blank: To prevent fraud and unauthorized privilege escalation, critical financial or infrastructure actions require ________, ensuring no single employee has unilateral authority to execute them.",
+    "options": [
+      "Dual Authorization (Four-Eyes Principle)",
+      "Single Sign-On (SSO)",
+      "Asymmetric Key Pair",
+      "Heuristic Antivirus Inspection"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Dual Authorization (the Four-Eyes Principle) ensures that high-impact actions—such as releasing high-value wire transfers or modifying critical production access rules—require approval from two distinct authorized individuals.",
+    "visualData": {
+      "type": "fill_in_the_blank",
+      "fillBlankData": {
+        "prefixText": "To prevent fraud and unauthorized privilege escalation, critical actions require",
+        "blankPlaceholder": "DUAL AUTHORIZATION",
+        "suffixText": ", ensuring no single employee has unilateral authority to execute them."
+      }
+    },
+    "revealVisual": {
+      "fillBlankAnswer": "Dual Authorization (Four-Eyes Principle)"
+    }
+  },
+  {
+    "id": 25,
+    "category": "Fill in the Blank",
+    "type": "fill_in_the_blank",
+    "question": "Fill in the Blank: When an existing supplier requests urgent updates to their banking remittance account via email, corporate policy strictly prohibits processing payment until ________ is conducted.",
+    "options": [
+      "out-of-band telephone callback verification using a known trusted number",
+      "replying directly to the email to ask if the sender is genuine",
+      "checking if the supplier's website has posted an updated bank number",
+      "inspecting the digital certificate of the supplier's web domain"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Business Email Compromise (BEC) often mimics suppliers requesting bank routing changes. The mandatory defense is 'out-of-band verification'—calling a pre-established, trusted phone number from corporate records to confirm.",
+    "visualData": {
+      "type": "fill_in_the_blank",
+      "fillBlankData": {
+        "prefixText": "When an existing supplier requests banking changes by email, policy prohibits payment until",
+        "blankPlaceholder": "OUT-OF-BAND CALLBACK",
+        "suffixText": "is conducted using a verified corporate contact number."
+      }
+    },
+    "revealVisual": {
+      "fillBlankAnswer": "out-of-band telephone callback verification using a known trusted number"
+    }
+  },
+  {
+    "id": 26,
+    "category": "Fill in the Blank",
+    "type": "fill_in_the_blank",
+    "question": "Fill in the Blank: In Operational Technology (OT) and SCADA environments, any external USB drive must first be sanitized at an isolated ________ before any files may be loaded onto engineering workstations.",
+    "options": [
+      "IT-certified Kiosk / Optical Data Diode",
+      "Public Cloud Drive",
+      "Unmanaged Office Wi-Fi Network",
+      "Standard Commercial Bluetooth Dongle"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Air-gapped industrial environments use dedicated USB sanitization kiosks or unidirectional optical data diodes to scan and scrub removable storage media before allowing any interaction with critical controllers.",
+    "visualData": {
+      "type": "fill_in_the_blank",
+      "fillBlankData": {
+        "prefixText": "In operational technology environments, external USB drives must first be sanitized at an isolated",
+        "blankPlaceholder": "CERTIFIED SCAN KIOSK",
+        "suffixText": "before files may be transferred to engineering workstations."
+      }
+    },
+    "revealVisual": {
+      "fillBlankAnswer": "IT-certified Kiosk / Optical Data Diode"
+    }
+  },
+  {
+    "id": 27,
+    "category": "Cyber Crossword",
+    "type": "crossword",
+    "question": "Solve the Cyber Crossword: Which 10-letter term describes the physical security breach where an unauthorized individual slips through a secure door closely behind an authorized employee?",
+    "options": [
+      "TRESPASSING",
+      "TAILGATING",
+      "TAMPERING",
+      "TUNNELING"
+    ],
+    "correctAnswer": 1,
+    "explanation": "TAILGATING (10 letters) is the physical security violation where an unauthorized person follows closely behind an employee through an access portal without presenting individual credentials.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 1,
+        "direction": "ACROSS",
+        "length": 10,
+        "solutionWord": "TAILGATING",
+        "clue": "Physical security violation of slipping through an access door directly behind an authorized badge holder without scanning",
+        "revealedIndices": [
+          0,
+          3,
+          4,
+          7,
+          8
+        ]
+      }
+    },
+    "revealVisual": {
+      "crosswordSolution": "TAILGATING"
+    }
+  },
+  {
+    "id": 28,
+    "category": "Cyber Crossword",
+    "type": "crossword",
+    "question": "Solve the Cyber Crossword: Which 10-letter social engineering technique involves inventing a fabricated persona or urgent scenario to manipulate an employee into surrendering confidential access?",
+    "options": [
+      "PHISHING",
+      "PROFILING",
+      "PRETEXTING",
+      "PHARMING"
+    ],
+    "correctAnswer": 2,
+    "explanation": "PRETEXTING (10 letters) is the social engineering technique of establishing a fabricated scenario or false persona (such as posing as an IT technician or director) to manipulate an employee into surrendering credentials.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 2,
+        "direction": "DOWN",
+        "length": 10,
+        "solutionWord": "PRETEXTING",
+        "clue": "Fabricating an invented scenario or false persona (e.g. Helpdesk) to manipulate a victim into surrendering access credentials",
+        "revealedIndices": [
+          0,
+          2,
+          4,
+          5,
+          8,
+          9
+        ]
+      }
+    },
+    "revealVisual": {
+      "crosswordSolution": "PRETEXTING"
+    }
+  },
+  {
+    "id": 29,
+    "category": "Cyber Crossword",
+    "type": "crossword",
+    "question": "Solve the Cyber Crossword: Which 8-letter network defense barrier monitors and filters incoming and outgoing network traffic based on predetermined security rules?",
+    "options": [
+      "FIREWALL",
+      "FIRMWARE",
+      "FAILSAFE",
+      "FASTGATE"
+    ],
+    "correctAnswer": 0,
+    "explanation": "A Firewall is a foundational network security device or software that inspects incoming and outgoing packet traffic against corporate security rules.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 3,
+        "direction": "ACROSS",
+        "length": 8,
+        "solutionWord": "FIREWALL",
+        "clue": "8-letter network defense barrier filtering incoming and outgoing traffic based on corporate rules",
+        "revealedIndices": [
+          0,
+          3,
+          5,
+          7
+        ]
+      }
+    },
+    "revealVisual": {
+      "crosswordSolution": "FIREWALL",
+      "vulnerabilitySummary": "FIREWALL (8 letters) inspects and filters packet traffic between trusted and untrusted network segments."
+    }
+  },
+  {
+    "id": 30,
+    "category": "Cyber Crossword",
+    "type": "crossword",
+    "question": "Solve the Cyber Crossword: Which 10-letter defense strategy involves physically and logically isolating a mission-critical control network from all external networks and the Internet?",
+    "options": [
+      "ACCESSLIST",
+      "AIRWALLING",
+      "AIRGAPPING",
+      "ANONYMIZER"
+    ],
+    "correctAnswer": 2,
+    "explanation": "AIRGAPPING (10 letters) is the physical and logical defense strategy of isolating a critical industrial automation (OT) or classified network completely from external connections and the Internet.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 5,
+        "direction": "DOWN",
+        "length": 10,
+        "solutionWord": "AIRGAPPING",
+        "clue": "Physical and electrical isolation of a critical control network from the public Internet and corporate IT networks",
+        "revealedIndices": [
+          0,
+          2,
+          4,
+          5,
+          8,
+          9
+        ]
+      }
+    },
+    "revealVisual": {
+      "crosswordSolution": "AIRGAPPING"
+    }
   }
 ]

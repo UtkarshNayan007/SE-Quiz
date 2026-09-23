@@ -12,12 +12,11 @@ import {
   Volume2,
   VolumeX,
   X,
-  Award,
   Check,
   Zap,
   ShieldCheck
 } from 'lucide-react';
-import { playApplauseSound, stopApplauseSound } from '../lib/applauseSound';
+import { playApplauseSound, stopApplauseSound, unlockAudioContext, isApplausePlaying } from '../lib/applauseSound';
 
 export interface WinnerTrophyModalProps {
   isOpen: boolean;
@@ -28,17 +27,16 @@ export interface WinnerTrophyModalProps {
     score: number;
     totalTimeFormatted?: string;
     correctCount?: number;
+    badgeNumber?: string | number;
   };
   roomPin?: string;
-  onOpenCertificate?: () => void;
 }
 
 export default function WinnerTrophyModal({
   isOpen,
   onClose,
   winner,
-  roomPin,
-  onOpenCertificate
+  roomPin
 }: WinnerTrophyModalProps) {
   const [isPlayingAudio, setIsPlayingAudio] = useState(true);
   const [copiedType, setCopiedType] = useState<'linkedin' | 'instagram' | null>(null);
@@ -89,7 +87,7 @@ export default function WinnerTrophyModal({
         awardSubtitle: 'Tactical Cybersecurity Excellence'
       };
 
-  // Trigger celebration on open: Confetti, Vibration, Applause Sound
+  // Trigger celebration on open: Confetti, Vibration, Applause Sound & Fanfare
   useEffect(() => {
     if (!isOpen) return;
 
@@ -99,18 +97,37 @@ export default function WinnerTrophyModal({
     // 2. Mobile Device Vibration
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
       try {
-        navigator.vibrate([150, 80, 150, 80, 300, 100, 500]);
+        navigator.vibrate([200, 100, 200, 100, 400]);
       } catch {}
     }
 
-    // 3. Web Audio Round of Applause & Fanfare
+    // 3. Web Audio Triumphant Fanfare & Applause
+    unlockAudioContext();
     try {
-      const stopFn = playApplauseSound(7);
+      const stopFn = playApplauseSound(8);
       stopAudioRef.current = stopFn;
       setIsPlayingAudio(true);
     } catch {}
 
+    // Fallback: If browser autoplay policy held back audio, unlock on first gesture
+    const handleGestureResume = () => {
+      unlockAudioContext();
+      if (!isApplausePlaying()) {
+        try {
+          const stopFn = playApplauseSound(8);
+          stopAudioRef.current = stopFn;
+          setIsPlayingAudio(true);
+        } catch {}
+      }
+    };
+    window.addEventListener('pointerdown', handleGestureResume, { once: true });
+    window.addEventListener('click', handleGestureResume, { once: true });
+    window.addEventListener('touchstart', handleGestureResume, { once: true });
+
     return () => {
+      window.removeEventListener('pointerdown', handleGestureResume);
+      window.removeEventListener('click', handleGestureResume);
+      window.removeEventListener('touchstart', handleGestureResume);
       if (stopAudioRef.current) {
         stopAudioRef.current();
         stopAudioRef.current = null;
@@ -164,7 +181,8 @@ export default function WinnerTrophyModal({
   };
 
   const handleShareLinkedIn = () => {
-    const shareText = `🏆 Proud to announce that I won ${rankTitle} at Schneider Electric Cyber Day 2026! 🛡️⚡
+    const badgeText = winner.badgeNumber ? ` (Verified Badge #${winner.badgeNumber})` : '';
+    const shareText = `🏆 Proud to announce that I won ${rankTitle}${badgeText} at Schneider Electric Cyber Day 2026! 🛡️⚡
 
 Honored to take the podium with a score of ${winner.score} pts in the Fastest Finger First OT & Cyber Security Defense Championship at Avinya Campus, Bangalore.
 
@@ -187,11 +205,12 @@ Special thanks to the leadership and organizing team:
   };
 
   const handleShareInstagram = async () => {
+    const badgeLine = winner.badgeNumber ? `Verified Badge: #${winner.badgeNumber}\n` : '';
     const caption = `🏆 ${rankTitle} | Cyber Day 2026
 Schneider Electric CCSH OT SOC MSSP
 "Beyond Compliance. Enabling Business."
 📍 Avinya Campus, Bangalore
-Score: ${winner.score} pts
+${badgeLine}Score: ${winner.score} pts
 Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
 #CyberDay2026 #SchneiderElectric #Champion #CCSHOTSOC #OTSecurity #CyberSecurity`;
 
@@ -263,11 +282,17 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
       // 6. Winner Name Plaque
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '900 64px "Outfit", sans-serif';
-      ctx.fillText(winner.name.toUpperCase(), 540, 1340);
+      ctx.fillText(winner.name.toUpperCase(), 540, 1330);
+
+      if (winner.badgeNumber) {
+        ctx.fillStyle = '#F59E0B';
+        ctx.font = 'bold 32px "Space Grotesk", monospace';
+        ctx.fillText(`VERIFIED BADGE #${winner.badgeNumber}`, 540, 1380);
+      }
 
       ctx.fillStyle = '#34D399';
       ctx.font = 'bold 44px "Space Grotesk", monospace';
-      ctx.fillText(`${winner.score} PTS • SPEED ${winner.totalTimeFormatted || 'FASTEST'}`, 540, 1420);
+      ctx.fillText(`${winner.score} PTS • SPEED ${winner.totalTimeFormatted || 'FASTEST'}`, 540, 1435);
 
       ctx.fillStyle = '#94A3B8';
       ctx.font = '500 28px "Outfit", sans-serif';
@@ -377,7 +402,18 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-xl animate-in fade-in duration-300">
-      <div className="relative w-full max-w-lg max-h-[95vh] flex flex-col bg-gradient-to-b from-slate-900 via-slate-950 to-emerald-950/90 rounded-3xl shadow-2xl border border-slate-700/80 overflow-hidden text-white">
+      <style>{`
+        @keyframes trophySpringPop {
+          0% { transform: scale(0.65) translateY(28px); opacity: 0; }
+          65% { transform: scale(1.05) translateY(-6px); opacity: 1; }
+          85% { transform: scale(0.98) translateY(2px); }
+          100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .animate-trophy-spring {
+          animation: trophySpringPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+        }
+      `}</style>
+      <div className="animate-trophy-spring relative w-full max-w-lg max-h-[95vh] flex flex-col bg-gradient-to-b from-slate-900 via-slate-950 to-emerald-950/90 rounded-3xl shadow-[0_0_60px_rgba(234,179,8,0.35)] border-2 border-amber-400/60 overflow-hidden text-white">
         
         {/* Ambient Radial Spotlight */}
         <div 
@@ -531,6 +567,15 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
             <p className={`text-sm sm:text-base font-extrabold ${trophyTheme.titleColor}`}>
               {rankTitle}
             </p>
+            {winner.badgeNumber && (
+              <div className="pt-1 pb-0.5">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-amber-400/40 text-amber-300 font-mono text-xs font-bold tracking-wider shadow-inner">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[10px] text-amber-400/80">VERIFIED BADGE</span>
+                  <span className="text-white bg-amber-500/30 px-1.5 py-0.5 rounded font-black text-sm">#{winner.badgeNumber}</span>
+                </div>
+              </div>
+            )}
             <p className="text-xs text-slate-400 font-medium">
               Schneider Electric CCSH OT SOC MSSP • Avinya Campus
             </p>
@@ -586,21 +631,6 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
                 </>
               )}
             </button>
-
-            {/* 3. View & Download Full E-Certificate */}
-            {onOpenCertificate && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenCertificate();
-                }}
-                className="w-full py-2.5 px-4 rounded-2xl bg-emerald-600/30 hover:bg-emerald-600/40 text-emerald-200 border border-emerald-500/40 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95"
-              >
-                <Award className="w-4 h-4 text-[#00E676]" />
-                <span>View Official E-Certificate</span>
-              </button>
-            )}
           </div>
 
           <p className="text-[10px] text-slate-400">
