@@ -337,7 +337,7 @@
     "id": 16,
     "category": "Image Scenario",
     "type": "image",
-    "imageUrl": "/questions/question_16_compare_emails.png",
+    "imageUrl": "/questions/question_16_compare_emails_v5.png",
     "question": "Which email shows clear signs of a malicious phishing attempt?",
     "options": [
       "Panel A – It has a link to internal company portal and uses specific words directed to an individual user.",
@@ -349,7 +349,7 @@
     "explanation": "Panel B contains several phishing indicators: a generic greeting (\"dear user\"), urgent language, threats of account suspension, poor wording, and a non-corporate URL designed to capture credentials. Panel A appears to follow standard corporate communication practices.",
     "visualData": {
       "type": "image",
-      "imageUrl": "/questions/question_16_compare_emails.png",
+      "imageUrl": "/questions/question_16_compare_emails_v5.png",
       "imageCaption": "Compare the Emails (Panels A & B)",
       "findings": [
         {

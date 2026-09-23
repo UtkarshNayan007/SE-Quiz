@@ -1105,12 +1105,15 @@ export const ImageVisual: React.FC<{
   // Derive target image URL strictly from properties or known image IDs
   let resolvedUrl = imageUrl || visualData?.imageUrl || '';
 
-  // Explicit fallback by image question ID (Q8, Q9, Q11, Q16 only)
+  // Explicit fallback or versioned upgrade for Question 16 to break aggressive browser/CDN cache
+  if (resolvedUrl === '/questions/question_16_compare_emails.png' || (!resolvedUrl && questionId === 16)) {
+    resolvedUrl = '/questions/question_16_compare_emails_v5.png';
+  }
+
+  // Explicit fallback by image question ID (Q8, Q9, Q11 only)
   if (!resolvedUrl) {
     if (questionId === 11) {
       resolvedUrl = '/questions/question_11_shoulder_surfing.png';
-    } else if (questionId === 16) {
-      resolvedUrl = '/questions/question_16_compare_emails.png';
     } else if (questionId === 8) {
       resolvedUrl = '/questions/question_8_office_risks.png';
     } else if (questionId === 9) {
