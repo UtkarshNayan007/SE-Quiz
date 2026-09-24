@@ -815,7 +815,7 @@ export default function HostDashboard() {
                     <th className="pb-3">Rank</th>
                     <th className="pb-3">Participant</th>
                     <th className="pb-3 text-center">Correct</th>
-                    <th className="pb-3 text-center">Wrong (-50)</th>
+                    <th className="pb-3 text-center">Wrong</th>
                     <th className="pb-3 text-right">Total Speed</th>
                     <th className="pb-3 text-right">Final Score</th>
                     <th className="pb-3 text-right">Tie-Breaker</th>
@@ -1188,27 +1188,6 @@ export default function HostDashboard() {
               </div>
             )}
 
-            {/* Secondary Show Answer Bar (if host scrolls down) */}
-            {gameState !== 'LOBBY' && gameState !== 'REVEAL' && (
-              <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 text-center flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
-                <p className="text-xs text-slate-600 font-medium">
-                  {gameState === 'READING' && `📖 10s Reading in progress (${countdown}s remaining)...`}
-                  {gameState === 'ANSWERING' && (
-                    countdown > 0 && !isAnsweringClosed
-                      ? `⚡ Answering window LIVE • ${progressData.answeredCount} of ${participantCount} answered (${countdown}s remaining)`
-                      : `⏳ Answering closed (${progressData.answeredCount} of ${participantCount} answered)`
-                  )}
-                </p>
-                <button
-                  onClick={handleRevealAnswer}
-                  disabled={loading}
-                  className="bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white px-5 py-2 rounded-xl font-black text-xs flex items-center gap-1.5 shadow transition-all shrink-0 active:scale-95"
-                >
-                  <Eye className="w-4 h-4" />
-                  <span>Reveal Answer to All</span>
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Right Column */}

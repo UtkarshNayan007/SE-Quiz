@@ -603,7 +603,7 @@ function ProjectorComponent() {
                       <th className="pb-3">Rank</th>
                       <th className="pb-3">Participant</th>
                       <th className="pb-3 text-center">Correct</th>
-                      <th className="pb-3 text-center">Wrong (-50)</th>
+                      <th className="pb-3 text-center">Wrong</th>
                       <th className="pb-3 text-right">Total Speed</th>
                       <th className="pb-3 text-right">Final Score</th>
                       <th className="pb-3 text-right">Tie-Breaker</th>
