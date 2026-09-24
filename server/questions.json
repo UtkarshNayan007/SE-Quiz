@@ -3,7 +3,7 @@
     "id": 1,
     "category": "Cyber Riddle",
     "type": "riddle",
-    "question": "The Tailgater Riddle: \"I wear no burglar mask and pick no lock; I wait by the speed gate around 9 o'clock. When you tap your badge with a polite smile, I slip right behind you and walk the aisle.\"",
+    "question": "\"I wear no burglar mask and pick no lock; I wait by the speed gate around 9 o'clock. When you tap your badge with a polite smile, I slip right behind you and walk the aisle.\"",
     "options": [
       "The Tailgater (Piggybacking)",
       "The Shoulder Surfer",
@@ -237,7 +237,7 @@
     "id": 10,
     "category": "Multiple Choice Question",
     "type": "theory",
-    "question": "WHAT IS THE MOST SECURE WAY OF GOING ON THE INTERNET WHEN WORKING OUTSIDE OF THE SCHNEIDER OFFICE?",
+    "question": "What is the most secure way of accessing the Internet when working outside of the Schneider office?",
     "options": [
       "Use a hotspot offered by a person next to you",
       "VPN combined with Wi-Fi",
@@ -377,7 +377,7 @@
     "id": 17,
     "category": "Cyber Riddle",
     "type": "riddle",
-    "question": "Riddle: \"I sit in the background of your laptop / Recording every single key that you press alone. / From passwords to messages, I log every stroke, / Turning your private keystrokes into an attacker's joke. / What am I?\"",
+    "question": "\"I sit in the background of your laptop / Recording every single key that you press alone. / From passwords to messages, I log every stroke, / Turning your private keystrokes into an attacker's joke. / What am I?\"",
     "options": [
       "Ransomware",
       "Keylogger",
@@ -449,7 +449,7 @@
     "id": 21,
     "category": "Cyber Riddle",
     "type": "riddle",
-    "question": "Cyber Riddle: 'I call your desk phone with urgency in my tone, claiming your workstation is infected and alone. I need no zero-day exploit or brute-force tool; your helpful human nature is my favorite rule. What threat am I?'",
+    "question": "'I call your desk phone with urgency in my tone, claiming your workstation is infected and alone. I need no zero-day exploit or brute-force tool; your helpful human nature is my favorite rule. What threat am I?'",
     "options": [
       "Social Engineering / Pretexting Call (Vishing)",
       "DDoS Attack",
@@ -475,7 +475,7 @@
     "id": 22,
     "category": "Cyber Riddle",
     "type": "riddle",
-    "question": "Cyber Riddle: 'I lie on the concrete outside your facility gate, labeled \"Executive Bonuses 2026\" to tempt your fate. Plug me into your PC for curiosity's sake, and keystroke injection is the path I take. What am I?'",
+    "question": "'I lie on the concrete outside your facility gate, labeled \"Executive Bonuses 2026\" to tempt your fate. Plug me into your PC for curiosity's sake, and keystroke injection is the path I take. What am I?'",
     "options": [
       "Baiting Attack / Malicious USB Drive",
       "Hardware Token (FIDO2)",
@@ -501,7 +501,7 @@
     "id": 23,
     "category": "Cyber Riddle",
     "type": "riddle",
-    "question": "Cyber Riddle: \"I enter silently through an unpatched gateway or email link, then spread across file shares before you can think. I lock up your documents and turn them to cipher text, demanding cryptocurrency before deciding what is next. What threat am I?\"",
+    "question": "\"I enter silently through an unpatched gateway or email link, then spread across file shares before you can think. I lock up your documents and turn them to cipher text, demanding cryptocurrency before deciding what is next. What threat am I?\"",
     "options": [
       "Ransomware (Crypto-Extortion)",
       "Keylogger",
@@ -531,7 +531,7 @@
     "id": 24,
     "category": "Fill in the Blank",
     "type": "fill_in_the_blank",
-    "question": "Fill in the Blank: To prevent fraud and unauthorized privilege escalation, critical financial or infrastructure actions require ________, ensuring no single employee has unilateral authority to execute them.",
+    "question": "To prevent fraud and unauthorized privilege escalation, critical financial or infrastructure actions require ________, ensuring no single employee has unilateral authority to execute them.",
     "options": [
       "Dual Authorization (Four-Eyes Principle)",
       "Single Sign-On (SSO)",
@@ -556,7 +556,7 @@
     "id": 25,
     "category": "Fill in the Blank",
     "type": "fill_in_the_blank",
-    "question": "Fill in the Blank: When an existing supplier requests urgent updates to their banking remittance account via email, corporate policy strictly prohibits processing payment until ________ is conducted.",
+    "question": "When an existing supplier requests urgent updates to their banking remittance account via email, corporate policy strictly prohibits processing payment until ________ is conducted.",
     "options": [
       "out-of-band telephone callback verification using a known trusted number",
       "replying directly to the email to ask if the sender is genuine",
@@ -581,7 +581,7 @@
     "id": 26,
     "category": "Fill in the Blank",
     "type": "fill_in_the_blank",
-    "question": "Fill in the Blank: In Operational Technology (OT) and SCADA environments, any external USB drive must first be sanitized at an isolated ________ before any files may be loaded onto engineering workstations.",
+    "question": "In Operational Technology (OT) and SCADA environments, any external USB drive must first be sanitized at an isolated ________ before any files may be loaded onto engineering workstations.",
     "options": [
       "IT-certified Kiosk / Optical Data Diode",
       "Public Cloud Drive",
@@ -606,7 +606,7 @@
     "id": 27,
     "category": "Cyber Crossword",
     "type": "crossword",
-    "question": "Solve the Cyber Crossword: Which 10-letter term describes the physical security breach where an unauthorized individual slips through a secure door closely behind an authorized employee?",
+    "question": "Which 10-letter term describes the physical security breach where an unauthorized individual slips through a secure door closely behind an authorized employee?",
     "options": [
       "TRESPASSING",
       "TAILGATING",
@@ -640,7 +640,7 @@
     "id": 28,
     "category": "Cyber Crossword",
     "type": "crossword",
-    "question": "Solve the Cyber Crossword: Which 10-letter social engineering technique involves inventing a fabricated persona or urgent scenario to manipulate an employee into surrendering confidential access?",
+    "question": "Which 10-letter social engineering technique involves inventing a fabricated persona or urgent scenario to manipulate an employee into surrendering confidential access?",
     "options": [
       "PHISHING",
       "PROFILING",
@@ -675,7 +675,7 @@
     "id": 29,
     "category": "Cyber Crossword",
     "type": "crossword",
-    "question": "Solve the Cyber Crossword: Which 8-letter network defense barrier monitors and filters incoming and outgoing network traffic based on predetermined security rules?",
+    "question": "Which 8-letter network defense barrier monitors and filters incoming and outgoing network traffic based on predetermined security rules?",
     "options": [
       "FIREWALL",
       "FIRMWARE",
@@ -709,7 +709,7 @@
     "id": 30,
     "category": "Cyber Crossword",
     "type": "crossword",
-    "question": "Solve the Cyber Crossword: Which 10-letter defense strategy involves physically and logically isolating a mission-critical control network from all external networks and the Internet?",
+    "question": "Which 10-letter defense strategy involves physically and logically isolating a mission-critical control network from all external networks and the Internet?",
     "options": [
       "ACCESSLIST",
       "AIRWALLING",

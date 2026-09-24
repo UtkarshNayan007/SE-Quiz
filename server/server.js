@@ -78,13 +78,24 @@ const io = new Server(server, {
 
 let questions = [];
 
+function cleanQuestionTitle(text) {
+  if (typeof text !== 'string') return text;
+  return text
+    .replace(/^(The\s+Tailgater\s+Riddle|Cyber\s+Riddle|Riddle|Fill\s+in\s+the\s+Blank|Solve\s+the\s+(Cyber\s+)?Crossword)\s*[:\-–—]\s*/i, '')
+    .trim();
+}
+
 function loadQuestions() {
   const questionsPath = path.join(__dirname, 'questions.json');
   try {
     const raw = fs.readFileSync(questionsPath, 'utf-8');
     questions = JSON.parse(raw);
     // Sanitize options to strip any redundant option prefixes (e.g., "A) ", "B. ", "C: ")
+    // and sanitize question titles to strip redundant category prefixes and giveaways
     questions.forEach(q => {
+      if (typeof q.question === 'string') {
+        q.question = cleanQuestionTitle(q.question);
+      }
       if (Array.isArray(q.options)) {
         q.options = q.options.map(opt => typeof opt === 'string' ? opt.replace(/^[A-Da-d][\)\.\:\-]\s*/, '').trim() : opt);
       }
