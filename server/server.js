@@ -1210,10 +1210,9 @@ io.on('connection', (socket) => {
       participant.averageTimeMs = Math.round(participant.totalTimeMs / participant.correctCount);
       pointsDelta = 100;
     } else {
-      // Negative marking: -50 (floored at 0 so score cannot be negative)
-      participant.score = Math.max(0, participant.score - 50);
+      // No negative marking: incorrect answers award 0 points and deduct 0 marks
       participant.wrongCount = (participant.wrongCount || 0) + 1;
-      pointsDelta = -50;
+      pointsDelta = 0;
     }
 
     participant.attemptedCount = (participant.attemptedCount || 0) + 1;
@@ -1240,7 +1239,7 @@ io.on('connection', (socket) => {
       timeMs,
       timeFormatted,
       pointsDelta,
-      pointsDeducted: isCorrect ? 0 : 50,
+      pointsDeducted: 0,
       optionExplanation: optionExp,
       explanation: question.explanation || ''
     };

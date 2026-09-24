@@ -1423,15 +1423,15 @@ function ParticipantComponent() {
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-black text-red-900 uppercase tracking-wide">
-                          Incorrect (-50 Points)
+                          Incorrect (0 Points)
                         </p>
                         <p className="text-[10px] sm:text-[11px] text-red-700 font-medium truncate sm:whitespace-normal">
-                          Negative marking applied: 50 points deducted
+                          No negative marking • 0 points deducted
                         </p>
                       </div>
                     </div>
                     <span className="text-xs sm:text-sm font-mono font-black text-red-600 bg-white px-2 sm:px-2.5 py-1 rounded-lg border border-red-200 shadow-sm shrink-0">
-                      -50 pts
+                      0 pts
                     </span>
                   </div>
                 )}

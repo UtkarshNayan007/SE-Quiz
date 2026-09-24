@@ -88,27 +88,28 @@ console.log('Test 2: Edge Case with fewer than 3 participants (e.g. 2 players)')
   console.log('  ✅ Successfully handled 2-player session without crashing.');
 }
 
-// --- TEST 3: Score Negative Floor Logic ---
-console.log('Test 3: Negative Score Flooring Logic (Floor at 0)');
+// --- TEST 3: Zero-Deduction Score Logic (No Negative Marking) ---
+console.log('Test 3: Zero-Deduction Score Logic (No Negative Marking)');
 {
   let score = 0;
-  // Wrong answer on first question
-  score = Math.max(0, score - 50);
-  assert.strictEqual(score, 0, 'Score cannot go below 0 on wrong answer');
+  // Wrong answer on first question: 0 points awarded, 0 points deducted
+  let delta = 0;
+  score += delta;
+  assert.strictEqual(score, 0, 'Score is 0 on wrong answer');
 
   // Correct answer
   score += 100;
-  assert.strictEqual(score, 100, 'Score is 100');
+  assert.strictEqual(score, 100, 'Score is 100 on correct answer');
 
-  // Wrong answer
-  score = Math.max(0, score - 50);
-  assert.strictEqual(score, 50, 'Score is 50');
+  // Wrong answer: no deduction
+  score += 0;
+  assert.strictEqual(score, 100, 'Score remains 100 with no penalty deduction on wrong answer');
 
-  // Two wrong answers
-  score = Math.max(0, score - 50);
-  score = Math.max(0, score - 50);
-  assert.strictEqual(score, 0, 'Score remains floored at 0');
-  console.log('  ✅ Negative score flooring logic validated.');
+  // Multiple wrong answers: score never decreases
+  score += 0;
+  score += 0;
+  assert.strictEqual(score, 100, 'Score stays at 100 with zero deduction');
+  console.log('  ✅ Zero-deduction scoring logic validated.');
 }
 
 // --- TEST 4: Certificate Tier Assignment Validation ---
