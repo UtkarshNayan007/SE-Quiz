@@ -253,11 +253,11 @@ function ProjectorComponent() {
             <img
               src="/se-logo.png"
               alt="Schneider Electric"
-              className="w-16 h-16 object-contain drop-shadow-sm"
+              className="h-12 sm:h-14 w-auto object-contain drop-shadow-sm"
             />
           </div>
           <h2 className="text-2xl font-black mb-1 text-slate-900">Projector Display</h2>
-          <p className="text-xs font-bold text-[#009639] uppercase tracking-widest mb-4">CCSH MSS OPERATIONS</p>
+          <p className="text-xs font-bold text-[#009639] uppercase tracking-widest mb-4">CCSH MSS OPERATIONS • Cyber Day 2026</p>
           <p className="text-slate-600 text-sm mb-6">Enter the 6-digit Room PIN created on the Host Dashboard to launch the stage screen view.</p>
 
           <form onSubmit={(e) => {
@@ -290,18 +290,18 @@ function ProjectorComponent() {
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans overflow-hidden">
       {/* SCHNEIDER ELECTRIC BRANDED HEADER */}
       <header className="flex items-center justify-between p-5 bg-white border-b-4 border-[#00E676] shadow-sm shrink-0">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <img
             src="/se-logo.png"
             alt="Schneider Electric"
-            className="w-12 h-12 object-contain drop-shadow-sm"
+            className="h-11 lg:h-13 w-auto object-contain drop-shadow-sm"
           />
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900">
-              Schneider <span className="text-[#009639]">Electric</span>
-            </h1>
-            <p className="text-xs font-bold text-[#009639] uppercase tracking-widest">
+          <div className="border-l-2 border-slate-300 pl-3.5">
+            <h1 className="text-base lg:text-lg font-black tracking-wider text-[#009639] uppercase">
               CCSH MSS OPERATIONS
+            </h1>
+            <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
+              Cyber Security Awareness Day
             </p>
           </div>
         </div>
@@ -310,7 +310,7 @@ function ProjectorComponent() {
           <img
             src="/cyber-shield-logo.png"
             alt="Cyber Security Shield"
-            className="w-16 h-16 lg:w-20 lg:h-20 object-contain drop-shadow-md"
+            className="w-14 h-14 lg:w-16 lg:h-16 object-contain drop-shadow-md"
           />
 
           <div className="flex items-center gap-2.5 bg-slate-100 border border-slate-300 py-2 px-5 rounded-full shadow-sm">

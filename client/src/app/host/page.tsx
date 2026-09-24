@@ -477,11 +477,11 @@ export default function HostDashboard() {
               <img
                 src="/se-logo.png"
                 alt="Schneider Electric"
-                className="w-14 h-14 object-contain drop-shadow-sm"
+                className="h-11 sm:h-13 w-auto object-contain drop-shadow-sm brightness-110"
               />
             </div>
             <h1 className="text-2xl font-bold text-white">Admin Access Gate</h1>
-            <p className="text-xs font-bold text-[#00E676] uppercase tracking-widest mt-1">CCSH MSS OPERATIONS</p>
+            <p className="text-xs font-bold text-[#00E676] uppercase tracking-widest mt-1">CCSH MSS OPERATIONS • Cyber Day 2026</p>
           </div>
 
           {authError && (
@@ -571,14 +571,14 @@ export default function HostDashboard() {
           <img
             src="/se-logo.png"
             alt="Schneider Electric"
-            className="w-11 h-11 object-contain drop-shadow-sm"
+            className="h-9 sm:h-10 w-auto object-contain drop-shadow-sm"
           />
-          <div>
-            <h1 className="text-xl font-black text-slate-900">
-              Schneider <span className="text-[#009639]">Electric</span>
-            </h1>
-            <p className="text-xs font-bold text-[#009639] uppercase tracking-widest">
+          <div className="border-l-2 border-slate-300 pl-3">
+            <h1 className="text-xs sm:text-sm font-black tracking-wider text-[#009639] uppercase">
               CCSH MSS OPERATIONS
+            </h1>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hidden sm:block">
+              Cyber Security Awareness Day
             </p>
           </div>
         </div>
@@ -586,7 +586,7 @@ export default function HostDashboard() {
           <img
             src="/cyber-shield-logo.png"
             alt="Cyber Security Shield"
-            className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-md"
+            className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-md"
           />
           <div className="flex items-center gap-2 bg-[#00E676]/20 px-4 py-2 rounded-full border border-[#009639]/30">
             <Users className="w-5 h-5 text-[#009639]" />

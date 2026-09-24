@@ -60,14 +60,14 @@ export default function LandingPage() {
             <img
               src="/se-logo.png"
               alt="Schneider Electric"
-              className="w-10 h-10 object-contain drop-shadow-sm"
+              className="h-9 sm:h-10 w-auto object-contain drop-shadow-sm"
             />
-            <div>
-              <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
-                Schneider <span className="text-schneider-brand">Electric</span>
-              </h1>
-              <p className="text-xs font-bold text-schneider-brand uppercase tracking-widest">
+            <div className="border-l-2 border-slate-200 pl-3">
+              <h1 className="text-xs sm:text-sm font-black tracking-wider text-schneider-brand uppercase">
                 CCSH MSS OPERATIONS
+              </h1>
+              <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Cyber Security Awareness Day
               </p>
             </div>
           </div>

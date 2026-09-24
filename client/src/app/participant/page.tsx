@@ -697,11 +697,11 @@ function ParticipantComponent() {
               <img
                 src="/se-logo.png"
                 alt="Schneider Electric"
-                className="w-16 h-16 object-contain drop-shadow-sm"
+                className="h-11 sm:h-13 w-auto object-contain drop-shadow-sm"
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Join Quiz Session</h1>
-            <p className="text-xs font-bold text-[#009639] uppercase tracking-wider mt-1">CCSH MSS OPERATIONS</p>
+            <p className="text-xs font-bold text-[#009639] uppercase tracking-wider mt-1">CCSH MSS OPERATIONS • Cyber Day 2026</p>
           </div>
           
           {error && (
@@ -766,9 +766,9 @@ function ParticipantComponent() {
             <img
               src="/se-logo.png"
               alt="Schneider Electric"
-              className="w-8 h-8 sm:w-9 sm:h-9 object-contain drop-shadow-sm shrink-0"
+              className="h-6 sm:h-7 w-auto object-contain drop-shadow-sm shrink-0"
             />
-            <div className="min-w-0">
+            <div className="min-w-0 border-l border-gray-200 pl-2">
               <p className="text-[9px] sm:text-[10px] text-[#009639] font-bold uppercase tracking-wider truncate">CCSH MSS OPERATIONS</p>
               <div className="flex items-center gap-1.5 min-w-0">
                 <p className="font-bold text-gray-900 text-sm sm:text-base leading-tight truncate max-w-[90px] xs:max-w-[130px] sm:max-w-[180px]">{name}</p>
