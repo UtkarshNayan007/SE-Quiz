@@ -1003,17 +1003,17 @@ export const FillInTheBlankVisual: React.FC<{
       </div>
 
       {/* Body: Sentence Terminal View */}
-      <div className="p-5 sm:p-6 bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col items-center justify-center">
-        <div className="max-w-2xl w-full p-4 sm:p-5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-200 text-sm sm:text-base leading-relaxed text-center font-medium shadow-inner">
+      <div className={`p-3 sm:p-5 md:p-6 bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col items-center justify-center w-full`}>
+        <div className={`w-full ${compact ? 'p-4 sm:p-5 text-sm sm:text-base' : 'p-6 sm:p-8 md:p-10 text-lg sm:text-xl md:text-2xl lg:text-3xl leading-relaxed sm:leading-relaxed md:leading-relaxed'} rounded-2xl bg-slate-800/80 border-2 border-slate-700 text-slate-100 text-center font-bold shadow-2xl relative`}>
           <span>{fb.sentenceBefore || fb.prefixText}</span>
-          <span className={`inline-flex items-center px-3 py-1 mx-1.5 rounded-lg border font-bold text-xs sm:text-sm tracking-wide transition-all ${
+          <span className={`inline-flex items-center px-3 py-1 mx-1.5 rounded-lg border font-bold ${compact ? 'text-xs sm:text-sm' : 'text-base sm:text-xl md:text-2xl'} tracking-wide transition-all ${
             isReveal && (fb.correctAnswerText || revealVisual?.fillBlankAnswer)
               ? 'bg-emerald-500/30 text-emerald-300 border-emerald-400 ring-2 ring-emerald-500/50 scale-105'
               : 'bg-amber-500/10 text-amber-300 border-dashed border-amber-400/60 animate-pulse'
           }`}>
             {isReveal && (fb.correctAnswerText || revealVisual?.fillBlankAnswer) ? (
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <CheckCircle2 className={`${compact ? 'w-3.5 h-3.5' : 'w-5 h-5'} text-emerald-400`} />
                 <span>{fb.correctAnswerText || revealVisual?.fillBlankAnswer}</span>
               </span>
             ) : (
@@ -1024,8 +1024,8 @@ export const FillInTheBlankVisual: React.FC<{
         </div>
 
         {isReveal && (fb.correctAnswerText || revealVisual?.fillBlankAnswer) && (
-          <div className="mt-4 px-4 py-2 bg-emerald-500/20 border border-emerald-500/40 rounded-xl flex items-center gap-2 text-emerald-300 text-xs font-bold animate-in fade-in">
-            <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div className={`mt-4 px-5 py-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl flex items-center gap-2.5 text-emerald-300 ${compact ? 'text-xs' : 'text-sm sm:text-base'} font-bold animate-in fade-in shadow-md`}>
+            <Sparkles className="w-5 h-5 text-emerald-400 shrink-0" />
             <span>Completed: <strong className="text-white">{fb.correctAnswerText || revealVisual?.fillBlankAnswer}</strong></span>
           </div>
         )}
@@ -1047,7 +1047,7 @@ export const RiddleVisual: React.FC<{
   const rd = visualData?.riddleData || (questionText ? {
     riddleText: questionText.replace(/^Cyber\s*Riddle:\s*|^Riddle:\s*/i, '').replace(/^["']|["']$/g, ''),
     hint: '',
-    enigmaTag: 'Cyber Riddle',
+    enigmaTag: 'Cyber Threat Riddle',
     decodedTitle: 'Riddle Solved'
   } : null);
   if (!rd) return null;
@@ -1055,19 +1055,19 @@ export const RiddleVisual: React.FC<{
   return (
     <div className="w-full bg-slate-900 text-white rounded-2xl overflow-hidden border border-slate-700 shadow-xl">
       {/* Header */}
-      <div className="bg-slate-800/90 px-4 py-3 border-b border-slate-700 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/30 font-black text-xs">
-            <HelpCircle className="w-4 h-4" />
+      <div className="bg-slate-800/90 px-4 py-3 sm:px-6 sm:py-3.5 border-b border-slate-700 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 font-black text-sm">
+            <HelpCircle className="w-5 h-5" />
           </span>
           <div>
-            <h4 className="text-sm font-black tracking-wide text-white uppercase flex items-center gap-2">
+            <h4 className="text-sm sm:text-base font-black tracking-wide text-white uppercase flex items-center gap-2">
               <span>Cyber Enigma</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
                 {rd.enigmaTag || 'Cyber Threat Riddle'}
               </span>
             </h4>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-xs text-slate-400">
               Analyze the clues and deduce the hidden cybersecurity entity
             </p>
           </div>
@@ -1075,25 +1075,25 @@ export const RiddleVisual: React.FC<{
       </div>
 
       {/* Body: Mystery Parchment / Terminal Card */}
-      <div className="p-5 sm:p-6 bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col items-center justify-center">
-        <div className="max-w-xl w-full p-4 sm:p-5 rounded-xl bg-purple-950/20 border border-purple-800/40 text-center shadow-inner relative overflow-hidden">
-          <div className="absolute top-2 right-2 text-purple-600/30">
-            <Lock className="w-12 h-12" />
+      <div className={`p-3 sm:p-5 md:p-6 bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col items-center justify-center w-full`}>
+        <div className={`w-full ${compact ? 'p-4 sm:p-5' : 'p-6 sm:p-8 md:p-10'} rounded-2xl bg-purple-950/25 border-2 border-purple-700/50 text-center shadow-2xl relative overflow-hidden`}>
+          <div className="absolute top-3 right-3 text-purple-500/15 pointer-events-none">
+            <Lock className={compact ? 'w-10 h-10' : 'w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24'} />
           </div>
-          <p className="text-sm sm:text-base text-purple-200 italic leading-relaxed font-serif relative z-10">
+          <p className={`${compact ? 'text-sm sm:text-base' : 'text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl leading-relaxed sm:leading-relaxed md:leading-relaxed'} text-purple-100 font-bold italic font-serif relative z-10 drop-shadow-sm`}>
             &ldquo;{rd.riddleText}&rdquo;
           </p>
           {rd.hint && (
-            <p className="mt-3 text-[11px] text-purple-400/80 font-mono">
+            <p className={`mt-4 ${compact ? 'text-xs' : 'text-sm sm:text-base'} text-purple-300/90 font-mono font-bold bg-purple-900/40 inline-block px-4 py-1.5 rounded-full border border-purple-500/30`}>
               Clue: {rd.hint}
             </p>
           )}
         </div>
 
         {isReveal && (
-          <div className="mt-4 px-4 py-2 bg-emerald-500/20 border border-emerald-500/40 rounded-xl flex items-center gap-2 text-emerald-300 text-xs font-bold animate-in fade-in">
-            <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>{rd.decodedTitle || 'Enigma Decoded'} — <span className="text-slate-300 font-normal">{revealVisual?.vulnerabilitySummary}</span></span>
+          <div className={`mt-4 px-5 py-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl flex items-center gap-2.5 text-emerald-300 ${compact ? 'text-xs' : 'text-sm sm:text-base'} font-bold animate-in fade-in shadow-md`}>
+            <Sparkles className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span>{rd.decodedTitle || 'Enigma Decoded'} — <span className="text-slate-200 font-normal">{revealVisual?.vulnerabilitySummary}</span></span>
           </div>
         )}
       </div>
