@@ -716,13 +716,15 @@ function ProjectorComponent() {
               )}
             </div>
 
-            {/* Question Text Card */}
-            <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 md:p-6 mb-4 shadow-md relative overflow-hidden shrink-0">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-[#009639]" />
-              <h2 className="text-2xl md:text-3xl font-black leading-snug text-slate-900">
-                {currentQuestion.question}
-              </h2>
-            </div>
+            {/* Question Text Card (Hidden for Riddle and Fill in the Blank since content is rendered directly in visual card) */}
+            {!(currentQuestion.type === 'riddle' || currentQuestion.type === 'fill_in_the_blank') && (
+              <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 md:p-6 mb-4 shadow-md relative overflow-hidden shrink-0">
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-[#009639]" />
+                <h2 className="text-2xl md:text-3xl font-black leading-snug text-slate-900">
+                  {currentQuestion.question}
+                </h2>
+              </div>
+            )}
 
             {/* Interactive Question Visual (Widescreen Projector View) */}
             {((currentQuestion.type && currentQuestion.type !== 'theory') || currentQuestion.imageUrl || currentQuestion.visualData?.imageUrl || (currentQuestion.id && [8, 9, 11, 16].includes(currentQuestion.id))) && (

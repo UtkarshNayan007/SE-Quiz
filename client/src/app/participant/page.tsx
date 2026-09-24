@@ -1256,9 +1256,11 @@ function ParticipantComponent() {
                 )}
               </div>
               
-              <h3 className="text-sm sm:text-base md:text-lg font-black text-gray-900 leading-snug break-words">
-                {activeQuestion.question}
-              </h3>
+              {!(activeQuestion.type === 'riddle' || activeQuestion.type === 'fill_in_the_blank') && (
+                <h3 className="text-sm sm:text-base md:text-lg font-black text-gray-900 leading-snug break-words">
+                  {activeQuestion.question}
+                </h3>
+              )}
             </div>
 
             {/* Interactive Question Visual (Spot the Difference / Picture MCQ / Memory Check / Crossword / Image Scenario) */}

@@ -1132,9 +1132,12 @@ export default function HostDashboard() {
                     </span>
                   )}
                 </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-4 leading-relaxed">
-                  {activeQuestion.question}
-                </h3>
+
+                {!(activeQuestion.type === 'riddle' || activeQuestion.type === 'fill_in_the_blank') && (
+                  <h3 className="text-2xl font-bold text-gray-800 mb-4 leading-relaxed">
+                    {activeQuestion.question}
+                  </h3>
+                )}
 
                 {((activeQuestion.type && activeQuestion.type !== 'theory') || activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl || [8, 9, 11, 16].includes(activeQuestion.id)) && (
                   <div className="mb-5">

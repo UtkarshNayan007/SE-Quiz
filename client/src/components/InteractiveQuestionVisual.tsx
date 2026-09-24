@@ -967,8 +967,17 @@ export const FillInTheBlankVisual: React.FC<{
   revealVisual?: RevealVisual | null;
   isReveal?: boolean;
   compact?: boolean;
-}> = ({ visualData, revealVisual, isReveal, compact }) => {
-  const fb = visualData?.fillBlankData;
+  questionText?: string;
+}> = ({ visualData, revealVisual, isReveal, compact, questionText }) => {
+  let fb = visualData?.fillBlankData;
+  if (!fb && questionText) {
+    const parts = questionText.split(/_{3,}|\[\s*\?\s*\?\s*\?\s*\]|\[\s*SHORTCUT\s*\]/i);
+    fb = {
+      prefixText: parts[0] ? parts[0].trim() : '',
+      suffixText: parts[1] ? parts[1].trim() : '',
+      contextBadge: 'Fill in the Blank'
+    };
+  }
   if (!fb) return null;
 
   return (
@@ -1033,8 +1042,14 @@ export const RiddleVisual: React.FC<{
   revealVisual?: RevealVisual | null;
   isReveal?: boolean;
   compact?: boolean;
-}> = ({ visualData, revealVisual, isReveal, compact }) => {
-  const rd = visualData?.riddleData;
+  questionText?: string;
+}> = ({ visualData, revealVisual, isReveal, compact, questionText }) => {
+  const rd = visualData?.riddleData || (questionText ? {
+    riddleText: questionText.replace(/^Cyber\s*Riddle:\s*|^Riddle:\s*/i, '').replace(/^["']|["']$/g, ''),
+    hint: '',
+    enigmaTag: 'Cyber Riddle',
+    decodedTitle: 'Riddle Solved'
+  } : null);
   if (!rd) return null;
 
   return (
@@ -1350,6 +1365,7 @@ export const InteractiveQuestionVisual: React.FC<Props> = ({
           revealVisual={revealVisual}
           isReveal={isReveal}
           compact={compact}
+          questionText={questionText}
         />
       );
 
@@ -1360,6 +1376,7 @@ export const InteractiveQuestionVisual: React.FC<Props> = ({
           revealVisual={revealVisual}
           isReveal={isReveal}
           compact={compact}
+          questionText={questionText}
         />
       );
 
