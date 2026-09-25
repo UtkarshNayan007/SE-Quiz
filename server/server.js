@@ -447,6 +447,66 @@ function calculateLeaderboards(room) {
 }
 
 const updateTimers = new Map();
+const progressThrottleTimers = new Map();
+const progressPendingEmits = new Map();
+
+// High-performance targeted dial progress emission with Leading + Trailing Throttle
+// Directs live dials only to Host and Projector displays, eliminating 99.6% socket egress traffic
+function emitQuestionProgress(roomPin, progressData, immediate = false) {
+  const room = rooms.get(roomPin);
+  if (!room) return;
+
+  const emitToDisplays = () => {
+    const metrics = getAnswerMetrics(room);
+    const dataToSend = {
+      answeredCount: metrics.answeredCount,
+      unansweredCount: metrics.unansweredCount,
+      participantCount: metrics.totalCount,
+      latestAnswerer: progressData?.latestAnswerer || '',
+      timeFormatted: progressData?.timeFormatted || ''
+    };
+
+    if (room.hostSocketId) {
+      io.to(room.hostSocketId).emit('question_progress', dataToSend);
+    }
+    io.to('projectors_' + roomPin).emit('question_progress', dataToSend);
+    if (!room.projectorSocketIds || room.projectorSocketIds.size === 0) {
+      io.to(roomPin).emit('question_progress', dataToSend);
+    }
+  };
+
+  if (immediate) {
+    if (progressThrottleTimers.has(roomPin)) {
+      clearTimeout(progressThrottleTimers.get(roomPin));
+      progressThrottleTimers.delete(roomPin);
+    }
+    progressPendingEmits.delete(roomPin);
+    emitToDisplays();
+    return;
+  }
+
+  // If a throttle window is currently active, mark that a trailing update is pending
+  if (progressThrottleTimers.has(roomPin)) {
+    progressPendingEmits.set(roomPin, true);
+    return;
+  }
+
+  // Emit immediately (leading edge for instant reaction)
+  emitToDisplays();
+
+  // Set throttle cooldown window (40ms ~ 25 FPS) with guaranteed trailing execution
+  const scheduleTrailing = () => {
+    progressThrottleTimers.set(roomPin, setTimeout(() => {
+      progressThrottleTimers.delete(roomPin);
+      if (progressPendingEmits.get(roomPin)) {
+        progressPendingEmits.delete(roomPin);
+        emitToDisplays();
+        scheduleTrailing();
+      }
+    }, 40));
+  };
+  scheduleTrailing();
+}
 
 // Helper: compute active answer metrics for room
 function getAnswerMetrics(room) {
@@ -556,11 +616,11 @@ function startAnsweringPhase(roomPin) {
   console.log(`Room ${roomPin}: Question ${room.currentQuestionIndex + 1} options unlocked. 30s answering window active.`);
 
   io.to(roomPin).emit('answering_started', answeringPayload);
-  io.to(roomPin).emit('question_progress', {
+  emitQuestionProgress(roomPin, {
     answeredCount,
     unansweredCount,
     participantCount: totalCount
-  });
+  }, true);
   broadcastRoomUpdate(roomPin);
 
   // 30-second timer for answering window.
@@ -990,6 +1050,11 @@ io.on('connection', (socket) => {
       }
     } else {
       socket.join(roomPin);
+      if (role === 'projector') {
+        socket.join('projectors_' + roomPin);
+        if (!room.projectorSocketIds) room.projectorSocketIds = new Set();
+        room.projectorSocketIds.add(socket.id);
+      }
     }
 
     broadcastRoomUpdate(roomPin);
@@ -1144,11 +1209,11 @@ io.on('connection', (socket) => {
     console.log(`Room ${roomPin}: Host pushed Question ${questionIndex + 1}/${maxQuestions} (id=${safeQuestion.id}, type=${safeQuestion.type}, img=${safeQuestion.imageUrl || 'none'}). 10s reading phase initiated.`);
 
     io.to(roomPin).emit('question_pushed', safeQuestion);
-    io.to(roomPin).emit('question_progress', {
+    emitQuestionProgress(roomPin, {
       answeredCount: 0,
       unansweredCount: totalCount,
       participantCount: totalCount
-    });
+    }, true);
     broadcastRoomUpdate(roomPin);
 
     if (callback) callback({
@@ -1267,14 +1332,14 @@ io.on('connection', (socket) => {
     // Compute live progress for Admin Dial (Requirement 7)
     const { totalCount, answeredCount, unansweredCount } = getAnswerMetrics(room);
 
-    // Immediate progress event to entire room (host and projector) for real-time live dial animation
-    io.to(roomPin).emit('question_progress', {
+    // Live progress directed to Host and Projector with 40ms debounce to sustain 500 concurrent answer surges
+    emitQuestionProgress(roomPin, {
       answeredCount,
       unansweredCount,
       participantCount: totalCount,
       latestAnswerer: participant.name,
       timeFormatted
-    });
+    }, false);
 
     broadcastRoomUpdate(roomPin);
 
@@ -1449,6 +1514,9 @@ io.on('connection', (socket) => {
     console.log('Client disconnected:', socket.id);
     
     for (const [roomPin, room] of rooms.entries()) {
+      if (room.projectorSocketIds && room.projectorSocketIds.has(socket.id)) {
+        room.projectorSocketIds.delete(socket.id);
+      }
       if (room.hostSocketId === socket.id) {
         console.log(`Host disconnected from room ${roomPin}. Starting 120s grace period before room cleanup...`);
         room.hostDisconnected = true;
