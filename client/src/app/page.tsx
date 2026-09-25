@@ -64,10 +64,10 @@ export default function LandingPage() {
             />
             <div className="border-l-2 border-slate-200 pl-3">
               <h1 className="text-xs sm:text-sm font-black tracking-wider text-schneider-brand uppercase">
-                CCSH MSS OPERATIONS
+                Cyber Security Awareness Day
               </h1>
               <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                Cyber Security Awareness Day
+                Cyber Day 2026
               </p>
             </div>
           </div>

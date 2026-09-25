@@ -481,7 +481,7 @@ export default function HostDashboard() {
               />
             </div>
             <h1 className="text-2xl font-bold text-white">Admin Access Gate</h1>
-            <p className="text-xs font-bold text-[#00E676] uppercase tracking-widest mt-1">CCSH MSS OPERATIONS • Cyber Day 2026</p>
+            <p className="text-xs font-bold text-[#00E676] uppercase tracking-widest mt-1">Cyber Day 2026</p>
           </div>
 
           {authError && (
@@ -575,10 +575,10 @@ export default function HostDashboard() {
           />
           <div className="border-l-2 border-slate-300 pl-3">
             <h1 className="text-xs sm:text-sm font-black tracking-wider text-[#009639] uppercase">
-              CCSH MSS OPERATIONS
+              Cyber Security Awareness Day
             </h1>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hidden sm:block">
-              Cyber Security Awareness Day
+              Cyber Day 2026
             </p>
           </div>
         </div>

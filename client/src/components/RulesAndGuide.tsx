@@ -582,7 +582,7 @@ export function ProjectorRulesGuide({
               Tournament Briefing & Rules
             </h2>
             <p className="text-xs text-[#009639] font-bold uppercase tracking-wider">
-              Schneider Electric • CCSH MSS OPERATIONS
+              Schneider Electric • Cyber Day 2026
             </p>
           </div>
         </div>

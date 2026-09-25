@@ -256,7 +256,7 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
       ctx.textAlign = 'center';
       ctx.fillStyle = '#00E676';
       ctx.font = 'bold 36px "Outfit", sans-serif';
-      ctx.fillText('SCHNEIDER ELECTRIC • CCSH MSS OPERATIONS', 540, 180);
+      ctx.fillText('SCHNEIDER ELECTRIC', 540, 180);
 
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '900 68px "Cinzel", serif';

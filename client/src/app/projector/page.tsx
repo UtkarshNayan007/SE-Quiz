@@ -257,7 +257,7 @@ function ProjectorComponent() {
             />
           </div>
           <h2 className="text-2xl font-black mb-1 text-slate-900">Projector Display</h2>
-          <p className="text-xs font-bold text-[#009639] uppercase tracking-widest mb-4">CCSH MSS OPERATIONS • Cyber Day 2026</p>
+          <p className="text-xs font-bold text-[#009639] uppercase tracking-widest mb-4">Cyber Day 2026</p>
           <p className="text-slate-600 text-sm mb-6">Enter the 6-digit Room PIN created on the Host Dashboard to launch the stage screen view.</p>
 
           <form onSubmit={(e) => {
@@ -298,10 +298,10 @@ function ProjectorComponent() {
           />
           <div className="border-l-2 border-slate-300 pl-3.5">
             <h1 className="text-base lg:text-lg font-black tracking-wider text-[#009639] uppercase">
-              CCSH MSS OPERATIONS
+              Cyber Security Awareness Day
             </h1>
             <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
-              Cyber Security Awareness Day
+              Cyber Day 2026
             </p>
           </div>
         </div>
