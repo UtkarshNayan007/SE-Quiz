@@ -8,8 +8,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Schneider Electric MSS - Fastest Finger First',
-  description: 'Real-Time Cybersecurity MCQ Quiz Application for Schneider Electric Managed Security Services Team',
+  title: 'Schneider Electric - Cyber Day 2026',
+  description: 'Cyber Day 2026 - Beyond Compliance , Enabling Business.',
   icons: {
     icon: '/se-logo.png',
   },

@@ -437,7 +437,7 @@ export default function HostDashboard() {
     if (format === 'pdf') {
       generateLeaderboardPDF({
         roomPin: pin,
-        eventName: 'Schneider Electric - Cyber Security Awareness',
+        eventName: 'Schneider Electric - Cyber Day 2026',
         exportedAt: new Date().toLocaleString(),
         grandChampion: grandChamp || null,
         top3: resultsData.top3 || [],
@@ -456,7 +456,7 @@ export default function HostDashboard() {
     };
 
     const csvRows: string[][] = [
-      ['# Schneider Electric - Cyber Security Awareness Official Results'],
+      ['# Schneider Electric - Cyber Day 2026 Official Results'],
       [`# Room PIN: ${pin}`],
       [`# Export Date: ${new Date().toLocaleString()}`],
       [`# Grand Champion: ${grandChamp?.name || 'TBD'} (#${grandChamp?.badgeNumber || 'N/A'}) - Score: ${grandChamp?.score ?? 0} pts (${grandChamp?.correctCount ?? 0} Correct)`],
@@ -659,10 +659,10 @@ export default function HostDashboard() {
           />
           <div className="border-l-2 border-slate-300 dark:border-slate-700 pl-3">
             <h1 className="text-xs sm:text-sm font-black tracking-wider text-[#009639] dark:text-[#00E676] uppercase">
-              Cyber Security Awareness
+              Cyber day 2026
             </h1>
-            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest hidden sm:block">
-              Cyber Day 2026
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wide hidden sm:block">
+              Beyond Compliance , Enabling Business.
             </p>
           </div>
         </div>

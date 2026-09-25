@@ -113,13 +113,13 @@ export function generateLeaderboardPDF(data: PDFReportData): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(darkSlate[0], darkSlate[1], darkSlate[2]);
-  doc.text('Cyber Security Awareness', margin, 21);
+  doc.text('Cyber Day 2026', margin, 21);
 
   // Subtitle / Tagline
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-  doc.text('CYBER DAY 2026 • OFFICIAL TOURNAMENT RESULTS', margin, 26.5);
+  doc.text('BEYOND COMPLIANCE , ENABLING BUSINESS.', margin, 26.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);

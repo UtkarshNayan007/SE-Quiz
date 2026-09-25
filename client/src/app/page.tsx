@@ -65,10 +65,10 @@ export default function LandingPage() {
             />
             <div className="border-l-2 border-slate-200 dark:border-slate-700 pl-3">
               <h1 className="text-xs sm:text-sm font-black tracking-wider text-schneider-brand dark:text-schneider-green uppercase">
-                Cyber Security Awareness
+                Cyber day 2026
               </h1>
-              <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                Cyber Day 2026
+              <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wide">
+                Beyond Compliance , Enabling Business.
               </p>
             </div>
           </div>
@@ -78,10 +78,6 @@ export default function LandingPage() {
               alt="Cyber Security Shield"
               className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-md transition-transform hover:scale-105"
             />
-            <div className="hidden md:flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-950/60 text-schneider-darkgreen dark:text-emerald-300 px-3.5 py-2 rounded-full text-xs font-bold border border-emerald-200 dark:border-emerald-800/60 shadow-sm">
-              <ShieldCheck className="w-4 h-4 text-schneider-green" />
-              <span>Fastest Finger First • Live Local Network</span>
-            </div>
             <ThemeToggle showLabel={false} />
           </div>
         </div>
