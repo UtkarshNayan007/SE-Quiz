@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { InteractiveQuestionVisual } from '../../components/InteractiveQuestionVisual';
 import ThemeToggle from '@/components/ThemeToggle';
+import { generateLeaderboardPDF } from '../../lib/pdfReportGenerator';
 
 const deduplicateParticipants = (list: any[]) => {
   if (!Array.isArray(list)) return [];
@@ -421,7 +422,7 @@ export default function HostDashboard() {
     });
   };
 
-  const handleDownloadResults = (format: 'csv' | 'json' = 'csv') => {
+  const handleDownloadResults = (format: 'csv' | 'pdf' = 'pdf') => {
     const resultsData = finalResults;
     if (!resultsData) {
       alert('Results are not ready to download yet.');
@@ -433,24 +434,15 @@ export default function HostDashboard() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const grandChamp = resultsData.grandChampion || resultsData.championByScore || resultsData.champion;
 
-    if (format === 'json') {
-      const payload = {
-        event: 'Schneider Electric - Cyber Security Awareness',
+    if (format === 'pdf') {
+      generateLeaderboardPDF({
         roomPin: pin,
-        exportedAt: new Date().toISOString(),
+        eventName: 'Schneider Electric - Cyber Security Awareness',
+        exportedAt: new Date().toLocaleString(),
         grandChampion: grandChamp || null,
         top3: resultsData.top3 || [],
-        leaderboard: participants
-      };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `SE_Cyber_Security_Awareness_Results_${pin}_${timestamp}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        participants
+      });
       return;
     }
 
@@ -761,12 +753,22 @@ export default function HostDashboard() {
 
               <button
                 type="button"
+                onClick={() => handleDownloadResults('pdf')}
+                className="w-full sm:w-auto bg-gradient-to-r from-[#009639] to-emerald-600 hover:from-[#008030] hover:to-emerald-500 text-white px-5 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
+                title="Download official quiz leaderboard report as PDF"
+              >
+                <FileText className="w-4 h-4 text-white" />
+                <span>Download Results (PDF)</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => handleDownloadResults('csv')}
                 className="w-full sm:w-auto bg-slate-800/90 hover:bg-slate-700 text-white px-5 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border border-emerald-500/40 hover:border-emerald-400 transition-all shadow-md active:scale-95 cursor-pointer"
                 title="Download complete quiz leaderboard results as CSV spreadsheet"
               >
                 <Download className="w-4 h-4 text-emerald-400" />
-                <span>Download Results (CSV)</span>
+                <span>Download (CSV)</span>
               </button>
             </div>
           </div>
@@ -915,21 +917,21 @@ export default function HostDashboard() {
                 </span>
                 <button
                   type="button"
+                  onClick={() => handleDownloadResults('pdf')}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 px-3.5 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95"
+                  title="Download Official PDF Leaderboard Report"
+                >
+                  <FileText className="w-3.5 h-3.5 text-white" />
+                  <span>Download PDF</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => handleDownloadResults('csv')}
                   className="bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-schneider-darkgreen dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95"
                   title="Download CSV Spreadsheet"
                 >
                   <Download className="w-3.5 h-3.5 text-schneider-brand dark:text-emerald-400" />
                   <span>Download CSV</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDownloadResults('json')}
-                  className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95"
-                  title="Download JSON data"
-                >
-                  <FileText className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                  <span>JSON</span>
                 </button>
               </div>
             </div>
