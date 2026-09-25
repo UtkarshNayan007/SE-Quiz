@@ -29,7 +29,7 @@ export default function RootLayout({
               (function() {
                 try {
                   var saved = localStorage.getItem('se-quiz-theme');
-                  if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  if (saved === 'dark') {
                     document.documentElement.classList.add('dark');
                   } else {
                     document.documentElement.classList.remove('dark');

@@ -14,7 +14,16 @@ export default function ThemeToggle({ className = '', showLabel = false }: Theme
 
   useEffect(() => {
     setMounted(true);
-    const isCurrentlyDark = document.documentElement.classList.contains('dark');
+    let isCurrentlyDark = false;
+    try {
+      isCurrentlyDark = localStorage.getItem('se-quiz-theme') === 'dark';
+    } catch (e) {}
+
+    if (isCurrentlyDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
     setIsDark(isCurrentlyDark);
 
     const handleThemeChange = (e: Event) => {

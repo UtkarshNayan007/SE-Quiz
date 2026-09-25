@@ -549,35 +549,35 @@ export default function HostDashboard() {
   if (!isAuthenticated) {
     if (isRestoring) {
       return (
-        <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex items-center justify-center p-4">
           <div className="flex flex-col items-center gap-4 text-center">
-            <RefreshCw className="w-10 h-10 text-[#00E676] animate-spin" />
-            <p className="text-base font-semibold text-slate-300">Restoring Host Dashboard...</p>
+            <RefreshCw className="w-10 h-10 text-[#009639] dark:text-[#00E676] animate-spin" />
+            <p className="text-base font-semibold text-slate-600 dark:text-slate-300">Restoring Host Dashboard...</p>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4 relative">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white flex items-center justify-center p-4 relative transition-colors duration-200">
         <div className="absolute top-4 right-4">
           <ThemeToggle />
         </div>
-        <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-8 space-y-6">
+        <div className="w-full max-w-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl p-8 space-y-6">
           <div className="flex flex-col items-center text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <img
                 src="/se-logo.png"
                 alt="Schneider Electric"
-                className="h-11 sm:h-13 w-auto object-contain drop-shadow-sm brightness-110"
+                className="h-11 sm:h-13 w-auto object-contain drop-shadow-sm brightness-100 dark:brightness-110"
               />
             </div>
-            <h1 className="text-2xl font-bold text-white">Admin Access Gate</h1>
-            <p className="text-xs font-bold text-[#00E676] uppercase tracking-widest mt-1">Cyber Day 2026</p>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Admin Access Gate</h1>
+            <p className="text-xs font-bold text-[#009639] dark:text-[#00E676] uppercase tracking-widest mt-1">Cyber Day 2026</p>
           </div>
 
           {authError && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold p-3.5 rounded-xl text-center">
+            <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 text-xs font-semibold p-3.5 rounded-xl text-center">
               {authError}
             </div>
           )}
@@ -595,7 +595,7 @@ export default function HostDashboard() {
             className="space-y-4"
           >
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                 Host Admin Passcode
               </label>
               <input
@@ -603,14 +603,14 @@ export default function HostDashboard() {
                 placeholder="Enter passcode"
                 value={passcode}
                 onChange={(e) => { setPasscode(e.target.value); setAuthError(''); }}
-                className="w-full px-4 py-3.5 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono text-center text-lg tracking-widest focus:ring-2 focus:ring-[#00E676] focus:outline-none transition"
+                className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-mono text-center text-lg tracking-widest focus:ring-2 focus:ring-[#00E676] focus:outline-none transition"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#009639] hover:bg-[#00E676] text-white font-bold py-3.5 rounded-xl text-base flex items-center justify-center gap-2 shadow-lg transition-colors disabled:opacity-50"
+              className="w-full bg-[#009639] hover:bg-[#00E676] text-white font-bold py-3.5 rounded-xl text-base flex items-center justify-center gap-2 shadow-lg transition-colors disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
                 <RefreshCw className="w-5 h-5 animate-spin" />
