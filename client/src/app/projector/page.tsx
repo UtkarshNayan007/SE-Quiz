@@ -8,6 +8,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 import { ProjectorRulesGuide } from '../../components/RulesAndGuide';
 import { InteractiveQuestionVisual } from '../../components/InteractiveQuestionVisual';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface Question {
   id?: number;
@@ -247,18 +248,21 @@ function ProjectorComponent() {
 
   if (!roomPin) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center font-sans p-6">
-        <div className="bg-white border border-slate-200 p-8 rounded-3xl max-w-md w-full text-center shadow-xl">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex items-center justify-center font-sans p-6 relative transition-colors">
+        <div className="absolute top-6 right-6">
+          <ThemeToggle />
+        </div>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-3xl max-w-md w-full text-center shadow-xl">
           <div className="flex items-center justify-center gap-3 mb-4">
             <img
               src="/se-logo.png"
               alt="Schneider Electric"
-              className="h-12 sm:h-14 w-auto object-contain drop-shadow-sm"
+              className="h-12 sm:h-14 w-auto object-contain drop-shadow-sm brightness-100 dark:brightness-110"
             />
           </div>
-          <h2 className="text-2xl font-black mb-1 text-slate-900">Projector Display</h2>
-          <p className="text-xs font-bold text-[#009639] uppercase tracking-widest mb-4">Cyber Day 2026</p>
-          <p className="text-slate-600 text-sm mb-6">Enter the 6-digit Room PIN created on the Host Dashboard to launch the stage screen view.</p>
+          <h2 className="text-2xl font-black mb-1 text-slate-900 dark:text-white">Projector Display</h2>
+          <p className="text-xs font-bold text-[#009639] dark:text-[#00E676] uppercase tracking-widest mb-4">Cyber Security Awareness</p>
+          <p className="text-slate-600 dark:text-slate-300 text-sm mb-6">Enter the 6-digit Room PIN created on the Host Dashboard to launch the stage screen view.</p>
 
           <form onSubmit={(e) => {
             e.preventDefault();
@@ -270,11 +274,11 @@ function ProjectorComponent() {
               onChange={(e) => setInputPin(e.target.value.toUpperCase())}
               placeholder="e.g. 123456"
               maxLength={6}
-              className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-300 text-[#009639] font-mono text-center text-3xl font-black tracking-widest outline-none focus:ring-2 focus:ring-[#00E676] transition"
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[#009639] dark:text-[#00E676] font-mono text-center text-3xl font-black tracking-widest outline-none focus:ring-2 focus:ring-[#00E676] transition"
             />
             <button
               type="submit"
-              className="w-full bg-[#009639] hover:bg-[#00E676] text-white font-bold py-3.5 rounded-xl transition-colors shadow-md"
+              className="w-full bg-[#009639] hover:bg-[#00E676] text-white font-bold py-3.5 rounded-xl transition-colors shadow-md cursor-pointer"
             >
               Launch Projector Screen
             </button>
@@ -287,48 +291,50 @@ function ProjectorComponent() {
   const optionLabels = ['A', 'B', 'C', 'D'];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans overflow-hidden transition-colors">
       {/* SCHNEIDER ELECTRIC BRANDED HEADER */}
-      <header className="flex items-center justify-between p-5 bg-white border-b-4 border-[#00E676] shadow-sm shrink-0">
+      <header className="flex items-center justify-between p-5 bg-white dark:bg-slate-900 border-b-4 border-[#00E676] shadow-sm shrink-0 border border-slate-200 dark:border-slate-800 transition-colors">
         <div className="flex items-center gap-4">
           <img
             src="/se-logo.png"
             alt="Schneider Electric"
-            className="h-11 lg:h-13 w-auto object-contain drop-shadow-sm"
+            className="h-11 lg:h-13 w-auto object-contain drop-shadow-sm brightness-100 dark:brightness-110"
           />
-          <div className="border-l-2 border-slate-300 pl-3.5">
-            <h1 className="text-base lg:text-lg font-black tracking-wider text-[#009639] uppercase">
-              Cyber Security Awareness Day
+          <div className="border-l-2 border-slate-300 dark:border-slate-700 pl-3.5">
+            <h1 className="text-base lg:text-lg font-black tracking-wider text-[#009639] dark:text-[#00E676] uppercase">
+              Cyber Security Awareness
             </h1>
-            <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
-              Cyber Day 2026
+            <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">
+              Schneider Electric
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 lg:gap-4">
           <img
             src="/cyber-shield-logo.png"
             alt="Cyber Security Shield"
-            className="w-14 h-14 lg:w-16 lg:h-16 object-contain drop-shadow-md"
+            className="w-13 h-13 lg:w-15 lg:h-15 object-contain drop-shadow-md"
           />
 
-          <div className="flex items-center gap-2.5 bg-slate-100 border border-slate-300 py-2 px-5 rounded-full shadow-sm">
-            <HelpCircle className="w-5 h-5 text-[#009639]" />
-            <span className="text-xl font-bold font-mono text-slate-800">{totalQuestions}</span>
-            <span className="text-slate-600 uppercase text-xs font-extrabold tracking-wider">Questions</span>
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 py-2 px-4 rounded-full shadow-sm">
+            <HelpCircle className="w-5 h-5 text-[#009639] dark:text-[#00E676]" />
+            <span className="text-lg lg:text-xl font-bold font-mono text-slate-800 dark:text-white">{totalQuestions}</span>
+            <span className="text-slate-600 dark:text-slate-400 uppercase text-xs font-extrabold tracking-wider">Questions</span>
           </div>
 
-          <div className="flex items-center gap-3 bg-[#00E676]/20 py-2 px-6 rounded-full border border-[#009639]/30">
-            <Users className="w-6 h-6 text-[#009639]" />
-            <span className="text-2xl font-bold font-mono text-[#009639]">{participantCount}</span>
-            <span className="text-[#009639] uppercase text-xs font-extrabold tracking-wider">Players</span>
+          <div className="flex items-center gap-2.5 bg-[#00E676]/20 dark:bg-emerald-950/60 py-2 px-5 rounded-full border border-[#009639]/30 dark:border-emerald-700/50">
+            <Users className="w-5 h-5 text-[#009639] dark:text-emerald-400" />
+            <span className="text-xl lg:text-2xl font-bold font-mono text-[#009639] dark:text-emerald-400">{participantCount}</span>
+            <span className="text-[#009639] dark:text-emerald-400 uppercase text-xs font-extrabold tracking-wider">Players</span>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-100 border border-slate-300 py-2 px-8 rounded-full shadow-sm">
-            <Hash className="w-6 h-6 text-slate-700" />
-            <span className="text-3xl font-black font-mono tracking-widest text-slate-800">{roomPin}</span>
+          <div className="flex items-center gap-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 py-2 px-6 rounded-full shadow-sm">
+            <Hash className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+            <span className="text-2xl lg:text-3xl font-black font-mono tracking-widest text-slate-800 dark:text-white">{roomPin}</span>
           </div>
+
+          <ThemeToggle showLabel={false} />
         </div>
       </header>
 
@@ -337,25 +343,25 @@ function ProjectorComponent() {
         {/* LOBBY STATE (QR Code & Join Info) */}
         {gameState === 'LOBBY' && !showRulesInLobby && (
           <div className="flex-grow flex flex-col items-center justify-center max-w-5xl mx-auto w-full">
-            <div className="bg-white border-2 border-slate-200 rounded-3xl p-14 w-full max-w-4xl flex flex-col md:flex-row items-center gap-14 shadow-xl relative overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-14 w-full max-w-4xl flex flex-col md:flex-row items-center gap-14 shadow-xl relative overflow-hidden transition-colors">
               <div className="flex-1 text-center md:text-left z-10">
-                <ShieldCheck className="w-20 h-20 text-[#009639] mb-6 mx-auto md:mx-0" />
-                <h2 className="text-5xl font-black mb-6 leading-tight text-slate-900">
+                <ShieldCheck className="w-20 h-20 text-[#009639] dark:text-[#00E676] mb-6 mx-auto md:mx-0" />
+                <h2 className="text-5xl font-black mb-6 leading-tight text-slate-900 dark:text-white">
                   Fastest Finger First <br/>
-                  <span className="text-[#009639]">MCQ Challenge</span>
+                  <span className="text-[#009639] dark:text-[#00E676]">MCQ Challenge</span>
                 </h2>
-                <p className="text-xl text-slate-600 mb-8 font-medium">Scan the QR code to join on your mobile device and prepare for the quiz round.</p>
+                <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 font-medium">Scan the QR code to join on your mobile device and prepare for the quiz round.</p>
                 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className="inline-flex items-center gap-4 bg-slate-50 border border-slate-300 py-3.5 px-7 rounded-2xl shadow-inner">
-                    <span className="text-slate-600 text-sm uppercase tracking-widest font-bold">Room Join PIN</span>
-                    <span className="text-3xl font-black font-mono text-[#009639]">{roomPin}</span>
+                  <div className="inline-flex items-center gap-4 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 py-3.5 px-7 rounded-2xl shadow-inner">
+                    <span className="text-slate-600 dark:text-slate-400 text-sm uppercase tracking-widest font-bold">Room Join PIN</span>
+                    <span className="text-3xl font-black font-mono text-[#009639] dark:text-[#00E676]">{roomPin}</span>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setShowRulesInLobby(true)}
-                    className="inline-flex items-center gap-2 bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white text-xs font-black px-4 py-3.5 rounded-2xl shadow transition-all"
+                    className="inline-flex items-center gap-2 bg-[#009639] hover:bg-[#00E676] hover:text-slate-950 text-white text-xs font-black px-4 py-3.5 rounded-2xl shadow transition-all cursor-pointer"
                   >
                     <BookOpen className="w-4 h-4" />
                     <span>View Rules & Interface Guide</span>
@@ -486,99 +492,99 @@ function ProjectorComponent() {
             {/* Top 3 Podium Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* 1st Place */}
-              <div className="bg-gradient-to-b from-amber-50 to-white border-2 border-amber-300 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
+              <div className="bg-gradient-to-b from-amber-50 to-white dark:from-amber-950/30 dark:to-slate-900 border-2 border-amber-300 dark:border-amber-700/60 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-black uppercase tracking-wider text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
+                    <span className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 px-3 py-1 rounded-full">
                       🥇 1st Place (Champion)
                     </span>
                     <Crown className="w-6 h-6 text-amber-500" />
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-2xl font-black text-slate-900 truncate">
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white truncate">
                       {publishedResults.top3?.[0]?.name || publishedResults.grandChampion?.name || publishedResults.champion?.name || 'TBD'}
                     </h3>
                     {(publishedResults.top3?.[0]?.badgeNumber || publishedResults.grandChampion?.badgeNumber || publishedResults.champion?.badgeNumber) && (
-                      <span className="shrink-0 font-mono font-bold text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                      <span className="shrink-0 font-mono font-bold text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
                         #{publishedResults.top3?.[0]?.badgeNumber || publishedResults.grandChampion?.badgeNumber || publishedResults.champion?.badgeNumber}
                       </span>
                     )}
                   </div>
                   <div className="mt-3 flex items-center gap-3">
-                    <span className="text-3xl font-mono font-black text-[#009639]">
+                    <span className="text-3xl font-mono font-black text-[#009639] dark:text-[#00E676]">
                       {publishedResults.top3?.[0]?.score ?? publishedResults.champion?.score ?? 0} pts
                     </span>
-                    <span className="text-xs font-bold text-slate-500">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                       ({publishedResults.top3?.[0]?.correctCount ?? publishedResults.champion?.correctCount ?? 0} Correct)
                     </span>
                   </div>
-                  <p className="text-xs font-mono text-slate-500 mt-1">
+                  <p className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1">
                     Speed: {publishedResults.top3?.[0]?.totalTimeFormatted || publishedResults.champion?.totalTimeFormatted || '--'}
                   </p>
                 </div>
               </div>
 
               {/* 2nd Place */}
-              <div className="bg-gradient-to-b from-slate-50 to-white border-2 border-slate-200 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
+              <div className="bg-gradient-to-b from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
                       🥈 2nd Place (Runner-Up)
                     </span>
                     <Trophy className="w-6 h-6 text-slate-400" />
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-2xl font-black text-slate-900 truncate">
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white truncate">
                       {publishedResults.top3?.[1]?.name || publishedResults.runnerUp?.name || 'TBD'}
                     </h3>
                     {(publishedResults.top3?.[1]?.badgeNumber || publishedResults.runnerUp?.badgeNumber) && (
-                      <span className="shrink-0 font-mono font-bold text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 border border-slate-300">
+                      <span className="shrink-0 font-mono font-bold text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600">
                         #{publishedResults.top3?.[1]?.badgeNumber || publishedResults.runnerUp?.badgeNumber}
                       </span>
                     )}
                   </div>
                   <div className="mt-3 flex items-center gap-3">
-                    <span className="text-3xl font-mono font-black text-slate-700">
+                    <span className="text-3xl font-mono font-black text-slate-700 dark:text-slate-200">
                       {publishedResults.top3?.[1]?.score ?? publishedResults.runnerUp?.score ?? 0} pts
                     </span>
-                    <span className="text-xs font-bold text-slate-500">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                       ({publishedResults.top3?.[1]?.correctCount ?? publishedResults.runnerUp?.correctCount ?? 0} Correct)
                     </span>
                   </div>
-                  <p className="text-xs font-mono text-slate-500 mt-1">
+                  <p className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1">
                     Speed: {publishedResults.top3?.[1]?.totalTimeFormatted || publishedResults.runnerUp?.totalTimeFormatted || '--'}
                   </p>
                 </div>
               </div>
 
               {/* 3rd Place */}
-              <div className="bg-gradient-to-b from-amber-50/40 to-white border-2 border-amber-200/70 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
+              <div className="bg-gradient-to-b from-amber-50/40 to-white dark:from-amber-950/20 dark:to-slate-900 border-2 border-amber-200/70 dark:border-amber-800/40 rounded-3xl p-6 shadow-lg flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-black uppercase tracking-wider text-amber-900 bg-amber-100/70 px-3 py-1 rounded-full">
+                    <span className="text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-950/50 px-3 py-1 rounded-full">
                       🥉 3rd Place
                     </span>
                     <Award className="w-6 h-6 text-amber-700" />
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-2xl font-black text-slate-900 truncate">
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white truncate">
                       {publishedResults.top3?.[2]?.name || publishedResults.thirdPlace?.name || 'TBD'}
                     </h3>
                     {(publishedResults.top3?.[2]?.badgeNumber || publishedResults.thirdPlace?.badgeNumber) && (
-                      <span className="shrink-0 font-mono font-bold text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                      <span className="shrink-0 font-mono font-bold text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
                         #{publishedResults.top3?.[2]?.badgeNumber || publishedResults.thirdPlace?.badgeNumber}
                       </span>
                     )}
                   </div>
                   <div className="mt-3 flex items-center gap-3">
-                    <span className="text-3xl font-mono font-black text-amber-800">
+                    <span className="text-3xl font-mono font-black text-amber-800 dark:text-amber-300">
                       {publishedResults.top3?.[2]?.score ?? publishedResults.thirdPlace?.score ?? 0} pts
                     </span>
-                    <span className="text-xs font-bold text-slate-500">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                       ({publishedResults.top3?.[2]?.correctCount ?? publishedResults.thirdPlace?.correctCount ?? 0} Correct)
                     </span>
                   </div>
-                  <p className="text-xs font-mono text-slate-500 mt-1">
+                  <p className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1">
                     Speed: {publishedResults.top3?.[2]?.totalTimeFormatted || publishedResults.thirdPlace?.totalTimeFormatted || '--'}
                   </p>
                 </div>
@@ -586,20 +592,20 @@ function ProjectorComponent() {
             </div>
 
             {/* Official Final Leaderboard Table */}
-            <div className="bg-white border-2 border-slate-200 rounded-3xl p-6 shadow-lg">
+            <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-lg">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <Trophy className="w-6 h-6 text-amber-500" />
                   <span>Official Final Leaderboard</span>
                 </h3>
-                <span className="text-xs font-extrabold uppercase bg-slate-100 text-slate-600 px-3 py-1 rounded-full">
+                <span className="text-xs font-extrabold uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-3 py-1 rounded-full">
                   Ranked by Score • Tie-breaker: Faster Response Time
                 </span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b text-xs text-slate-400 uppercase font-extrabold">
+                    <tr className="border-b dark:border-slate-800 text-xs text-slate-400 dark:text-slate-500 uppercase font-extrabold">
                       <th className="pb-3">Rank</th>
                       <th className="pb-3">Participant</th>
                       <th className="pb-3 text-center">Correct</th>
@@ -609,37 +615,37 @@ function ProjectorComponent() {
                       <th className="pb-3 text-right">Tie-Breaker</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-base">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70 text-base">
                     {(publishedResults.leaderboard || publishedResults.leaderboardByScore)?.slice(0, 10).map((p: any, idx: number) => (
-                      <tr key={idx} className={idx === 0 ? 'bg-amber-50/60 font-bold' : ''}>
-                        <td className="py-3 font-mono text-sm font-black text-slate-500">
+                      <tr key={idx} className={idx === 0 ? 'bg-amber-50/60 dark:bg-amber-950/20 font-bold' : ''}>
+                        <td className="py-3 font-mono text-sm font-black text-slate-500 dark:text-slate-400">
                           {idx === 0 ? '🥇 #1' : idx === 1 ? '🥈 #2' : idx === 2 ? '🥉 #3' : `#${idx + 1}`}
                         </td>
-                        <td className="py-3 font-extrabold text-slate-900">
+                        <td className="py-3 font-extrabold text-slate-900 dark:text-white">
                           <div className="flex items-center gap-2">
                             <span>{p.name}</span>
                             {p.badgeNumber && (
-                              <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300">
+                              <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
                                 #{p.badgeNumber}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="py-3 text-center text-xs font-bold text-emerald-600">
+                        <td className="py-3 text-center text-xs font-bold text-emerald-600 dark:text-emerald-400">
                           {p.correctCount || 0}
                         </td>
                         <td className="py-3 text-center text-xs font-bold text-red-500">
                           {p.wrongCount || 0}
                         </td>
-                        <td className="py-3 text-right font-mono text-sm text-slate-500">{p.totalTimeFormatted || '--'}</td>
-                        <td className="py-3 text-right font-mono font-black text-xl text-[#009639]">{p.score} pts</td>
+                        <td className="py-3 text-right font-mono text-sm text-slate-500 dark:text-slate-400">{p.totalTimeFormatted || '--'}</td>
+                        <td className="py-3 text-right font-mono font-black text-xl text-[#009639] dark:text-[#00E676]">{p.score} pts</td>
                         <td className="py-3 text-right">
                           {p.tieBrokenByTime ? (
-                            <span className="text-[11px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                              <Zap className="w-3 h-3 text-blue-600" /> Faster Time
+                            <span className="text-[11px] bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 border border-blue-200 dark:border-blue-800">
+                              <Zap className="w-3 h-3 text-blue-600 dark:text-blue-400" /> Faster Time
                             </span>
                           ) : (
-                            <span className="text-slate-300 text-xs">-</span>
+                            <span className="text-slate-300 dark:text-slate-700 text-xs">-</span>
                           )}
                         </td>
                       </tr>
@@ -718,9 +724,9 @@ function ProjectorComponent() {
 
             {/* Question Text Card (Hidden for Riddle and Fill in the Blank since content is rendered directly in visual card) */}
             {!(currentQuestion.type === 'riddle' || currentQuestion.type === 'fill_in_the_blank') && (
-              <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 md:p-6 mb-4 shadow-md relative overflow-hidden shrink-0">
+              <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl p-5 md:p-6 mb-4 shadow-md relative overflow-hidden shrink-0">
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-[#009639]" />
-                <h2 className="text-2xl md:text-3xl font-black leading-snug text-slate-900">
+                <h2 className="text-2xl md:text-3xl font-black leading-snug text-slate-900 dark:text-white">
                   {currentQuestion.question}
                 </h2>
               </div>
@@ -758,22 +764,22 @@ function ProjectorComponent() {
                     key={index}
                     className={`
                       relative p-4 md:p-5 rounded-2xl border-2 flex items-center gap-4 transition-all duration-300
-                      ${isCorrect ? 'bg-[#00E676]/20 border-[#009639] shadow-lg z-10 scale-[1.01] text-[#009639]' : ''}
-                      ${isWrong ? 'bg-slate-50 border-slate-200 opacity-50 text-slate-400' : ''}
-                      ${!isCorrect && !isWrong ? 'bg-white border-slate-200 text-slate-800 shadow-sm' : ''}
+                      ${isCorrect ? 'bg-[#00E676]/20 border-[#009639] shadow-lg z-10 scale-[1.01] text-[#009639] dark:text-[#00E676]' : ''}
+                      ${isWrong ? 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-40 text-slate-400 dark:text-slate-600' : ''}
+                      ${!isCorrect && !isWrong ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 shadow-sm' : ''}
                     `}
                   >
                     <div className={`
                       flex items-center justify-center w-10 h-10 rounded-xl text-lg font-black shrink-0
-                      ${isCorrect ? 'bg-[#009639] text-white' : 'bg-slate-100 text-slate-700'}
+                      ${isCorrect ? 'bg-[#009639] text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'}
                     `}>
                       {optionLabels[index]}
                     </div>
-                    <span className={`text-lg md:text-xl font-bold ${isCorrect ? 'text-[#009639]' : 'text-slate-800'}`}>
+                    <span className={`text-lg md:text-xl font-bold ${isCorrect ? 'text-[#009639] dark:text-[#00E676]' : 'text-slate-800 dark:text-slate-100'}`}>
                       {cleanOptionText(option)}
                     </span>
                     {isCorrect && (
-                      <CheckCircle2 className="absolute right-5 w-8 h-8 text-[#009639]" />
+                      <CheckCircle2 className="absolute right-5 w-8 h-8 text-[#009639] dark:text-[#00E676]" />
                     )}
                   </div>
                 );
@@ -784,11 +790,11 @@ function ProjectorComponent() {
             {gameState === 'REVEAL' && revealResult && (
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5 shrink-0 mb-2">
                 {/* Official Explanation Card */}
-                <div className="md:col-span-5 bg-white border-2 border-slate-200 p-6 rounded-3xl flex flex-col justify-center shadow-md">
-                  <h4 className="text-xs uppercase tracking-widest text-[#009639] font-black mb-2 flex items-center gap-2">
+                <div className="md:col-span-5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 p-6 rounded-3xl flex flex-col justify-center shadow-md">
+                  <h4 className="text-xs uppercase tracking-widest text-[#009639] dark:text-[#00E676] font-black mb-2 flex items-center gap-2">
                     <HelpCircle className="w-4 h-4" /> Official Explanation
                   </h4>
-                  <p className="text-base text-slate-800 font-semibold leading-relaxed">
+                  <p className="text-base text-slate-800 dark:text-slate-200 font-semibold leading-relaxed">
                     {revealResult.explanation}
                   </p>
                 </div>
@@ -862,7 +868,7 @@ function ProjectorComponent() {
 
 export default function ProjectorPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center font-medium">Loading Projector Display...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex items-center justify-center font-medium">Loading Projector Display...</div>}>
       <ProjectorComponent />
     </Suspense>
   );

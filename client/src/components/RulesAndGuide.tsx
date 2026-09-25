@@ -74,7 +74,7 @@ export const QUIZ_RULES: RuleItem[] = [
     badge: 'Podium Awards',
     badgeColor: 'bg-amber-100 text-amber-900 border-amber-400',
     description: 'Only the Top 3 players by total score and quickest cumulative time will be celebrated as winners: 1st Place Champion, 1st Runner Up, and 2nd Runner Up.',
-    highlight: 'Compete for the Top 3 podium spots and official Cyber Day 2026 awards!'
+    highlight: 'Compete for the Top 3 podium spots and official Cyber Security Awareness awards!'
   }
 ];
 
@@ -200,7 +200,7 @@ export function ParticipantRulesGuide({
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden flex flex-col max-w-lg w-full mx-auto my-4 transition-all">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-w-lg w-full mx-auto my-4 transition-all">
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white p-5 relative">
         <div className="flex items-center justify-between">
@@ -211,7 +211,7 @@ export function ParticipantRulesGuide({
             <div>
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#00E676] uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Cyber Day 2026 Quiz</span>
+                <span>Cyber Security Awareness Quiz</span>
               </div>
               <h2 className="text-lg font-black tracking-tight text-white">Player Briefing & Guide</h2>
             </div>
@@ -261,9 +261,9 @@ export function ParticipantRulesGuide({
       <div className="p-5 flex-grow overflow-y-auto max-h-[68vh]">
         {activeTab === 'rules' ? (
           <div className="space-y-4">
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 text-center">
-              <p className="text-xs font-bold text-emerald-900 leading-relaxed">
-                🎯 Welcome to the official Schneider Electric Cyber Day 2026 Quiz! Please review the 5 core tournament rules below before the host starts the first question.
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-3.5 text-center">
+              <p className="text-xs font-bold text-emerald-900 dark:text-emerald-200 leading-relaxed">
+                🎯 Welcome to the official Schneider Electric Cyber Security Awareness Quiz! Please review the 5 core tournament rules below before the host starts the first question.
               </p>
             </div>
 
@@ -273,26 +273,26 @@ export function ParticipantRulesGuide({
                 return (
                   <div
                     key={rule.id}
-                    className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 hover:bg-emerald-50/40 hover:border-emerald-200 transition-all shadow-sm"
+                    className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-3.5 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all shadow-sm"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-[#009639] shrink-0 shadow-sm mt-0.5">
+                      <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[#009639] dark:text-[#00E676] shrink-0 shadow-sm mt-0.5">
                         <IconComponent className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-1">
-                          <h4 className="font-extrabold text-sm text-slate-900">
+                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
                             {idx + 1}. {rule.title}
                           </h4>
                           <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${rule.badgeColor}`}>
                             {rule.badge}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-600 leading-relaxed mb-1.5">
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-1.5">
                           {rule.description}
                         </p>
-                        <div className="bg-white/80 border border-slate-200 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-emerald-800 flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-[#009639] shrink-0" />
+                        <div className="bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#009639] dark:text-[#00E676] shrink-0" />
                           <span>{rule.highlight}</span>
                         </div>
                       </div>
@@ -398,7 +398,7 @@ export function ParticipantRulesGuide({
             <div className="bg-slate-900 text-white rounded-3xl p-4 border-4 border-slate-800 shadow-2xl relative overflow-hidden">
               {/* Simulated Phone Notch / Bar */}
               <div className="flex items-center justify-between text-[10px] text-slate-400 pb-2 border-b border-slate-800">
-                <span className="font-mono font-bold">CYBER DAY 2026</span>
+                <span className="font-mono font-bold">CYBER SECURITY 2026</span>
                 <div className="flex items-center gap-2">
                   <span className="bg-emerald-500/20 text-[#00E676] px-1.5 py-0.5 rounded font-bold">LIVE PREVIEW</span>
                 </div>
@@ -570,32 +570,32 @@ export function ProjectorRulesGuide({
   return (
     <div className="flex-grow flex flex-col justify-between max-w-7xl mx-auto w-full h-full">
       {/* Presentation Subheader */}
-      <div className="flex items-center justify-between mb-4 bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
+      <div className="flex items-center justify-between mb-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
         <div className="flex items-center gap-3.5">
           <img
             src="/cyber-shield-logo.png"
-            alt="Cyber Day 2026"
+            alt="Cyber Security Awareness"
             className="w-12 h-12 object-contain drop-shadow-sm"
           />
           <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               Tournament Briefing & Rules
             </h2>
-            <p className="text-xs text-[#009639] font-bold uppercase tracking-wider">
-              Schneider Electric • Cyber Day 2026
+            <p className="text-xs text-[#009639] dark:text-[#00E676] font-bold uppercase tracking-wider">
+              Schneider Electric • Cyber Security Awareness
             </p>
           </div>
         </div>
 
         {/* View Toggle */}
-        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
           <button
             type="button"
             onClick={() => setActiveTab('rules')}
             className={`py-2 px-5 rounded-lg text-sm font-black transition-all flex items-center gap-2 ${
               activeTab === 'rules'
                 ? 'bg-[#009639] text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <BookOpen className="w-4 h-4" />
@@ -607,7 +607,7 @@ export function ProjectorRulesGuide({
             className={`py-2 px-5 rounded-lg text-sm font-black transition-all flex items-center gap-2 ${
               activeTab === 'guide'
                 ? 'bg-[#009639] text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Smartphone className="w-4 h-4" />
@@ -624,13 +624,13 @@ export function ProjectorRulesGuide({
             return (
               <div
                 key={rule.id}
-                className={`bg-white border-2 border-slate-200 hover:border-[#009639] rounded-3xl p-6 shadow-lg flex flex-col justify-between transition-all group ${
+                className={`bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-[#009639] rounded-3xl p-6 shadow-lg flex flex-col justify-between transition-all group ${
                   idx === 0 ? 'md:col-span-2' : ''
                 }`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-[#009639] group-hover:scale-110 transition-transform shadow-inner">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-[#009639] dark:text-[#00E676] group-hover:scale-110 transition-transform shadow-inner">
                       <IconComp className="w-6 h-6" />
                     </div>
                     <span className={`text-xs font-black uppercase px-3 py-1 rounded-full border ${rule.badgeColor}`}>
@@ -638,16 +638,16 @@ export function ProjectorRulesGuide({
                     </span>
                   </div>
 
-                  <h3 className="text-xl font-black text-slate-900 mb-2">
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">
                     {idx + 1}. {rule.title}
                   </h3>
 
-                  <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
                     {rule.description}
                   </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2 text-xs font-bold text-[#009639]">
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-xs font-bold text-[#009639] dark:text-[#00E676]">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>{rule.highlight}</span>
                 </div>
@@ -657,7 +657,7 @@ export function ProjectorRulesGuide({
         </div>
       ) : (
         /* MOBILE INTERFACE GUIDE ON STAGE */
-        <div className="bg-white border-2 border-slate-200 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row items-center gap-8 flex-grow">
+        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row items-center gap-8 flex-grow">
           {/* Visual Phone Breakdown */}
           <div className="w-full md:w-5/12 bg-slate-950 text-white rounded-3xl p-5 border-4 border-slate-800 shadow-2xl relative">
             <div className="text-center pb-3 border-b border-slate-800 text-xs font-black tracking-widest text-[#00E676]">
@@ -736,9 +736,9 @@ export function ProjectorRulesGuide({
       )}
 
       {/* Stage Footer Status */}
-      <div className="mt-4 bg-white border border-slate-200 p-4 rounded-2xl flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-          <ShieldCheck className="w-4 h-4 text-[#009639]" />
+      <div className="mt-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+          <ShieldCheck className="w-4 h-4 text-[#009639] dark:text-[#00E676]" />
           <span>All players currently reviewing rules & interface guide on mobile devices.</span>
         </div>
 

@@ -128,8 +128,8 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
       if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
-            title: 'Schneider Electric Cyber Day 2026 Certificate',
-            text: `Official Cyber Day 2026 Certificate for ${toTitleCase(data.name || 'Participant')}`,
+            title: 'Schneider Electric Cyber Security Awareness Certificate',
+            text: `Official Cyber Security Awareness Certificate for ${toTitleCase(data.name || 'Participant')}`,
             files: [file]
           });
           showToast('Select "Save Image" to save directly to your Photos / Camera Roll!');
@@ -233,13 +233,13 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
 
       if (storyBlob) {
         const cleanName = toTitleCase(data.name || 'Participant').replace(/[^a-zA-Z0-9]/g, '_');
-        const filename = `Schneider_Electric_CyberDay2026_Story_${cleanName}.png`;
+        const filename = `Schneider_Electric_Cyber_Security_Awareness_Story_${cleanName}.png`;
         const file = new File([storyBlob], filename, { type: 'image/png' });
 
         if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
-              title: 'Schneider Electric Cyber Day 2026 Story',
+              title: 'Schneider Electric Cyber Security Awareness Story',
               text: caption,
               files: [file]
             });
@@ -296,7 +296,7 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-400 truncate">
-                Schneider Electric CCSH OT SOC MSSP • Cyber Day 2026
+                Schneider Electric CCSH OT SOC MSSP • Cyber Security Awareness
               </p>
             </div>
           </div>
@@ -361,7 +361,7 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
             {previewUrl ? (
               <img
                 src={previewUrl}
-                alt="Schneider Electric Cyber Day 2026 Certificate"
+                alt="Schneider Electric Cyber Security Awareness Certificate"
                 className={`max-w-full max-h-[440px] w-auto h-auto object-contain rounded-xl shadow-2xl transition-opacity duration-300 select-none ${
                   isRendering ? 'opacity-30' : 'opacity-100'
                 }`}
@@ -476,7 +476,7 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
             <div className="truncate pr-3">
               <span className="text-slate-400 block text-[10px] uppercase font-bold">Copy Caption for Social Media</span>
               <span className="text-slate-300 truncate block text-[11px] font-mono">
-                {`I am proud to share my Cyber Day 2026 Certificate with Schneider Electric CCSH OT SOC MSSP...`}
+                {`I am proud to share my Cyber Security Awareness Certificate with Schneider Electric CCSH OT SOC MSSP...`}
               </span>
             </div>
             <button

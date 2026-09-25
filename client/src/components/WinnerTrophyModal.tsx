@@ -182,7 +182,7 @@ export default function WinnerTrophyModal({
 
   const handleShareLinkedIn = () => {
     const badgeText = winner.badgeNumber ? ` (Verified Badge #${winner.badgeNumber})` : '';
-    const shareText = `🏆 Proud to announce that I won ${rankTitle}${badgeText} at Schneider Electric Cyber Day 2026! 🛡️⚡
+    const shareText = `🏆 Proud to announce that I won ${rankTitle}${badgeText} at Schneider Electric Cyber Security Awareness! 🛡️⚡
 
 Honored to take the podium with a score of ${winner.score} pts in the Fastest Finger First OT & Cyber Security Defense Championship at Avinya Campus, Bangalore.
 
@@ -191,7 +191,7 @@ Special thanks to the leadership and organizing team:
 • Abhinav Roy (GM CCSH OT SOC MSSP) - https://www.linkedin.com/in/abhinavroy07/
 • Padmasini Annadanam (CCSH OT SOC MSSP) - https://www.linkedin.com/in/padmasiniannadanam/
 
-#CyberDay2026 #SchneiderElectric #Winner #OTSecurity #CyberSecurity #CCSHOTSOC #LifeIsOn #BeyondComplianceEnablingBusiness`;
+#CyberSecurityAwareness #SchneiderElectric #Winner #OTSecurity #CyberSecurity #CCSHOTSOC #LifeIsOn #BeyondComplianceEnablingBusiness`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(shareText).catch(() => {});
@@ -206,13 +206,13 @@ Special thanks to the leadership and organizing team:
 
   const handleShareInstagram = async () => {
     const badgeLine = winner.badgeNumber ? `Verified Badge: #${winner.badgeNumber}\n` : '';
-    const caption = `🏆 ${rankTitle} | Cyber Day 2026
+    const caption = `🏆 ${rankTitle} | Cyber Security Awareness
 Schneider Electric CCSH OT SOC MSSP
 "Beyond Compliance. Enabling Business."
 📍 Avinya Campus, Bangalore
 ${badgeLine}Score: ${winner.score} pts
 Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
-#CyberDay2026 #SchneiderElectric #Champion #CCSHOTSOC #OTSecurity #CyberSecurity`;
+#CyberSecurityAwareness #SchneiderElectric #Champion #CCSHOTSOC #OTSecurity #CyberSecurity`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(caption).catch(() => {});
@@ -260,7 +260,7 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
 
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '900 68px "Cinzel", serif';
-      ctx.fillText('CYBER DAY 2026', 540, 270);
+      ctx.fillText('CYBER SECURITY 2026', 540, 270);
 
       ctx.fillStyle = '#94A3B8';
       ctx.font = '600 32px "Outfit", sans-serif';
@@ -300,13 +300,13 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
 
       ctx.fillStyle = '#00E676';
       ctx.font = 'bold 32px "Outfit", sans-serif';
-      ctx.fillText('#CyberDay2026 #SchneiderElectric #CCSHOTSOC', 540, 1670);
+      ctx.fillText('#CyberSecurityAwareness #SchneiderElectric #CCSHOTSOC', 540, 1670);
 
       canvas.toBlob((blob) => {
         if (!blob) return;
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.download = `CyberDay2026_Trophy_Rank${rank}_${winner.name.replace(/\s+/g, '_')}.png`;
+        link.download = `CyberSecurityAwareness_Trophy_Rank${rank}_${winner.name.replace(/\s+/g, '_')}.png`;
         link.href = url;
         document.body.appendChild(link);
         link.click();
@@ -385,11 +385,11 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
     ctx.lineWidth = 4;
     ctx.strokeRect(-140, 155, 280, 110);
 
-    // CYBER DAY 2026 Engraved on Plinth Plate
+    // CYBER SECURITY 2026 Engraved on Plinth Plate
     ctx.fillStyle = lightColor;
-    ctx.font = 'bold 26px "Cinzel", serif';
+    ctx.font = 'bold 24px "Cinzel", serif';
     ctx.textAlign = 'center';
-    ctx.fillText('CYBER DAY 2026', 0, 205);
+    ctx.fillText('CYBER SECURITY 2026', 0, 205);
 
     ctx.fillStyle = '#00E676';
     ctx.font = 'bold 18px "Space Grotesk", monospace';
@@ -537,9 +537,9 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
                 {/* Gold Engraved Plaque on Plinth */}
                 <rect x="85" y="268" width="150" height="49" rx="6" fill="#0B1329" stroke={trophyTheme.metalGradient[2]} strokeWidth="1.5" />
 
-                {/* MANDATORY ENGRAVING: CYBER DAY 2026 */}
-                <text x="160" y="288" textAnchor="middle" fill={trophyTheme.metalGradient[1]} fontSize="13" fontWeight="900" fontFamily="serif" letterSpacing="1">
-                  CYBER DAY 2026
+                {/* MANDATORY ENGRAVING: CYBER SECURITY 2026 */}
+                <text x="160" y="288" textAnchor="middle" fill={trophyTheme.metalGradient[1]} fontSize="11" fontWeight="900" fontFamily="serif" letterSpacing="0.5">
+                  CYBER SECURITY 2026
                 </text>
 
                 <text x="160" y="306" textAnchor="middle" fill="#00E676" fontSize="10" fontWeight="bold" fontFamily="monospace">
@@ -634,7 +634,7 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
           </div>
 
           <p className="text-[10px] text-slate-400">
-            Official award presented for Cyber Day 2026 by Schneider Electric CCSH OT SOC MSSP
+            Official award presented for Cyber Security Awareness by Schneider Electric CCSH OT SOC MSSP
           </p>
         </div>
       </div>
