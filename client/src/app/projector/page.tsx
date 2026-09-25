@@ -57,6 +57,7 @@ function ProjectorComponent() {
   const roomPin = searchParams.get('pin');
 
   const [participantCount, setParticipantCount] = useState(0);
+  const participantCountRef = useRef(0);
   const [totalQuestions, setTotalQuestions] = useState(10);
   const [gameState, setGameState] = useState<'LOBBY' | 'RULES' | 'READING' | 'ANSWERING' | 'REVEAL' | 'QUIZ_ENDED' | 'RESULTS_PUBLISHED'>('LOBBY');
   const [showRulesInLobby, setShowRulesInLobby] = useState(false);
@@ -126,6 +127,16 @@ function ProjectorComponent() {
         if (res.activeQuestion) setCurrentQuestion(res.activeQuestion);
         if (res.totalQuestions) setTotalQuestions(res.totalQuestions);
         if (res.answeringEnded) setIsAnsweringClosed(true);
+        const count = res.participantCount ?? 0;
+        if (count > 0) {
+          setParticipantCount(count);
+          participantCountRef.current = count;
+        }
+        setProgressData({
+          answeredCount: res.answeredCount ?? 0,
+          unansweredCount: res.unansweredCount ?? Math.max(0, count - (res.answeredCount ?? 0)),
+          participantCount: count
+        });
         if (res.resultsPublished && res.finalResults) {
           setGameState('RESULTS_PUBLISHED');
           setPublishedResults(res.finalResults);
@@ -134,23 +145,40 @@ function ProjectorComponent() {
     });
 
     socket.on('room_updated', (data: any) => {
-      setParticipantCount(data.participantCount || data.participants?.length || 0);
+      const count = data.participantCount !== undefined ? data.participantCount : (data.participants?.length || 0);
+      if (count > 0 || participantCountRef.current === 0) {
+        setParticipantCount(count);
+        participantCountRef.current = count;
+      }
+      if (data.answeredCount !== undefined || data.participantCount !== undefined) {
+        const effectiveTotal = count > 0 ? count : participantCountRef.current;
+        setProgressData(prev => ({
+          answeredCount: data.answeredCount ?? prev.answeredCount,
+          unansweredCount: data.unansweredCount ?? Math.max(0, effectiveTotal - (data.answeredCount ?? prev.answeredCount)),
+          participantCount: effectiveTotal || prev.participantCount
+        }));
+      }
       if (data.gameState) setGameState(data.gameState);
       if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
       if (data.answeringEnded !== undefined) setIsAnsweringClosed(Boolean(data.answeringEnded));
     });
 
-    socket.on('question_pushed', (data: Question) => {
+    socket.on('question_pushed', (data: any) => {
       setRevealResult(null);
       setIsAnsweringClosed(false);
       setCountdown(data.durationSeconds || 10);
       setCurrentQuestion(data);
       if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
       setGameState('READING');
+      const count = (data.participantCount && data.participantCount > 0) ? data.participantCount : participantCountRef.current;
+      if (count > 0) {
+        setParticipantCount(count);
+        participantCountRef.current = count;
+      }
       setProgressData({
         answeredCount: 0,
-        unansweredCount: participantCount,
-        participantCount
+        unansweredCount: count,
+        participantCount: count
       });
 
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
@@ -169,6 +197,17 @@ function ProjectorComponent() {
       setGameState('ANSWERING');
       setIsAnsweringClosed(false);
       setCountdown(data.durationSeconds || 30);
+      const count = (data.participantCount && data.participantCount > 0) ? data.participantCount : participantCountRef.current;
+      if (count > 0) {
+        setParticipantCount(count);
+        participantCountRef.current = count;
+      }
+      setProgressData(prev => ({
+        answeredCount: data.answeredCount ?? prev.answeredCount,
+        unansweredCount: data.unansweredCount ?? Math.max(0, count - (data.answeredCount ?? prev.answeredCount)),
+        participantCount: count || prev.participantCount
+      }));
+
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = setInterval(() => {
         setCountdown((prev) => {
@@ -188,14 +227,16 @@ function ProjectorComponent() {
     });
 
     socket.on('question_progress', (data: any) => {
+      const pCount = (data.participantCount && data.participantCount > 0) ? data.participantCount : participantCountRef.current;
+      if (pCount > 0) {
+        setParticipantCount(pCount);
+        participantCountRef.current = pCount;
+      }
       setProgressData({
         answeredCount: data.answeredCount || 0,
-        unansweredCount: data.unansweredCount || 0,
-        participantCount: data.participantCount || 0
+        unansweredCount: data.unansweredCount ?? Math.max(0, pCount - (data.answeredCount || 0)),
+        participantCount: pCount
       });
-      if (data.participantCount !== undefined) {
-        setParticipantCount(data.participantCount);
-      }
     });
 
     socket.on('question_limit_updated', (data: any) => {
@@ -293,45 +334,45 @@ function ProjectorComponent() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans overflow-hidden transition-colors">
       {/* SCHNEIDER ELECTRIC BRANDED HEADER */}
-      <header className="flex items-center justify-between p-5 bg-white dark:bg-slate-900 border-b-4 border-[#00E676] shadow-sm shrink-0 border border-slate-200 dark:border-slate-800 transition-colors">
-        <div className="flex items-center gap-4">
+      <header className="flex items-center justify-between px-5 lg:px-6 py-3 bg-white dark:bg-slate-900 border-b-4 border-[#00E676] shadow-sm shrink-0 border border-slate-200 dark:border-slate-800 transition-colors">
+        <div className="flex items-center gap-3.5">
           <img
             src="/se-logo.png"
             alt="Schneider Electric"
-            className="h-11 lg:h-13 w-auto object-contain drop-shadow-sm brightness-100 dark:brightness-110"
+            className="h-9 lg:h-10 w-auto object-contain drop-shadow-sm brightness-100 dark:brightness-110 shrink-0"
           />
-          <div className="border-l-2 border-slate-300 dark:border-slate-700 pl-3.5">
-            <h1 className="text-base lg:text-lg font-black tracking-wider text-[#009639] dark:text-[#00E676] uppercase">
+          <div className="border-l-2 border-slate-300 dark:border-slate-700 pl-3">
+            <h1 className="text-sm lg:text-base font-black tracking-wider text-[#009639] dark:text-[#00E676] uppercase">
               Cyber Security Awareness
             </h1>
-            <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">
+            <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">
               Cyber Day 2026
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 lg:gap-4">
+        <div className="flex items-center gap-2.5 lg:gap-3.5">
           <img
             src="/cyber-shield-logo.png"
             alt="Cyber Security Shield"
-            className="w-13 h-13 lg:w-15 lg:h-15 object-contain drop-shadow-md"
+            className="w-10 h-10 lg:w-11 lg:h-11 object-contain drop-shadow-md shrink-0"
           />
 
-          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 py-2 px-4 rounded-full shadow-sm">
-            <HelpCircle className="w-5 h-5 text-[#009639] dark:text-[#00E676]" />
-            <span className="text-lg lg:text-xl font-bold font-mono text-slate-800 dark:text-white">{totalQuestions}</span>
-            <span className="text-slate-600 dark:text-slate-400 uppercase text-xs font-extrabold tracking-wider">Questions</span>
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 py-1.5 px-3.5 rounded-full shadow-sm shrink-0">
+            <HelpCircle className="w-4 h-4 text-[#009639] dark:text-[#00E676]" />
+            <span className="text-base lg:text-lg font-bold font-mono text-slate-800 dark:text-white">{totalQuestions}</span>
+            <span className="text-slate-600 dark:text-slate-400 uppercase text-[10px] font-extrabold tracking-wider">Questions</span>
           </div>
 
-          <div className="flex items-center gap-2.5 bg-[#00E676]/20 dark:bg-emerald-950/60 py-2 px-5 rounded-full border border-[#009639]/30 dark:border-emerald-700/50">
-            <Users className="w-5 h-5 text-[#009639] dark:text-emerald-400" />
-            <span className="text-xl lg:text-2xl font-bold font-mono text-[#009639] dark:text-emerald-400">{participantCount}</span>
-            <span className="text-[#009639] dark:text-emerald-400 uppercase text-xs font-extrabold tracking-wider">Players</span>
+          <div className="flex items-center gap-1.5 bg-[#00E676]/20 dark:bg-emerald-950/60 py-1.5 px-3.5 rounded-full border border-[#009639]/30 dark:border-emerald-700/50 shrink-0">
+            <Users className="w-4 h-4 text-[#009639] dark:text-emerald-400" />
+            <span className="text-base lg:text-lg font-bold font-mono text-[#009639] dark:text-emerald-400">{Math.max(participantCount, progressData.participantCount, participantCountRef.current)}</span>
+            <span className="text-[#009639] dark:text-emerald-400 uppercase text-[10px] font-extrabold tracking-wider">Players</span>
           </div>
 
-          <div className="flex items-center gap-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 py-2 px-6 rounded-full shadow-sm">
-            <Hash className="w-5 h-5 text-slate-700 dark:text-slate-300" />
-            <span className="text-2xl lg:text-3xl font-black font-mono tracking-widest text-slate-800 dark:text-white">{roomPin}</span>
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 py-1.5 px-4 rounded-full shadow-sm shrink-0">
+            <Hash className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+            <span className="text-xl lg:text-2xl font-black font-mono tracking-widest text-slate-800 dark:text-white">{roomPin}</span>
           </div>
 
           <ThemeToggle showLabel={false} />
@@ -383,14 +424,14 @@ function ProjectorComponent() {
                 </div>
 
                 {/* Host IP / Host config input */}
-                <div className="flex items-center gap-2 bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-xl text-xs">
-                  <span className="text-slate-600 font-bold">QR IP / Host:</span>
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs transition-colors">
+                  <span className="text-slate-600 dark:text-slate-400 font-bold">QR IP / Host:</span>
                   <input
                     type="text"
                     value={customHost}
                     onChange={(e) => handleHostChange(e.target.value)}
                     placeholder="e.g. 192.168.1.50"
-                    className="bg-white border border-slate-300 text-[#009639] font-mono font-bold px-2.5 py-1 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#00E676] w-36 text-center"
+                    className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-[#009639] dark:text-[#00E676] font-mono font-bold px-2.5 py-1 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#00E676] w-36 text-center transition-colors"
                   />
                 </div>
               </div>
@@ -406,7 +447,7 @@ function ProjectorComponent() {
                 <button
                   type="button"
                   onClick={() => setShowRulesInLobby(false)}
-                  className="text-xs text-slate-700 hover:text-slate-950 font-bold bg-white border border-slate-300 px-3 py-1.5 rounded-xl shadow-sm transition-all"
+                  className="text-xs text-slate-700 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-1.5 rounded-xl shadow-sm transition-all"
                 >
                   ← Back to QR Lobby
                 </button>
@@ -419,14 +460,14 @@ function ProjectorComponent() {
         {/* STAGE QUIZ ENDED WAITING SCREEN */}
         {gameState === 'QUIZ_ENDED' && (
           <div className="flex-grow flex flex-col items-center justify-center max-w-4xl mx-auto w-full text-center">
-            <div className="bg-white border-2 border-slate-200 rounded-3xl p-12 w-full shadow-2xl space-y-6 relative overflow-hidden">
-              <div className="w-24 h-24 rounded-3xl bg-amber-50 border-2 border-amber-300 text-amber-500 mx-auto flex items-center justify-center shadow-lg animate-bounce">
+            <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl p-12 w-full shadow-2xl space-y-6 relative overflow-hidden transition-colors">
+              <div className="w-24 h-24 rounded-3xl bg-amber-50 dark:bg-amber-950/50 border-2 border-amber-300 dark:border-amber-700 text-amber-500 mx-auto flex items-center justify-center shadow-lg animate-bounce">
                 <Trophy className="w-14 h-14" />
               </div>
-              <h2 className="text-5xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tight">
                 Quiz Completed!
               </h2>
-              <p className="text-2xl text-slate-600 max-w-xl mx-auto font-medium">
+              <p className="text-2xl text-slate-600 dark:text-slate-300 max-w-xl mx-auto font-medium">
                 The host is currently reviewing, verifying, and approving the official podium results.
               </p>
               <div className="inline-flex items-center gap-3 bg-[#00E676]/20 border border-[#009639]/30 text-[#009639] font-black text-lg px-8 py-4 rounded-2xl shadow-inner animate-pulse">
@@ -678,20 +719,28 @@ function ProjectorComponent() {
               </div>
               
               {gameState === 'READING' && (
-                <div className="flex items-center gap-4 bg-amber-50 border-2 border-amber-300 rounded-2xl px-6 py-3 shadow-md">
-                  <Timer className={`w-8 h-8 ${countdown <= 3 ? 'text-red-600 animate-pulse' : 'text-amber-600'}`} />
-                  <span className={`text-3xl font-mono font-black ${countdown <= 3 ? 'text-red-600' : 'text-amber-700'}`}>
-                    10s Reading ({countdown}s)
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-[#00E676]/20 dark:bg-emerald-950/60 border border-[#009639]/40 dark:border-emerald-600/50 rounded-2xl px-5 py-3 shadow-md">
+                    <Users className="w-6 h-6 text-[#009639] dark:text-[#00E676]" />
+                    <span className="text-xl font-black font-mono text-[#009639] dark:text-[#00E676]">
+                      0 / {Math.max(progressData.participantCount, participantCount, participantCountRef.current)} Answered
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/50 border-2 border-amber-300 dark:border-amber-700 rounded-2xl px-6 py-3 shadow-md">
+                    <Timer className={`w-8 h-8 ${countdown <= 3 ? 'text-red-600 animate-pulse' : 'text-amber-600 dark:text-amber-400'}`} />
+                    <span className={`text-3xl font-mono font-black ${countdown <= 3 ? 'text-red-600' : 'text-amber-700 dark:text-amber-300'}`}>
+                      10s Reading ({countdown}s)
+                    </span>
+                  </div>
                 </div>
               )}
               
               {gameState === 'ANSWERING' && (
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 bg-[#00E676]/20 border border-[#009639]/40 rounded-2xl px-5 py-3 shadow-md">
-                    <Users className="w-6 h-6 text-[#009639]" />
-                    <span className="text-xl font-black font-mono text-[#009639]">
-                      {progressData.answeredCount} / {progressData.participantCount || participantCount} Answered
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-[#00E676]/20 dark:bg-emerald-950/60 border border-[#009639]/40 dark:border-emerald-600/50 rounded-2xl px-5 py-3 shadow-md">
+                    <Users className="w-6 h-6 text-[#009639] dark:text-[#00E676]" />
+                    <span className="text-xl font-black font-mono text-[#009639] dark:text-[#00E676]">
+                      {progressData.answeredCount} / {Math.max(progressData.participantCount, participantCount, participantCountRef.current)} Answered
                     </span>
                   </div>
                   {countdown > 0 && !isAnsweringClosed ? (
@@ -702,8 +751,8 @@ function ProjectorComponent() {
                       </span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2.5 bg-amber-50 border-2 border-amber-300 text-amber-900 rounded-2xl px-5 py-3 shadow-md">
-                      <Clock className="w-6 h-6 text-amber-700 animate-pulse" />
+                    <div className="flex items-center gap-2.5 bg-amber-50 dark:bg-amber-950/50 border-2 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 rounded-2xl px-5 py-3 shadow-md">
+                      <Clock className="w-6 h-6 text-amber-700 dark:text-amber-400 animate-pulse" />
                       <span className="text-lg font-black tracking-wide uppercase">
                         Answering Closed • Waiting for Host to Reveal
                       </span>
@@ -713,11 +762,19 @@ function ProjectorComponent() {
               )}
 
               {gameState === 'REVEAL' && (
-                <div className="flex items-center gap-3 bg-emerald-50 border-2 border-[#009639] rounded-2xl px-6 py-3">
-                  <CheckCircle2 className="w-8 h-8 text-[#009639]" />
-                  <span className="text-2xl font-black text-[#009639] tracking-wider uppercase">
-                    Answer Revealed
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-[#00E676]/20 dark:bg-emerald-950/60 border border-[#009639]/40 dark:border-emerald-600/50 rounded-2xl px-5 py-3 shadow-md">
+                    <Users className="w-6 h-6 text-[#009639] dark:text-[#00E676]" />
+                    <span className="text-xl font-black font-mono text-[#009639] dark:text-[#00E676]">
+                      {progressData.answeredCount} / {Math.max(progressData.participantCount, participantCount, participantCountRef.current)} Answered
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/50 border-2 border-[#009639] dark:border-emerald-600 rounded-2xl px-6 py-3">
+                    <CheckCircle2 className="w-8 h-8 text-[#009639] dark:text-[#00E676]" />
+                    <span className="text-2xl font-black text-[#009639] dark:text-[#00E676] tracking-wider uppercase">
+                      Answer Revealed
+                    </span>
+                  </div>
                 </div>
               )}
             </div>

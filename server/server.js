@@ -542,16 +542,25 @@ function startAnsweringPhase(roomPin) {
   room.answeringStartTime = Date.now();
   room.answeringEndTime = Date.now() + 30000;
 
+  const { totalCount, answeredCount, unansweredCount } = getAnswerMetrics(room);
   const answeringPayload = {
     questionIndex: room.currentQuestionIndex,
     durationSeconds: 30,
     answeringStartTime: room.answeringStartTime,
-    answeringEndTime: room.answeringEndTime
+    answeringEndTime: room.answeringEndTime,
+    participantCount: totalCount,
+    answeredCount,
+    unansweredCount
   };
 
   console.log(`Room ${roomPin}: Question ${room.currentQuestionIndex + 1} options unlocked. 30s answering window active.`);
 
   io.to(roomPin).emit('answering_started', answeringPayload);
+  io.to(roomPin).emit('question_progress', {
+    answeredCount,
+    unansweredCount,
+    participantCount: totalCount
+  });
   broadcastRoomUpdate(roomPin);
 
   // 30-second timer for answering window.
@@ -1127,9 +1136,19 @@ io.on('connection', (socket) => {
       readingEndTime: room.readingEndTime
     };
 
+    const { totalCount } = getAnswerMetrics(room);
+    safeQuestion.participantCount = totalCount;
+    safeQuestion.answeredCount = 0;
+    safeQuestion.unansweredCount = totalCount;
+
     console.log(`Room ${roomPin}: Host pushed Question ${questionIndex + 1}/${maxQuestions} (id=${safeQuestion.id}, type=${safeQuestion.type}, img=${safeQuestion.imageUrl || 'none'}). 10s reading phase initiated.`);
 
     io.to(roomPin).emit('question_pushed', safeQuestion);
+    io.to(roomPin).emit('question_progress', {
+      answeredCount: 0,
+      unansweredCount: totalCount,
+      participantCount: totalCount
+    });
     broadcastRoomUpdate(roomPin);
 
     if (callback) callback({
@@ -1248,16 +1267,14 @@ io.on('connection', (socket) => {
     // Compute live progress for Admin Dial (Requirement 7)
     const { totalCount, answeredCount, unansweredCount } = getAnswerMetrics(room);
 
-    // Immediate progress event to host for smooth real-time dial animation
-    if (room.hostSocketId) {
-      io.to(room.hostSocketId).emit('question_progress', {
-        answeredCount,
-        unansweredCount,
-        participantCount: totalCount,
-        latestAnswerer: participant.name,
-        timeFormatted
-      });
-    }
+    // Immediate progress event to entire room (host and projector) for real-time live dial animation
+    io.to(roomPin).emit('question_progress', {
+      answeredCount,
+      unansweredCount,
+      participantCount: totalCount,
+      latestAnswerer: participant.name,
+      timeFormatted
+    });
 
     broadcastRoomUpdate(roomPin);
 
