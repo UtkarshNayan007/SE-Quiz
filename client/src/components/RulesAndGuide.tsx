@@ -74,7 +74,7 @@ export const QUIZ_RULES: RuleItem[] = [
     badge: 'Podium Awards',
     badgeColor: 'bg-amber-100 text-amber-900 border-amber-400',
     description: 'Only the Top 3 players by total score and quickest cumulative time will be celebrated as winners: 1st Place Champion, 1st Runner Up, and 2nd Runner Up.',
-    highlight: 'Compete for the Top 3 podium spots and official Cyber Security Awareness awards!'
+    highlight: 'Compete for the Top 3 podium spots and official Cyber Day 2026 awards!'
   }
 ];
 
@@ -211,7 +211,7 @@ export function ParticipantRulesGuide({
             <div>
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#00E676] uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Cyber Security Awareness Quiz</span>
+                <span>Cyber Day 2026 Quiz</span>
               </div>
               <h2 className="text-lg font-black tracking-tight text-white">Player Briefing & Guide</h2>
             </div>
@@ -263,7 +263,7 @@ export function ParticipantRulesGuide({
           <div className="space-y-4">
             <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-3.5 text-center">
               <p className="text-xs font-bold text-emerald-900 dark:text-emerald-200 leading-relaxed">
-                🎯 Welcome to the official Schneider Electric Cyber Security Awareness Quiz! Please review the 5 core tournament rules below before the host starts the first question.
+                🎯 Welcome to the official Schneider Electric Cyber Day 2026 Quiz! Please review the 5 core tournament rules below before the host starts the first question.
               </p>
             </div>
 
@@ -574,7 +574,7 @@ export function ProjectorRulesGuide({
         <div className="flex items-center gap-3.5">
           <img
             src="/cyber-shield-logo.png"
-            alt="Cyber Security Awareness"
+            alt="Cyber Day 2026"
             className="w-12 h-12 object-contain drop-shadow-sm"
           />
           <div>
@@ -582,7 +582,7 @@ export function ProjectorRulesGuide({
               Tournament Briefing & Rules
             </h2>
             <p className="text-xs text-[#009639] dark:text-[#00E676] font-bold uppercase tracking-wider">
-              Schneider Electric • Cyber Security Awareness
+              Schneider Electric • Cyber Day 2026
             </p>
           </div>
         </div>

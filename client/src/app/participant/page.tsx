@@ -705,7 +705,7 @@ function ParticipantComponent() {
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Join Quiz Session</h1>
-            <p className="text-xs font-bold text-[#009639] dark:text-[#00E676] uppercase tracking-wider mt-1">Cyber Security Awareness</p>
+            <p className="text-xs font-bold text-[#009639] dark:text-[#00E676] uppercase tracking-wider mt-1">Cyber Day 2026</p>
           </div>
           
           {error && (
@@ -773,7 +773,7 @@ function ParticipantComponent() {
               className="h-6 sm:h-7 w-auto object-contain drop-shadow-sm shrink-0"
             />
             <div className="min-w-0 border-l border-gray-200 dark:border-slate-700 pl-2">
-              <p className="text-[9px] sm:text-[10px] text-[#009639] dark:text-[#00E676] font-bold uppercase tracking-wider truncate">Cyber Security Awareness</p>
+              <p className="text-[9px] sm:text-[10px] text-[#009639] dark:text-[#00E676] font-bold uppercase tracking-wider truncate">Cyber Day 2026</p>
               <div className="flex items-center gap-1.5 min-w-0">
                 <p className="font-bold text-gray-900 dark:text-white text-sm sm:text-base leading-tight truncate max-w-[90px] xs:max-w-[130px] sm:max-w-[180px]">{name}</p>
                 {badgeNumber && (
@@ -1010,7 +1010,7 @@ function ParticipantComponent() {
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40">
-                              🏆 Cyber Security Awareness Winner
+                              🏆 Cyber Day 2026 Winner
                             </span>
                             <span className="text-[10px] font-mono text-amber-200/70 truncate">
                               Rank #{winnerTrophy.rank}
@@ -1025,7 +1025,7 @@ function ParticipantComponent() {
                             Virtual Trophy & Podium Honor!
                           </h3>
                           <p className="text-xs text-slate-300 truncate">
-                            {awardTitle} • Cyber Security Awareness by Schneider Electric
+                            {awardTitle} • Cyber Day 2026 by Schneider Electric
                           </p>
                         </div>
                       </div>
@@ -1072,7 +1072,7 @@ function ParticipantComponent() {
                           Thanks for Playing, Cyber Defender!
                         </h3>
                         <p className="text-[11px] sm:text-xs text-indigo-200/80 truncate">
-                          Schneider Electric Cyber Security Awareness
+                          Schneider Electric Cyber Day 2026 Awareness
                         </p>
                       </div>
                     </div>
