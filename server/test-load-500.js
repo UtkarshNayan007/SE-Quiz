@@ -3,7 +3,7 @@
  * Tests: Load, Endurance, Real-time Dial Synchronization, Security & Resilience
  */
 
-const { io } = require('../client/node_modules/socket.io-client');
+const { io } = require('socket.io-client');
 const http = require('http');
 
 const TARGET_URL = process.env.TEST_TARGET_URL || 'http://localhost:4000';

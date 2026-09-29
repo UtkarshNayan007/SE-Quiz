@@ -315,8 +315,9 @@ async function main() {
           resolve();
         });
       });
-      // Allow short buffer for server to initialize question
-      await new Promise(r => setTimeout(r, 1000));
+      // Wait for 10s reading phase to transition to answering window
+      console.log(`[Stampede #${stampedeIndex}] Waiting 10.5s reading phase for answering window to unlock...`);
+      await new Promise(r => setTimeout(r, 10500));
     }
 
     const stampedeStartTime = Date.now();
@@ -342,7 +343,11 @@ async function main() {
             const rtt = performance.now() - submitTime;
             latencies.push(rtt);
             telemetry.allStampedeLatencies.push(rtt);
-            acks++;
+            if (res && res.success) {
+              acks++;
+            } else {
+              errors++;
+            }
             resolve();
           });
 

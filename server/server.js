@@ -749,6 +749,17 @@ function executeRevealAnswer(roomPin) {
   broadcastRoomUpdate(roomPin);
 }
 
+// Brute-force rate limiting for admin passcode attempts
+const failedPasscodeAttempts = new Map(); // ip -> { count: number, lockedUntil: number | null }
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of failedPasscodeAttempts.entries()) {
+    if (record.lockedUntil && now > record.lockedUntil) {
+      failedPasscodeAttempts.delete(ip);
+    }
+  }
+}, 600000);
+
 io.on('connection', (socket) => {
   socket.isHost = false;
 
@@ -758,13 +769,33 @@ io.on('connection', (socket) => {
 
   socket.on('create_room', (data, callback) => {
     let cb = typeof callback === 'function' ? callback : (typeof data === 'function' ? data : null);
-    let passcode = typeof data === 'object' && data !== null ? data.passcode : null;
+    const clientIp = socket.handshake.headers['x-forwarded-for']?.split(',')[0]?.trim() || socket.handshake.address || socket.id;
+    const now = Date.now();
+    const rateRecord = failedPasscodeAttempts.get(clientIp);
 
-    if (!passcode || !HOST_PASSCODES.has(passcode.trim())) {
-      console.warn(`Unauthorized create_room attempt from ${socket.id}`);
-      if (cb) cb({ success: false, message: 'Unauthorized: Invalid Admin Passcode' });
+    if (rateRecord && rateRecord.lockedUntil && now < rateRecord.lockedUntil) {
+      const waitSec = Math.ceil((rateRecord.lockedUntil - now) / 1000);
+      if (cb) cb({ success: false, message: `Too many failed passcode attempts. Please wait ${waitSec}s.` });
       return;
     }
+
+    let passcode = typeof data === 'object' && data !== null ? data.passcode : null;
+
+    if (!passcode || typeof passcode !== 'string' || !HOST_PASSCODES.has(passcode.trim())) {
+      console.warn(`Unauthorized create_room attempt from ${socket.id} (IP: ${clientIp})`);
+      const currentFailures = (rateRecord?.count || 0) + 1;
+      if (currentFailures >= 5) {
+        failedPasscodeAttempts.set(clientIp, { count: currentFailures, lockedUntil: now + 5 * 60 * 1000 });
+        if (cb) cb({ success: false, message: 'Too many failed passcode attempts. Locked out for 5 minutes.' });
+      } else {
+        failedPasscodeAttempts.set(clientIp, { count: currentFailures, lockedUntil: null });
+        if (cb) cb({ success: false, message: 'Unauthorized: Invalid Admin Passcode' });
+      }
+      return;
+    }
+
+    // Reset failed counter upon successful passcode authentication
+    failedPasscodeAttempts.delete(clientIp);
 
     socket.isHost = true;
     let targetPin = typeof data === 'object' && data !== null ? data.roomPin : null;

@@ -100,8 +100,16 @@ async function runLoadTest() {
       reconnection: false,
     });
 
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let str = '';
+    let n = i + 1;
+    while (n > 0) {
+      const rem = (n - 1) % 26;
+      str = letters[rem] + str;
+      n = Math.floor((n - 1) / 26);
+    }
     socket.playerIndex = i;
-    socket.playerName = `Tester_${i + 1}`;
+    socket.playerName = `PLAYER ${str}`;
 
     socket.on('connect', () => {
       metrics.connectSuccess++;
@@ -113,7 +121,7 @@ async function runLoadTest() {
     });
 
     // Track incoming broadcast events
-    const eventsToTrack = ['room_updated', 'question_pushed', 'buzzer_unlocked', 'buzzer_hit_recorded', 'turn_passed', 'answer_revealed'];
+    const eventsToTrack = ['room_updated', 'question_pushed', 'answering_started', 'answer_revealed', 'question_progress'];
     eventsToTrack.forEach(evt => {
       socket.on(evt, () => trackEvent(evt));
     });
@@ -152,7 +160,7 @@ async function runLoadTest() {
   // Step 4: Host pushes question 0
   console.log(`\n[Host] Pushing Question 0 to room ${roomPin}...`);
   
-  // Set up clients to listen for 'buzzer_unlocked'
+  // Set up clients to listen for 'answering_started'
   const buzzerPromises = clientSockets.map((socket) => {
     return new Promise((resolve) => {
       let done = false;
@@ -168,25 +176,19 @@ async function runLoadTest() {
         safeResolve();
       }, 18000);
 
-      socket.once('buzzer_unlocked', () => {
+      socket.once('answering_started', () => {
         const jitter = Math.floor(Math.random() * MAX_JITTER_MS);
         setTimeout(() => {
           const hitStart = Date.now();
-          socket.emit('hit_buzzer', { roomPin }, (res) => {
+          const optionIndex = Math.floor(Math.random() * 4);
+          socket.emit('submit_answer', { roomPin, optionIndex }, (res) => {
             clearTimeout(safetyTimer);
             const ackDuration = Date.now() - hitStart;
             metrics.buzzerAckTimes.push(ackDuration);
 
             if (res && res.success) {
-              metrics.buzzerPositions.push(res.position);
-              if (res.isYourTurn) {
-                metrics.turnSubmitted++;
-                console.log(`⚡ [Client ${socket.playerName}] WINNER! First to hit buzzer! Position: ${res.position}. Submitting answer...`);
-                socket.emit('submit_answer', { roomPin, optionIndex: 0 }, (ansRes) => {
-                  if (ansRes && ansRes.isCorrect) {
-                    metrics.correctAnswers++;
-                  }
-                });
+              if (res.isCorrect) {
+                metrics.correctAnswers++;
               }
             } else {
               metrics.buzzerFailures++;
@@ -200,12 +202,12 @@ async function runLoadTest() {
 
   // Host pushes question 0
   hostSocket.emit('push_question', { roomPin, questionIndex: 0 }, (res) => {
-    console.log(`[Host] Question 0 pushed! Server is in READING state (10s countdown until buzzer unlocks)...`);
+    console.log(`[Host] Question 0 pushed! Server is in READING state (10s countdown until answering unlocks)...`);
   });
 
-  console.log(`[Test] Waiting for 10s reading timer + buzzer unlocked event...`);
+  console.log(`[Test] Waiting for 10s reading timer + answering_started event...`);
   await Promise.all(buzzerPromises);
-  console.log(`\n[Buzzer] All ${metrics.buzzerAckTimes.length} buzzer hits processed! (${metrics.buzzerTimeouts} timeouts, ${metrics.buzzerFailures} non-first hits)`);
+  console.log(`\n[Answering] All ${metrics.buzzerAckTimes.length} answer submissions processed! (${metrics.buzzerTimeouts} timeouts)`);
 
   // Wait 3 seconds for broadcast messages and reveal to stabilize
   await new Promise(r => setTimeout(r, 3000));

@@ -77,7 +77,12 @@ async function runCyberChecks() {
 
   // 1.3 Create room with type-juggling / non-string passcode
   await new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      recordResult('Auth', 'Reject create_room with array/object passcode', false, 'Remote server unhandled exception / timeout on non-string passcode', 'MEDIUM');
+      resolve();
+    }, 5000);
     sock1.emit('create_room', { passcode: ['SE2026!Admin'] }, (res) => {
+      clearTimeout(timeout);
       const blocked = !res?.success;
       recordResult('Auth', 'Reject create_room with array/object passcode', blocked, res?.message || 'Blocked non-string passcode', 'MEDIUM');
       resolve();
@@ -197,74 +202,46 @@ async function runCyberChecks() {
   });
 
   // --- 4. Game Logic & State Machine Integrity ---
-  console.log('\nStarting Phase 4: Buzzer & Answering State Machine Integrity...\n');
+  // --- 4. Game Logic & State Machine Integrity ---
+  console.log('\nStarting Phase 4: Fastest Finger First & Answering State Machine Integrity...\n');
 
-  // 4.1 Buzzing during READING state (before buzzer_unlocked event)
-  await new Promise((resolve) => {
-    attackerSock.emit('hit_buzzer', { roomPin: validRoomPin }, (res) => {
-      const blocked = !res?.success && res?.message?.includes('not active');
-      recordResult('Logic Integrity', 'Prevent buzzing during READING state (early buzz exploit)', blocked, res?.message, 'HIGH');
-      resolve();
-    });
-  });
-
-  // 4.2 Answering when game is in READING state (not your turn)
+  // 4.1 Submitting answer during READING state (early submit exploit)
   await new Promise((resolve) => {
     attackerSock.emit('submit_answer', { roomPin: validRoomPin, optionIndex: 0 }, (res) => {
-      const blocked = !res?.success && res?.message?.includes('Answering is not open');
-      recordResult('Logic Integrity', 'Prevent submitting answer when answering not open', blocked, res?.message, 'HIGH');
+      const blocked = !res?.success && (res?.message?.includes('closed') || res?.message?.includes('not open'));
+      recordResult('Logic Integrity', 'Prevent submitting answer during READING state (early submit exploit)', blocked, res?.message, 'HIGH');
       resolve();
     });
   });
 
-  // Wait for buzzer to unlock (10s reading countdown)
-  console.log('Waiting for buzzer unlock (approx 8-10s)...');
+  // Wait for reading countdown to unlock answering (10s)
+  console.log('Waiting for answering phase to unlock (10s reading countdown)...');
   await new Promise((resolve) => {
-    attackerSock.once('buzzer_unlocked', () => resolve());
+    attackerSock.once('answering_started', () => resolve());
     setTimeout(resolve, 11000);
   });
 
-  // 4.3 Legitimate buzzer hit
-  let firstBuzzerAck = null;
+  // 4.2 Legitimate answer submission when answering is open
   await new Promise((resolve) => {
-    attackerSock.emit('hit_buzzer', { roomPin: validRoomPin }, (res) => {
-      firstBuzzerAck = res;
-      recordResult('Logic Integrity', 'Allow legitimate buzzer hit when unlocked', !!res?.success, `Position: ${res?.position}, isYourTurn: ${res?.isYourTurn}`, 'LOW');
+    attackerSock.emit('submit_answer', { roomPin: validRoomPin, optionIndex: 1 }, (res) => {
+      recordResult('Logic Integrity', 'Allow legitimate answer submission when answering is open', !!res?.success, `Answer recorded in ${res?.timeFormatted || 'N/A'}`, 'LOW');
       resolve();
     });
   });
 
-  // 4.4 Double buzz exploit (same player buzzing twice)
+  // 4.3 Double submission exploit (same player submitting twice on same question)
   await new Promise((resolve) => {
-    attackerSock.emit('hit_buzzer', { roomPin: validRoomPin }, (res) => {
-      const blocked = !res?.success && res?.message?.includes('already pressed');
-      recordResult('Logic Integrity', 'Prevent double buzzer press by same player', blocked, res?.message, 'MEDIUM');
+    attackerSock.emit('submit_answer', { roomPin: validRoomPin, optionIndex: 2 }, (res) => {
+      const blocked = !res?.success && res?.message?.includes('already submitted');
+      recordResult('Logic Integrity', 'Prevent duplicate answer submission by same player (double-click exploit)', blocked, res?.message, 'HIGH');
       resolve();
     });
   });
 
-  // 4.5 Submitting answer from non-turn player
+  // 4.4 Submitting valid answer from second participant concurrently
   await new Promise((resolve) => {
     lateParticipant.emit('submit_answer', { roomPin: validRoomPin, optionIndex: 0 }, (res) => {
-      const blocked = !res?.success && res?.message?.includes('not your turn');
-      recordResult('Logic Integrity', 'Prevent answer submission by player whose turn it is NOT', blocked, res?.message, 'CRITICAL');
-      resolve();
-    });
-  });
-
-  // 4.6 Turn player submits incorrect answer -> test lockout on same question
-  await new Promise((resolve) => {
-    // Intentionally submit wrong option (e.g. 99 or known wrong)
-    attackerSock.emit('submit_answer', { roomPin: validRoomPin, optionIndex: 3 }, (res) => {
-      resolve();
-    });
-  });
-
-  // Attacker was wrong; now attacker tries to buzz again on the same question
-  await new Promise((resolve) => {
-    attackerSock.emit('hit_buzzer', { roomPin: validRoomPin }, (res) => {
-      const blocked = !res?.success;
-      recordResult('Logic Integrity', 'Prevent failed player from buzzing again on same question', blocked, res?.message, 'HIGH');
+      recordResult('Logic Integrity', 'Allow second participant to submit concurrent answer', !!res?.success, `Participant 2 recorded`, 'LOW');
       resolve();
     });
   });
@@ -329,15 +306,15 @@ async function runCyberChecks() {
   const FLOOD_COUNT = 500;
   const floodPromises = [];
 
-  for (let i = 0; i < FLOOD_COUNT; i++) {
-    floodPromises.push(new Promise((resolve) => {
-      attackerSock.emit('hit_buzzer', { roomPin: validRoomPin }, () => resolve());
-    }));
-  }
+    for (let i = 0; i < FLOOD_COUNT; i++) {
+      floodPromises.push(new Promise((resolve) => {
+        attackerSock.emit('submit_answer', { roomPin: validRoomPin, optionIndex: 0 }, () => resolve());
+      }));
+    }
 
-  await Promise.all(floodPromises);
-  const floodDuration = Date.now() - floodStart;
-  recordResult('DoS Resilience', `Handled burst of ${FLOOD_COUNT} rapid buzzer events`, true, `Processed ${FLOOD_COUNT} events in ${floodDuration}ms without crashing`, 'MEDIUM');
+    await Promise.all(floodPromises);
+    const floodDuration = Date.now() - floodStart;
+    recordResult('DoS Resilience', `Handled burst of ${FLOOD_COUNT} rapid answer submission events`, true, `Processed ${FLOOD_COUNT} events in ${floodDuration}ms without crashing`, 'MEDIUM');
 
   // --- 7. Security Architecture & Configuration Findings ---
   console.log('\nStarting Phase 7: Architecture & Static Configuration Audit...\n');
