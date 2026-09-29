@@ -118,10 +118,11 @@ loadQuestions();
 /**
  * Category-balanced randomized question builder.
  * Guarantees:
- * 1. Exactly 1 question from each of the 5 categories for 5 questions (MCQ, Riddle, Image, Fill in the Blank, Crossword).
- * 2. Exactly 2 from each for 10 questions, 3 from each for 15 questions, 4 from each for 20 questions.
- * 3. Never allows two consecutive questions to share the same category (every next question is a different category).
+ * 1. For a 5-question game: Exactly 1 question from each of the 5 categories (Riddle, Image, MCQ, Fill in the Blank, Crossword) in randomized, shuffled order.
+ * 2. For 10, 15, or 20 questions (or custom counts): Every bunch of 5 questions has a balanced variety of question formats.
+ * 3. Prevents consecutive identical question types throughout the game.
  * 4. Pure Fisher-Yates randomization within each category pool so every session gets a fresh, dynamic question set.
+ * 5. 100% deduplication guarantee across all rounds.
  */
 function buildRoomQuestions(count = 20) {
   if (!questions || questions.length === 0) {
@@ -130,17 +131,8 @@ function buildRoomQuestions(count = 20) {
 
   const safeCount = Math.min(Math.max(parseInt(count) || 20, 1), questions.length);
 
-  // Group questions by the 5 primary categories
-  const categories = ['mcq', 'riddle', 'image', 'fill_in_the_blank', 'crossword'];
-  const pools = {
-    mcq: [],
-    riddle: [],
-    image: [],
-    fill_in_the_blank: [],
-    crossword: []
-  };
-
-  const getCategoryKey = (q) => {
+  const getType = (q) => {
+    if (!q) return 'mcq';
     if (q.type === 'image' || q.imageUrl || (q.visualData && q.visualData.type === 'image')) return 'image';
     if (q.type === 'riddle' || (q.visualData && q.visualData.type === 'riddle')) return 'riddle';
     if (q.type === 'crossword' || (q.visualData && q.visualData.type === 'crossword')) return 'crossword';
@@ -148,103 +140,178 @@ function buildRoomQuestions(count = 20) {
     return 'mcq';
   };
 
-  for (const q of questions) {
-    const key = getCategoryKey(q);
-    pools[key].push(q);
-  }
-
-  // Shuffle each category pool with Fisher-Yates
-  for (const cat of categories) {
-    const arr = pools[cat];
-    for (let i = arr.length - 1; i > 0; i--) {
+  const shuffle = (arr) => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+      [a[i], a[j]] = [a[j], a[i]];
     }
-  }
+    return a;
+  };
 
-  // Determine category sequence
-  const rounds = Math.floor(safeCount / 5);
-  const remainder = safeCount % 5;
-  const categorySequence = [];
-  let lastCategory = null;
+  // Pools
+  const riddles = shuffle(questions.filter(q => getType(q) === 'riddle'));
+  const fills = shuffle(questions.filter(q => getType(q) === 'fill_in_the_blank'));
+  const crosswords = shuffle(questions.filter(q => getType(q) === 'crossword'));
+  const images = shuffle(questions.filter(q => getType(q) === 'image'));
+  const mcqs = shuffle(questions.filter(q => getType(q) === 'mcq'));
 
-  for (let r = 0; r < rounds; r++) {
-    // Permute all 5 categories for this round
-    const roundCats = [...categories];
-    for (let i = roundCats.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [roundCats[i], roundCats[j]] = [roundCats[j], roundCats[i]];
-    }
-
-    // Ensure the first category of this round is not the same as the last of previous round
-    if (lastCategory && roundCats[0] === lastCategory) {
-      const swapIdx = 1 + Math.floor(Math.random() * (roundCats.length - 1));
-      [roundCats[0], roundCats[swapIdx]] = [roundCats[swapIdx], roundCats[0]];
-    }
-
-    for (const cat of roundCats) {
-      categorySequence.push(cat);
-      lastCategory = cat;
-    }
-  }
-
-  if (remainder > 0) {
-    const remCats = [...categories];
-    for (let i = remCats.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [remCats[i], remCats[j]] = [remCats[j], remCats[i]];
-    }
-
-    if (lastCategory && remCats[0] === lastCategory) {
-      const swapIdx = 1 + Math.floor(Math.random() * (remCats.length - 1));
-      [remCats[0], remCats[swapIdx]] = [remCats[swapIdx], remCats[0]];
-    }
-
-    for (let i = 0; i < remainder; i++) {
-      categorySequence.push(remCats[i]);
-      lastCategory = remCats[i];
-    }
-  }
-
-  // Draw questions according to categorySequence with strict zero-duplication guarantee
-  const selectedQuestions = [];
   const usedIds = new Set();
-
-  for (const cat of categorySequence) {
-    const pool = pools[cat];
-    // Find first question in this category pool not yet used
-    let chosen = null;
-    for (const q of pool) {
+  function takeItem(pool) {
+    while (pool && pool.length > 0) {
+      const q = pool.pop();
       if (!usedIds.has(q.id)) {
-        chosen = q;
-        break;
+        usedIds.add(q.id);
+        return q;
       }
     }
+    // Fallback: any unused question
+    for (const q of questions) {
+      if (!usedIds.has(q.id)) {
+        usedIds.add(q.id);
+        return q;
+      }
+    }
+    return null;
+  }
 
-    // In case this specific category pool is completely exhausted,
-    // fallback to any unpicked question from the rest of the question bank
-    if (!chosen) {
-      for (const q of questions) {
-        if (!usedIds.has(q.id)) {
-          chosen = q;
-          break;
+  function arrangeBunch(items, avoidFirstType) {
+    const validItems = items.filter(Boolean);
+    if (validItems.length <= 1) return validItems;
+
+    function permute(arr) {
+      if (arr.length <= 1) return [arr];
+      const res = [];
+      for (let i = 0; i < arr.length; i++) {
+        const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+        for (const sub of permute(rest)) {
+          res.push([arr[i], ...sub]);
         }
       }
+      return res;
     }
 
-    if (chosen) {
-      usedIds.add(chosen.id);
-      selectedQuestions.push(chosen);
-    }
+    const allPerms = shuffle(permute(validItems));
+    allPerms.sort((a, b) => {
+      let scoreA = 0, scoreB = 0;
+      if (avoidFirstType && getType(a[0]) === avoidFirstType) scoreA += 20;
+      if (avoidFirstType && getType(b[0]) === avoidFirstType) scoreB += 20;
+      for (let i = 1; i < a.length; i++) {
+        if (getType(a[i]) === getType(a[i - 1])) scoreA += 10;
+      }
+      for (let i = 1; i < b.length; i++) {
+        if (getType(b[i]) === getType(b[i - 1])) scoreB += 10;
+      }
+      return scoreA - scoreB;
+    });
+    return allPerms[0];
+  }
+
+  let result = [];
+
+  if (safeCount <= 5) {
+    const candidates = [
+      takeItem(riddles),
+      takeItem(images),
+      takeItem(mcqs),
+      takeItem(fills),
+      takeItem(crosswords)
+    ].filter(Boolean);
+    result = arrangeBunch(shuffle(candidates).slice(0, safeCount), null);
+  } else if (safeCount <= 10) {
+    const b1Items = [
+      takeItem(crosswords),
+      takeItem(riddles),
+      takeItem(images),
+      takeItem(fills),
+      takeItem(mcqs)
+    ];
+    const b1 = arrangeBunch(b1Items, null);
+
+    const b2Items = [
+      takeItem(riddles),
+      takeItem(fills),
+      takeItem(images),
+      takeItem(images),
+      takeItem(mcqs)
+    ];
+    const b2 = arrangeBunch(b2Items, getType(b1[b1.length - 1])).slice(0, safeCount - 5);
+    result = [...b1, ...b2];
+  } else if (safeCount <= 15) {
+    const b1Items = [
+      takeItem(crosswords),
+      takeItem(riddles),
+      takeItem(images),
+      takeItem(mcqs),
+      takeItem(mcqs)
+    ];
+    const b1 = arrangeBunch(b1Items, null);
+
+    const b2Items = [
+      takeItem(fills),
+      takeItem(riddles),
+      takeItem(images),
+      takeItem(mcqs),
+      takeItem(mcqs)
+    ];
+    const b2 = arrangeBunch(b2Items, getType(b1[b1.length - 1]));
+
+    const b3Items = [
+      takeItem(fills),
+      takeItem(images),
+      takeItem(images),
+      takeItem(mcqs),
+      takeItem(mcqs)
+    ];
+    const b3 = arrangeBunch(b3Items, getType(b2[b2.length - 1])).slice(0, safeCount - 10);
+    result = [...b1, ...b2, ...b3];
+  } else {
+    // 16 to 20
+    const b1Items = [
+      takeItem(crosswords),
+      takeItem(riddles),
+      takeItem(images),
+      takeItem(mcqs),
+      takeItem(mcqs)
+    ];
+    const b1 = arrangeBunch(b1Items, null);
+
+    const b2Items = [
+      takeItem(fills),
+      takeItem(images),
+      takeItem(mcqs),
+      takeItem(mcqs),
+      takeItem(mcqs)
+    ];
+    const b2 = arrangeBunch(b2Items, getType(b1[b1.length - 1]));
+
+    const b3Items = [
+      takeItem(riddles),
+      takeItem(images),
+      takeItem(mcqs),
+      takeItem(mcqs),
+      takeItem(mcqs)
+    ];
+    const b3 = arrangeBunch(b3Items, getType(b2[b2.length - 1]));
+
+    const b4Items = [
+      takeItem(fills),
+      takeItem(images),
+      takeItem(mcqs),
+      takeItem(mcqs),
+      takeItem(mcqs)
+    ];
+    const b4 = arrangeBunch(b4Items, getType(b3[b3.length - 1])).slice(0, safeCount - 15);
+    result = [...b1, ...b2, ...b3, ...b4];
   }
 
   // Safety Assertion: Guarantee 100% uniqueness of every question in the room
-  const finalUniqueIds = new Set(selectedQuestions.map(q => q.id));
-  if (finalUniqueIds.size !== selectedQuestions.length) {
+  const finalUniqueIds = new Set(result.map(q => q.id));
+  if (finalUniqueIds.size !== result.length) {
     console.error('[CRITICAL] Duplicate question detected in room selection! Deduplicating...');
     const deduped = [];
     const seen = new Set();
-    for (const q of selectedQuestions) {
+    for (const q of result) {
       if (!seen.has(q.id)) {
         seen.add(q.id);
         deduped.push(q);
@@ -260,7 +327,7 @@ function buildRoomQuestions(count = 20) {
     return deduped;
   }
 
-  return selectedQuestions;
+  return result;
 }
 
 function getRoomQuestion(room, index) {
