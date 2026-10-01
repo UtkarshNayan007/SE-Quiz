@@ -93,7 +93,7 @@
     "id": 4,
     "category": "Fill in the Blank",
     "type": "fill_in_the_blank",
-    "question": "The foundational security principle of ________ mandates that employees, contractors, and applications are allocated only the minimum necessary permissions required to fulfil their approved duties.",
+    "question": "The Schneider Electric User Access Management Policy of ________ mandates that employees, contractors, and applications are allocated only the minimum necessary permissions required to fulfill their approved duties.",
     "options": [
       "Least Privilege",
       "Defence in Depth",
@@ -101,21 +101,21 @@
       "Security through Obscurity"
     ],
     "correctAnswer": 0,
-    "explanation": "The foundational security principle of Least Privilege mandates that employees, contractors, and applications are allocated only the minimum necessary permissions required to fulfil their approved duties.",
+    "explanation": "The Schneider Electric User Access Management Policy of Least Privilege mandates that employees, contractors, and applications are allocated only the minimum necessary permissions required to fulfill their approved duties.",
     "visualData": {
       "type": "fill_in_the_blank",
       "fillBlankData": {
-        "sentenceBefore": "The foundational security principle of",
+        "sentenceBefore": "The Schneider Electric User Access Management Policy of",
         "blankPlaceholder": "[ PRINCIPLE ]",
         "blank": "Least Privilege",
-        "sentenceAfter": "mandates that employees, contractors, and applications are allocated only the minimum necessary permissions required to fulfil their approved duties.",
-        "contextBadge": "Access Control Principle",
+        "sentenceAfter": "mandates that employees, contractors, and applications are allocated only the minimum necessary permissions required to fulfill their approved duties.",
+        "contextBadge": "User Access Management Policy",
         "correctAnswerText": "Least Privilege"
       }
     },
     "revealVisual": {
       "fillBlankAnswer": "Least Privilege",
-      "vulnerabilitySummary": "Least Privilege ensures accounts and services receive only the bare minimum permissions required."
+      "vulnerabilitySummary": "The Schneider Electric User Access Management Policy of Least Privilege ensures accounts and applications receive only the minimum necessary permissions required to fulfill approved duties."
     }
   },
   {
@@ -125,12 +125,12 @@
     "question": "What does Integrity in the CIA Triad ensure?",
     "options": [
       "Data is always deleted",
-      "Data remains accurate and unchanged",
+      "Data remains accurate with no unauthorized modification",
       "Data is shared publicly",
       "Data is stored in multiple devices"
     ],
     "correctAnswer": 1,
-    "explanation": "In the CIA Triad (Confidentiality, Integrity, Availability), Integrity ensures that data remains accurate, authentic, and protected against unauthorized alteration or deletion."
+    "explanation": "In the CIA Triad (Confidentiality, Integrity, Availability), Integrity ensures that data remains accurate, authentic, and protected against unauthorized modification or deletion."
   },
   {
     "id": 6,
@@ -163,7 +163,7 @@
     "category": "Image Scenario",
     "type": "image",
     "imageUrl": "/questions/question_8_office_risks.png",
-    "question": "Examine the office workstation setup in the image. How many security risks can you identify?",
+    "question": "How many security risks can you identify?",
     "options": [
       "1",
       "2",
@@ -208,15 +208,15 @@
     "category": "Image Scenario",
     "type": "image",
     "imageUrl": "/questions/question_9_phone_login.png",
-    "question": "Your mobile phone displays an unexpected 'Approve Sign-in?' authentication request from PingID that you did not initiate. What should you do?",
+    "question": "You did not initiate this login request. What should you do?",
     "options": [
       "Approve it",
-      "Don’t approve, immediately report it",
+      "Don’t approve and report it",
       "Keep approving until it stops",
       "Share the code with a colleague"
     ],
     "correctAnswer": 1,
-    "explanation": "You did not initiate this login request. Never approve unprompted MFA requests; ignore/deny the prompt and report the incident immediately to IT/Security as your credentials may be compromised.",
+    "explanation": "You did not initiate this login request. Never approve unprompted MFA requests; don't approve and report it immediately to IT/Security as an unsolicited authentication request indicates your credentials may be compromised.",
     "visualData": {
       "type": "image",
       "imageUrl": "/questions/question_9_phone_login.png",
@@ -237,15 +237,15 @@
     "id": 10,
     "category": "Multiple Choice Question",
     "type": "theory",
-    "question": "What is the most secure way of accessing the Internet when working outside of the Schneider office?",
+    "question": "What is the most secure way of going on the Internet from your corporate device when working outside of the Schneider office?",
     "options": [
       "Use a hotspot offered by a person next to you",
-      "VPN combined with Wi-Fi",
+      "Use corporate VPN combined with Wi-Fi",
       "Public Wi-Fi without password",
       "Password-protected Wi-Fi"
     ],
     "correctAnswer": 1,
-    "explanation": "GlobalProtect VPN must always be enabled – especially when working outside of the Schneider office. You should never work on sensitive or confidential matters on a public Wi-Fi network without a VPN."
+    "explanation": "GlobalProtect VPN must always be enabled – especially when working outside of the Schneider office. You should never work on sensitive or confidential matters on a public Wi-Fi network."
   },
   {
     "id": 11,
@@ -281,7 +281,7 @@
     "id": 12,
     "category": "Multiple Choice Question",
     "type": "theory",
-    "question": "When submitting login credentials or sensitive employee data on an internal portal, you notice the protocol status shown is http:// (unencrypted connection). What is the main operational risk of using http:// instead of https://?",
+    "question": "When submitting login credentials or sensitive employee data on an internal portal, you notice the protocol status shown on the left (http:// with an unencrypted connection icon). What is the main operational risk of using http:// instead of https://?",
     "options": [
       "The website will load significantly slower on mobile devices.",
       "Data sent over http:// is transmitted in plaintext and can be intercepted via a Man-in-the-Middle (MitM) attack.",
@@ -323,7 +323,7 @@
     "id": 15,
     "category": "Multiple Choice Question",
     "type": "theory",
-    "question": "Which practice complies with corporate Acceptable Use Policies regarding external software installation?",
+    "question": "Which practice complies with corporate “Acceptable Use of Assets” regarding external software installation?",
     "options": [
       "Installing non-approved freeware utilities if they help complete daily tasks faster.",
       "Using only IT-approved and vetted software deployed via corporate software portals.",
@@ -331,7 +331,7 @@
       "Sharing administrator credentials with team members to install plugin extensions."
     ],
     "correctAnswer": 1,
-    "explanation": "Corporate Acceptable Use Policies mandate using only IT-approved and vetted software deployed via corporate software portals to protect against malware and unauthorized applications."
+    "explanation": "Corporate “Acceptable Use of Assets” policy mandates using only IT-approved and vetted software deployed via corporate software portals to protect against malware and unauthorized applications."
   },
   {
     "id": 16,
@@ -377,7 +377,7 @@
     "id": 17,
     "category": "Cyber Riddle",
     "type": "riddle",
-    "question": "\"I sit in the background of your laptop / Recording every single key that you press alone. / From passwords to messages, I log every stroke, / Turning your private keystrokes into an attacker's joke. / What am I?\"",
+    "question": "\"I sit in the background of the computer / Recording every single key that you press alone. / From passwords to messages, I log every stroke, / Turning your private keystrokes into an attacker's joke. / What am I?\"",
     "options": [
       "Ransomware",
       "Keylogger",
@@ -390,7 +390,7 @@
       "type": "riddle",
       "riddleData": {
         "title": "MALWARE & SPYWARE ENIGMA",
-        "riddleText": "I sit in the background of your laptop\nRecording every single key that you press alone.\nFrom passwords to messages, I log every stroke,\nTurning your private keystrokes into an attacker's joke.\n\nWhat am I?",
+        "riddleText": "I sit in the background of the computer\nRecording every single key that you press alone.\nFrom passwords to messages, I log every stroke,\nTurning your private keystrokes into an attacker's joke.\n\nWhat am I?",
         "hintCategory": "Spyware & Surveillance",
         "hint": "Secretly logs keystrokes in the background to steal credentials.",
         "enigmaTag": "THREAT ENIGMA",
@@ -435,7 +435,7 @@
     "id": 20,
     "category": "Multiple Choice Question",
     "type": "theory",
-    "question": "Which of the following passwords is the strongest choice for an Administrative account according to Schneider's Password & Authentication Requirements Policy?",
+    "question": "Which of the following passwords is the strongest choice for an “administrative account” according to Schneider's Password & Authentication Requirements Policy?",
     "options": [
       "Admin!2026",
       "ServerTeam#88",
