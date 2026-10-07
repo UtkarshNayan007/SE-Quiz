@@ -1270,7 +1270,7 @@ function ParticipantComponent() {
             </div>
 
             {/* Interactive Question Visual (Spot the Difference / Picture MCQ / Memory Check / Crossword / Image Scenario) */}
-            {((activeQuestion.type && activeQuestion.type !== 'theory') || activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl || (activeQuestion.id && [8, 9, 11, 16].includes(activeQuestion.id))) && (
+            {((activeQuestion.type && activeQuestion.type !== 'theory') || activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl || (activeQuestion.id && [8, 9, 11].includes(activeQuestion.id))) && (
               <div className="shrink-0 w-full overflow-hidden">
                 <InteractiveQuestionVisual
                   type={activeQuestion.type}

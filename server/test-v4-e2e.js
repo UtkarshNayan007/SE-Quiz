@@ -14,8 +14,8 @@ console.log('🚀 Starting Version 4 Comprehensive Verification Test...\n');
 const questionsPath = path.join(__dirname, 'questions.json');
 const questions = JSON.parse(fs.readFileSync(questionsPath, 'utf8'));
 
-assert.strictEqual(questions.length, 20, 'questions.json must have exactly 20 questions');
-console.log('✅ questions.json contains exactly 20 questions.');
+assert.strictEqual(questions.length, 19, 'questions.json must have exactly 19 questions');
+console.log('✅ questions.json contains exactly 19 questions.');
 
 const imageQuestions = [];
 questions.forEach((q, idx) => {
@@ -34,11 +34,11 @@ questions.forEach((q, idx) => {
   }
 });
 
-console.log(`✅ All 20 questions validated. Found ${imageQuestions.length} image scenario questions:`);
+console.log(`✅ All 19 questions validated. Found ${imageQuestions.length} image scenario questions:`);
 imageQuestions.forEach(iq => {
   console.log(`   - Q#${iq.id}: ${iq.visualData.imageUrl} (${iq.visualData.imageCaption})`);
 });
-assert.strictEqual(imageQuestions.length, 4, 'Must have exactly 4 image questions (Q8, Q9, Q11, Q16)');
+assert.strictEqual(imageQuestions.length, 3, 'Must have exactly 3 image questions (Q8, Q9, Q11)');
 
 // 2. Server Integration Test
 function startServer() {
@@ -96,14 +96,14 @@ async function runLiveTest() {
     ]);
     console.log('✅ Host and 2 players connected via Socket.io');
 
-    // Host creates room with 20 questions
+    // Host creates room with 19 questions
     let roomPin = '';
     await new Promise((resolve, reject) => {
-      host.emit('create_room', { passcode: HOST_PASSCODE, questionCount: 20 }, (res) => {
+      host.emit('create_room', { passcode: HOST_PASSCODE, questionCount: 19 }, (res) => {
         if (!res.success) return reject(new Error(res.message));
         roomPin = res.roomPin;
-        assert.strictEqual(res.totalQuestions, 20);
-        assert.strictEqual(res.configuredQuestionCount, 20);
+        assert.strictEqual(res.totalQuestions, 19);
+        assert.strictEqual(res.configuredQuestionCount, 19);
         console.log(`✅ Room ${roomPin} created with ${res.totalQuestions} randomized questions.`);
         resolve();
       });
@@ -128,7 +128,7 @@ async function runLiveTest() {
     await new Promise((resolve, reject) => {
       host.emit('push_question', { roomPin, questionIndex: 0 }, (res) => {
         if (!res.success) return reject(new Error(res.message));
-        console.log(`✅ Question 1/20 pushed: "${res.question.substring(0, 50)}..." [type=${res.type}]`);
+        console.log(`✅ Question 1/19 pushed: "${res.question.substring(0, 50)}..." [type=${res.type}]`);
         resolve();
       });
     });

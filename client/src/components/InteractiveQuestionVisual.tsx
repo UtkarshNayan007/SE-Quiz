@@ -1298,7 +1298,7 @@ export const InteractiveQuestionVisual: React.FC<Props> = ({
     effectiveType === 'image' ||
     imageUrl ||
     visualData?.imageUrl ||
-    (effectiveType !== 'theory' && (questionId === 8 || questionId === 9 || questionId === 11 || questionId === 16))
+    (effectiveType !== 'theory' && (questionId === 8 || questionId === 9 || questionId === 11))
   );
 
   if (isImageQuestion) {

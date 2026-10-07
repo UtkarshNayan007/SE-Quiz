@@ -334,46 +334,6 @@
     "explanation": "Corporate “Acceptable Use of Assets” policy mandates using only IT-approved and vetted software deployed via corporate software portals to protect against malware and unauthorized applications."
   },
   {
-    "id": 16,
-    "category": "Image Scenario",
-    "type": "image",
-    "imageUrl": "/questions/question_16_compare_emails_v5.png",
-    "question": "Which email shows clear signs of a malicious phishing attempt?",
-    "options": [
-      "Panel A – It has a link to internal company portal and uses specific words directed to an individual user.",
-      "Panel B – It uses a generic greeting, creates urgency, threatens account lockout, and includes a suspicious external link.",
-      "Both Panel A and Panel B are phishing emails.",
-      "Neither Panel A nor Panel B is a phishing email."
-    ],
-    "correctAnswer": 1,
-    "explanation": "Panel B contains several phishing indicators: a generic greeting (\"dear user\"), urgent language, threats of account suspension, poor wording, and a non-corporate URL designed to capture credentials. Panel A appears to follow standard corporate communication practices.",
-    "visualData": {
-      "type": "image",
-      "imageUrl": "/questions/question_16_compare_emails_v5.png",
-      "imageCaption": "Compare the Emails (Panels A & B)",
-      "findings": [
-        {
-          "id": 1,
-          "title": "Generic Greeting & Coercive Urgency",
-          "desc": "Panel B uses 'dear user' and threatens account lockout within 24 hours to induce panic."
-        },
-        {
-          "id": 2,
-          "title": "Suspicious External Link",
-          "desc": "Upgrade Link points to an external credential harvesting site (https://secure-login-upgrade.net/update) rather than the internal corporate portal (portal.se.com)."
-        },
-        {
-          "id": 3,
-          "title": "Spoofed Sender Domain",
-          "desc": "Sender address is support@sc.com (typosquatted domain) instead of legitimate support@se.com."
-        }
-      ]
-    },
-    "revealVisual": {
-      "vulnerabilitySummary": "Panel B exhibits classic phishing indicators: typosquatted domain (sc.com), generic greeting ('dear user'), urgent threats of suspension, and an external phishing link."
-    }
-  },
-  {
     "id": 17,
     "category": "Cyber Riddle",
     "type": "riddle",

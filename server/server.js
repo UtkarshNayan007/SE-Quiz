@@ -119,17 +119,17 @@ loadQuestions();
  * Category-balanced randomized question builder.
  * Guarantees:
  * 1. For a 5-question game: Exactly 1 question from each of the 5 categories (Riddle, Image, MCQ, Fill in the Blank, Crossword) in randomized, shuffled order.
- * 2. For 10, 15, or 20 questions (or custom counts): Every bunch of 5 questions has a balanced variety of question formats.
+ * 2. For 10, 15, or 19 questions (or custom counts): Every bunch of 5 questions has a balanced variety of question formats.
  * 3. Prevents consecutive identical question types throughout the game.
  * 4. Pure Fisher-Yates randomization within each category pool so every session gets a fresh, dynamic question set.
  * 5. 100% deduplication guarantee across all rounds.
  */
-function buildRoomQuestions(count = 20) {
+function buildRoomQuestions(count = 19) {
   if (!questions || questions.length === 0) {
     loadQuestions();
   }
 
-  const safeCount = Math.min(Math.max(parseInt(count) || 20, 1), questions.length);
+  const safeCount = Math.min(Math.max(parseInt(count) || questions.length || 19, 1), questions.length);
 
   const getType = (q) => {
     if (!q) return 'mcq';
@@ -232,7 +232,7 @@ function buildRoomQuestions(count = 20) {
       takeItem(riddles),
       takeItem(fills),
       takeItem(images),
-      takeItem(images),
+      takeItem(mcqs),
       takeItem(mcqs)
     ];
     const b2 = arrangeBunch(b2Items, getType(b1[b1.length - 1])).slice(0, safeCount - 5);
@@ -242,14 +242,14 @@ function buildRoomQuestions(count = 20) {
       takeItem(crosswords),
       takeItem(riddles),
       takeItem(images),
-      takeItem(mcqs),
+      takeItem(fills),
       takeItem(mcqs)
     ];
     const b1 = arrangeBunch(b1Items, null);
 
     const b2Items = [
-      takeItem(fills),
       takeItem(riddles),
+      takeItem(fills),
       takeItem(images),
       takeItem(mcqs),
       takeItem(mcqs)
@@ -257,27 +257,27 @@ function buildRoomQuestions(count = 20) {
     const b2 = arrangeBunch(b2Items, getType(b1[b1.length - 1]));
 
     const b3Items = [
-      takeItem(fills),
       takeItem(images),
-      takeItem(images),
+      takeItem(mcqs),
+      takeItem(mcqs),
       takeItem(mcqs),
       takeItem(mcqs)
     ];
     const b3 = arrangeBunch(b3Items, getType(b2[b2.length - 1])).slice(0, safeCount - 10);
     result = [...b1, ...b2, ...b3];
   } else {
-    // 16 to 20
+    // 16 to 19
     const b1Items = [
       takeItem(crosswords),
       takeItem(riddles),
       takeItem(images),
-      takeItem(mcqs),
+      takeItem(fills),
       takeItem(mcqs)
     ];
     const b1 = arrangeBunch(b1Items, null);
 
     const b2Items = [
-      takeItem(fills),
+      takeItem(riddles),
       takeItem(images),
       takeItem(mcqs),
       takeItem(mcqs),
@@ -286,8 +286,8 @@ function buildRoomQuestions(count = 20) {
     const b2 = arrangeBunch(b2Items, getType(b1[b1.length - 1]));
 
     const b3Items = [
-      takeItem(riddles),
-      takeItem(images),
+      takeItem(fills),
+      takeItem(mcqs),
       takeItem(mcqs),
       takeItem(mcqs),
       takeItem(mcqs)
@@ -295,7 +295,6 @@ function buildRoomQuestions(count = 20) {
     const b3 = arrangeBunch(b3Items, getType(b2[b2.length - 1]));
 
     const b4Items = [
-      takeItem(fills),
       takeItem(images),
       takeItem(mcqs),
       takeItem(mcqs),

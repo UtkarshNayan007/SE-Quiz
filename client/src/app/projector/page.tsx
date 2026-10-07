@@ -790,7 +790,7 @@ function ProjectorComponent() {
             )}
 
             {/* Interactive Question Visual (Widescreen Projector View) */}
-            {((currentQuestion.type && currentQuestion.type !== 'theory') || currentQuestion.imageUrl || currentQuestion.visualData?.imageUrl || (currentQuestion.id && [8, 9, 11, 16].includes(currentQuestion.id))) && (
+            {((currentQuestion.type && currentQuestion.type !== 'theory') || currentQuestion.imageUrl || currentQuestion.visualData?.imageUrl || (currentQuestion.id && [8, 9, 11].includes(currentQuestion.id))) && (
               <div className="mb-4 shrink-0">
                 <InteractiveQuestionVisual
                   type={currentQuestion.type}
