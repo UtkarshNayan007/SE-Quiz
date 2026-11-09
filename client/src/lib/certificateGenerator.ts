@@ -6,7 +6,7 @@
  * Calligraphy: Beautiful script calligraphy for recipient name & signatures
  * Background: Increased visibility Gen-Z Cyber Awareness Graphics (Shield, Circuit Traces, Binary, Terminal Prompts)
  * Logos: Dual Header - Official Schneider Electric Logo (/se-logo-official.png) & Team CSH Logo (/csh-logo.png)
- * Event: OT MSS Weekly KT Quiz | "Beyond Compliance. Enabling Business." | Avinya Campus, Bangalore
+ * Event: OT MSS Weekly KT Quiz | Avinya Campus, Bangalore
  */
 
 export interface CertificateData {
@@ -400,10 +400,7 @@ export async function renderCertificateToCanvas(
     ctx.fillStyle = '#009639';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('OT MSS WEEKLY KT', centerX, 92);
-
-    // Tagline below heading: "Beyond Compliance. Enabling Business."
-    drawText('Beyond Compliance. Enabling Business.', centerX, 134, 'italic 600 18px "Playfair Display", Georgia, serif', '#1E293B');
+    ctx.fillText('OT MSS WEEKLY KT', centerX, 105);
 
     // Date & Location Pill Bar (as shown in reference Image 3)
     const infoPillW = 480;
@@ -638,10 +635,7 @@ export async function renderCertificateToCanvas(
     ctx.fillStyle = '#009639';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('OT MSS WEEKLY KT', centerX, 290);
-
-    // Tagline
-    drawText('Beyond Compliance. Enabling Business.', centerX, 345, 'italic 600 21px "Playfair Display", Georgia, serif', '#1E293B');
+    ctx.fillText('OT MSS WEEKLY KT', centerX, 310);
 
     // Date & Location Pill
     const pillW = 540;
@@ -899,7 +893,7 @@ export function getLinkedInShareText(data: CertificateData): string {
   const isWinner = data.tier === 'winner';
   const certType = isWinner ? 'Certificate of Excellence' : 'Certificate of Participation';
 
-  return `I am proud to share that I participated in the OT MSS Weekly KT Quiz ("Beyond Compliance. Enabling Business.") organized by Schneider Electric CCSH OT SOC MSSP at Avinya Campus, Bangalore! 🛡️⚡
+  return `I am proud to share that I participated in the OT MSS Weekly KT Quiz organized by Schneider Electric CCSH OT SOC MSSP at Avinya Campus, Bangalore! 🛡️⚡
 
 Honored to achieve the ${certType} (${data.awardTitle.toUpperCase()}) with a score of ${data.score} pts (${rankStr}). It was an incredible session testing real-world OT, SOC, and Cyber Defense response skills.
 
@@ -908,7 +902,7 @@ A huge thank you to the leadership and organizing team:
 • Abhinav Roy (GM CCSH OT SOC MSSP) - https://www.linkedin.com/in/abhinavroy07/
 • Padmasini Annadanam (Cyber Engineer - CCSH OT SOC MSSP) - https://www.linkedin.com/in/padmasiniannadanam/
 
-#SchneiderElectric #OTMSSWeeklyKT #CCSHOTSOC #CyberSecurity #OTSecurity #MSSP #LifeIsOn #CyberDefense #BeyondComplianceEnablingBusiness`;
+#SchneiderElectric #OTMSSWeeklyKT #CCSHOTSOC #CyberSecurity #OTSecurity #MSSP #LifeIsOn #CyberDefense`;
 }
 
 /**
@@ -919,7 +913,6 @@ export function getInstagramShareCaption(data: CertificateData): string {
   const tag = isWinner ? '🏆 OT MSS Weekly KT Winner' : '🛡️ OT MSS Weekly KT Defender';
 
   return `${tag} | Schneider Electric CCSH OT SOC MSSP
-"Beyond Compliance. Enabling Business."
 📍 Avinya Campus, Bangalore
 ${data.awardTitle} • Score: ${data.score} pts
 Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam

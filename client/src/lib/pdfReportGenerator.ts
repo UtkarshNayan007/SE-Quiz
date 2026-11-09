@@ -115,16 +115,11 @@ export function generateLeaderboardPDF(data: PDFReportData): void {
   doc.setTextColor(darkSlate[0], darkSlate[1], darkSlate[2]);
   doc.text('OT MSS Weekly KT Quiz', margin, 21);
 
-  // Subtitle / Tagline
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-  doc.text('BEYOND COMPLIANCE , ENABLING BUSINESS.', margin, 26.5);
-
+  // Metadata
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(mutedSlate[0], mutedSlate[1], mutedSlate[2]);
-  doc.text(`Generated on: ${exportDate} • Total Active Participants: ${participants.length}`, margin, 31);
+  doc.text(`Generated on: ${exportDate} • Total Active Participants: ${participants.length}`, margin, 26.5);
 
   // Room PIN Box on Top Right
   const pinBoxW = 48;

@@ -663,9 +663,6 @@ export default function HostDashboard() {
             <h1 className="text-xs sm:text-sm font-black tracking-wider text-[#009639] dark:text-[#00E676] uppercase">
               OT MSS Weekly KT Quiz
             </h1>
-            <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wide hidden sm:block">
-              Beyond Compliance , Enabling Business.
-            </p>
           </div>
         </div>
         <div className="flex items-center gap-2.5 md:gap-3 mt-4 md:mt-0 flex-wrap justify-center">

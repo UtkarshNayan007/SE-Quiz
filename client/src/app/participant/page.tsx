@@ -705,7 +705,6 @@ function ParticipantComponent() {
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">OT MSS Weekly KT Quiz</h1>
-            <p className="text-xs font-bold text-[#009639] dark:text-[#00E676] tracking-wide mt-1">Beyond Compliance , Enabling Business.</p>
           </div>
           
           {error && (
@@ -774,7 +773,6 @@ function ParticipantComponent() {
             />
             <div className="min-w-0 border-l border-gray-200 dark:border-slate-700 pl-2">
               <p className="text-[9px] sm:text-[10px] text-[#009639] dark:text-[#00E676] font-bold uppercase tracking-wider truncate">OT MSS Weekly KT Quiz</p>
-              <p className="text-[7.5px] sm:text-[8.5px] text-gray-500 dark:text-slate-400 font-semibold tracking-tight truncate hidden xs:block">Beyond Compliance , Enabling Business.</p>
               <div className="flex items-center gap-1.5 min-w-0">
                 <p className="font-bold text-gray-900 dark:text-white text-sm sm:text-base leading-tight truncate max-w-[90px] xs:max-w-[130px] sm:max-w-[180px]">{name}</p>
                 {badgeNumber && (

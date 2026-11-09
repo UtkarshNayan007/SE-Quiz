@@ -301,8 +301,7 @@ function ProjectorComponent() {
               className="h-12 sm:h-14 w-auto object-contain drop-shadow-sm brightness-100 dark:brightness-110"
             />
           </div>
-          <h2 className="text-2xl font-black mb-1 text-slate-900 dark:text-white uppercase">OT MSS Weekly KT Quiz</h2>
-          <p className="text-xs font-bold text-[#009639] dark:text-[#00E676] tracking-wide mb-4">Beyond Compliance , Enabling Business.</p>
+          <h2 className="text-2xl font-black mb-4 text-slate-900 dark:text-white uppercase">OT MSS Weekly KT Quiz</h2>
           <p className="text-slate-600 dark:text-slate-300 text-sm mb-6">Enter the 6-digit Room PIN created on the Host Dashboard to launch the stage screen view.</p>
 
           <form onSubmit={(e) => {
@@ -345,9 +344,6 @@ function ProjectorComponent() {
             <h1 className="text-sm lg:text-base font-black tracking-wider text-[#009639] dark:text-[#00E676] uppercase">
               OT MSS Weekly KT Quiz
             </h1>
-            <p className="text-[11px] lg:text-xs font-bold text-slate-600 dark:text-slate-400 tracking-wide">
-              Beyond Compliance , Enabling Business.
-            </p>
           </div>
         </div>
 

@@ -191,7 +191,7 @@ Special thanks to the leadership and organizing team:
 • Abhinav Roy (GM CCSH OT SOC MSSP) - https://www.linkedin.com/in/abhinavroy07/
 • Padmasini Annadanam (CCSH OT SOC MSSP) - https://www.linkedin.com/in/padmasiniannadanam/
 
-#SchneiderElectric #OTMSSWeeklyKT #CCSHOTSOC #CyberSecurity #OTSecurity #MSSP #LifeIsOn #BeyondComplianceEnablingBusiness`;
+#SchneiderElectric #OTMSSWeeklyKT #CCSHOTSOC #CyberSecurity #OTSecurity #MSSP #LifeIsOn`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(shareText).catch(() => {});
@@ -208,7 +208,6 @@ Special thanks to the leadership and organizing team:
     const badgeLine = winner.badgeNumber ? `Verified Badge: #${winner.badgeNumber}\n` : '';
     const caption = `🏆 ${rankTitle} | OT MSS Weekly KT
 Schneider Electric CCSH OT SOC MSSP
-"Beyond Compliance. Enabling Business."
 📍 Avinya Campus, Bangalore
 ${badgeLine}Score: ${winner.score} pts
 Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
@@ -260,11 +259,7 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
 
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '900 68px "Cinzel", serif';
-      ctx.fillText('CYBER SECURITY 2026', 540, 270);
-
-      ctx.fillStyle = '#94A3B8';
-      ctx.font = '600 32px "Outfit", sans-serif';
-      ctx.fillText('"Beyond Compliance. Enabling Business."', 540, 330);
+      ctx.fillText('OT MSS WEEKLY KT', 540, 290);
 
       // 4. Podium Badge
       ctx.fillStyle = isFirst ? '#F59E0B' : isSecond ? '#94A3B8' : '#D97706';
