@@ -25,6 +25,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
+import { getServerUrl } from '@/lib/socket';
 
 interface Question {
   id: number;
@@ -75,16 +76,18 @@ export default function AIQuizStudioModal({
   const [savedSessions, setSavedSessions] = useState<any[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
 
-  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+  const [socketUrl, setSocketUrl] = useState<string>('https://se-quiz-server.onrender.com');
 
   useEffect(() => {
-    const savedKey = localStorage.getItem('ot_quiz_gemini_key');
+    setSocketUrl(getServerUrl());
+    const savedKey = localStorage.getItem('ot_quiz_gemini_key') || localStorage.getItem('gemini_api_key');
     if (savedKey) setApiKey(savedKey);
   }, []);
 
   const handleApiKeyChange = (val: string) => {
     setApiKey(val);
     localStorage.setItem('ot_quiz_gemini_key', val.trim());
+    localStorage.setItem('gemini_api_key', val.trim());
   };
 
   const loadSavedSessions = async () => {

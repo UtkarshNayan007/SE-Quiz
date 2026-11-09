@@ -2,22 +2,21 @@ import { io, Socket } from 'socket.io-client';
 
 let socket: Socket | null = null;
 
+export const getServerUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.');
+    if (isLocal) {
+      return `http://${hostname}:4000`;
+    }
+    return process.env.NEXT_PUBLIC_SOCKET_URL || 'https://se-quiz-server.onrender.com';
+  }
+  return process.env.NEXT_PUBLIC_SOCKET_URL || 'https://se-quiz-server.onrender.com';
+};
+
 export const getSocket = (): Socket => {
   if (!socket) {
-    // Dynamically detect server host: if running on localhost or local LAN, ALWAYS connect to local port 4000
-    let serverUrl = '';
-    
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.');
-      if (isLocal) {
-        serverUrl = `http://${hostname}:4000`;
-      } else {
-        serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://se-quiz-server.onrender.com';
-      }
-    } else {
-      serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
-    }
+    const serverUrl = getServerUrl();
 
     socket = io(serverUrl, {
       autoConnect: true,
