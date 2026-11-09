@@ -9,7 +9,7 @@
  * - Deterministic fallback & normalization
  */
 
-const pdfParse = require('pdf-parse');
+const pdfParseModule = require('pdf-parse');
 
 /**
  * Extracts plain text from an uploaded buffer (PDF or Text/Markdown)
@@ -22,12 +22,51 @@ async function extractTextFromBuffer(buffer, mimeType = '', filename = '') {
   const isPdf = mimeType.includes('pdf') || filename.toLowerCase().endsWith('.pdf');
   if (isPdf) {
     try {
-      const data = await pdfParse(buffer);
-      return data.text || '';
+      // 1. pdf-parse v2 API (PDFParse class)
+      if (pdfParseModule && pdfParseModule.PDFParse) {
+        const parser = new pdfParseModule.PDFParse({ data: buffer });
+        const res = await parser.getText();
+        if (res && res.text) {
+          return res.text;
+        }
+      }
+
+      // 2. pdf-parse v1 API (direct function export)
+      if (typeof pdfParseModule === 'function') {
+        const data = await pdfParseModule(buffer);
+        if (data && data.text) {
+          return data.text;
+        }
+      }
+
+      // 3. ESM default export fallback
+      if (pdfParseModule && typeof pdfParseModule.default === 'function') {
+        const data = await pdfParseModule.default(buffer);
+        if (data && data.text) {
+          return data.text;
+        }
+      }
     } catch (err) {
-      console.error('PDF parsing error:', err);
-      throw new Error(`Failed to extract text from PDF: ${err.message}`);
+      console.warn('Primary PDF parser encountered issue, trying fallback text extractor:', err.message);
     }
+
+    // 4. Resilient stream-level text extractor fallback (extracts literal ASCII/UTF8 strings from PDF streams)
+    try {
+      const raw = buffer.toString('latin1');
+      const textChunks = [];
+      const textMatches = raw.match(/\(([^()]+)\)\s*Tj/g) || [];
+      for (const m of textMatches) {
+        const clean = m.replace(/^\(/, '').replace(/\)\s*Tj$/, '').trim();
+        if (clean.length > 1) textChunks.push(clean);
+      }
+      if (textChunks.length > 5) {
+        return textChunks.join(' ');
+      }
+    } catch (fallbackErr) {
+      console.error('Fallback PDF extractor failed:', fallbackErr);
+    }
+
+    throw new Error('Failed to extract text from PDF: unable to parse text content.');
   }
 
   // Treat as UTF-8 text (txt, md, json, etc.)
