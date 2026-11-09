@@ -1216,6 +1216,7 @@ function ParticipantComponent() {
                     Question {activeQuestion.questionIndex + 1} of {activeQuestion.totalQuestions || totalQuestions}
                   </span>
                   <span className={`px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-full border ${
+                    activeQuestion.type === 'incident_triage' ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700' :
                     activeQuestion.type === 'riddle' ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800' :
                     activeQuestion.type === 'crossword' ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800' :
                     activeQuestion.type === 'fill_in_the_blank' ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' :
@@ -1262,15 +1263,15 @@ function ParticipantComponent() {
               )}
             </div>
 
-            {/* Interactive Question Visual (Spot the Difference / Picture MCQ / Memory Check / Crossword / Image Scenario) */}
-            {((activeQuestion.type && activeQuestion.type !== 'theory') || activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl || (activeQuestion.id && [8, 9, 11].includes(activeQuestion.id))) && (
+            {/* Interactive Question Visual (OT Incident Triage / Crossword / Spot the Difference / Picture MCQ / Memory Check / Image Scenario) */}
+            {(activeQuestion.type === 'incident_triage' || activeQuestion.type === 'crossword' || (activeQuestion.type && activeQuestion.type !== 'theory') || activeQuestion.visualData || activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl || (activeQuestion.id && [8, 9, 11].includes(activeQuestion.id))) && (
               <div className="shrink-0 w-full overflow-hidden">
                 <InteractiveQuestionVisual
                   type={activeQuestion.type}
                   imageUrl={activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl}
                   questionId={activeQuestion.id}
                   questionText={activeQuestion.question}
-                  visualData={activeQuestion.visualData}
+                  visualData={activeQuestion.visualData || (activeQuestion.type === 'incident_triage' ? { type: 'incident_triage', triageData: { incidentName: (activeQuestion as any).scenarioTitle || 'OT INCIDENT RESPONSE', step: (activeQuestion as any).step || 'DETECTION', stepNumber: (activeQuestion as any).stepNumber || 1, totalSteps: 3, threatLevel: (activeQuestion as any).blastRadius || 'HIGH', purdueZone: (activeQuestion as any).purdueLevel || 'Level 1/2' } } : null)}
                   revealVisual={revealResult?.revealVisual || activeQuestion.revealVisual}
                   isReveal={gameState === 'REVEAL'}
                   compact={true}

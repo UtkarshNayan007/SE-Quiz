@@ -1,0 +1,326 @@
+[
+  {
+    "id": 101,
+    "category": "OT Incident Triage",
+    "type": "incident_triage",
+    "scenarioTitle": "INCIDENT 1: TRITON / TRISIS SAFETY SYSTEM INTRUSION",
+    "step": "STEP 1: DETECTION",
+    "stepNumber": 1,
+    "totalSteps": 3,
+    "purdueLevel": "Level 1 - Basic Control / Safety Instrumented System (SIS)",
+    "threatActor": "Xenotime (State-Sponsored APT)",
+    "blastRadius": "CRITICAL",
+    "question": "Our OT SOC telemetry triggers a critical alert: An unauthorized TriStation protocol packet on UDP port 1502 has communicated with Triconex MP3008 Safety Controllers. Which telemetry source first alerted our SOC to this initial ingress?",
+    "options": [
+      "OT Passive Network Sensor detecting anomalous TriStation 1502 broadcast from a compromised Engineering Workstation",
+      "Corporate Active Directory Domain Controller logging standard user Kerberos ticket requests",
+      "Perimeter email gateway flagging a promotional marketing PDF with high spam score",
+      "Public DNS resolver logging recursive lookups from enterprise marketing laptops"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Detection Phase: In the TRITON/TRISIS attack lifecycle, the threat actor utilized proprietary TriStation protocol (UDP port 1502) to communicate with safety controllers. Passive OT network monitoring sensors (e.g., Claroty CTD, Nozomi) immediately flag unauthorized Level 2 to Level 1 TriStation communication.",
+    "visualData": {
+      "type": "incident_triage",
+      "triageData": {
+        "incidentName": "OPERATION TRITON / TRISIS INTRUSION",
+        "step": "DETECTION",
+        "stepNumber": 1,
+        "totalSteps": 3,
+        "threatLevel": "CRITICAL",
+        "activeProtocol": "TriStation UDP 1502",
+        "targetAsset": "Triconex MP3008 SIS Controller",
+        "purdueZone": "Level 1 (Safety Instrumented System)",
+        "alertTelemetry": "Anomalous TriStation frame injected from EWS 192.168.20.14",
+        "plantSafetyHealth": 88
+      }
+    }
+  },
+  {
+    "id": 102,
+    "category": "OT Incident Triage",
+    "type": "incident_triage",
+    "scenarioTitle": "INCIDENT 1: TRITON / TRISIS SAFETY SYSTEM INTRUSION",
+    "step": "STEP 2: CONTAINMENT",
+    "stepNumber": 2,
+    "totalSteps": 3,
+    "purdueLevel": "Level 3.5 IT/OT DMZ & Level 2 Supervisory",
+    "threatActor": "Xenotime (State-Sponsored APT)",
+    "blastRadius": "HIGH",
+    "question": "The adversary has established persistence on the Level 2 Engineering Workstation. According to IEC 62443 and the Purdue Model, which immediate network containment action prevents propagation to the safety controllers without tripping plant operations?",
+    "options": [
+      "Isolate the Level 2 EWS switch port and sever Level 3.5 DMZ Jump Host access while keeping redundant DCS controllers operational",
+      "Pull main circuit breaker to the entire plant power distribution grid causing immediate black start",
+      "Reboot enterprise Active Directory domain controller and wait for daily group policy update",
+      "Format the Safety Instrumented Controller hard drives directly over remote WAN VPN"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Containment Phase: Under IEC 62443 zone and conduit segmentation, containment requires isolating the infected Level 2 Engineering Workstation and severing the Level 3.5 DMZ conduit. The autonomous DCS controllers remain operational on redundant channels without triggering an unmanaged plant shutdown.",
+    "visualData": {
+      "type": "incident_triage",
+      "triageData": {
+        "incidentName": "OPERATION TRITON / TRISIS INTRUSION",
+        "step": "CONTAINMENT",
+        "stepNumber": 2,
+        "totalSteps": 3,
+        "threatLevel": "HIGH",
+        "activeProtocol": "Purdue Conduit Isolation",
+        "targetAsset": "Level 2 / Level 3.5 Boundary Firewall",
+        "purdueZone": "Conduit 2-1 (EWS to SIS)",
+        "alertTelemetry": "Conduit blocked; EWS 192.168.20.14 quarantined by MAC/802.1X",
+        "plantSafetyHealth": 92
+      }
+    }
+  },
+  {
+    "id": 103,
+    "category": "OT Incident Triage",
+    "type": "incident_triage",
+    "scenarioTitle": "INCIDENT 1: TRITON / TRISIS SAFETY SYSTEM INTRUSION",
+    "step": "STEP 3: REMEDIATION & RESTORATION",
+    "stepNumber": 3,
+    "totalSteps": 3,
+    "purdueLevel": "Level 0/1 Field Actuation & Keylock Physical Security",
+    "threatActor": "Xenotime (State-Sponsored APT)",
+    "blastRadius": "CONTAINED",
+    "question": "Threat contained. How do OT engineers and SOC analysts safely verify and restore the Triconex SIS controllers to guaranteed clean state before resuming full production?",
+    "options": [
+      "Physically turn physical keylock switch to 'RUN' mode, compare firmware and ladder logic hash against verified offline golden image",
+      "Download unverified firmware patch from a public cloud repository via an engineer's personal 5G mobile hotspot",
+      "Leave controller in 'PROGRAM' mode indefinitely so any network user can edit safety thresholds",
+      "Ignore controller logic and bridge the emergency flare interlocks with physical wire jumpers"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Remediation Phase: Physical keylock switches on industrial safety controllers (RUN vs PROGRAM) prevent remote firmware overwrites when set to 'RUN'. Restoration requires verifying cryptographic hashes against offline golden baselines before returning to production.",
+    "visualData": {
+      "type": "incident_triage",
+      "triageData": {
+        "incidentName": "OPERATION TRITON / TRISIS INTRUSION",
+        "step": "REMEDIATION",
+        "stepNumber": 3,
+        "totalSteps": 3,
+        "threatLevel": "CONTAINED",
+        "activeProtocol": "Firmware Cryptographic Hash Verification",
+        "targetAsset": "Triconex Keylock Switch",
+        "purdueZone": "Level 1 Physical Cabinet",
+        "alertTelemetry": "SHA-256 baseline verified 100% clean; Keylock set to RUN",
+        "plantSafetyHealth": 100
+      }
+    }
+  },
+  {
+    "id": 104,
+    "category": "OT Incident Triage",
+    "type": "incident_triage",
+    "scenarioTitle": "INCIDENT 2: OT HISTORIAN & LEVEL 3 RANSOMWARE OUTBREAK",
+    "step": "STEP 1: DETECTION",
+    "stepNumber": 1,
+    "totalSteps": 3,
+    "purdueLevel": "Level 3 - Operations & Plant Historian",
+    "threatActor": "BlackCat / ALPHV Ransomware Syndicate",
+    "blastRadius": "HIGH",
+    "question": "The OT SOC detects an avalanche of encrypted file writes with '.locked' extensions in the Level 3 OSIsoft PI Historian server. What initial indicator alerted the SOC to patient-zero intrusion?",
+    "options": [
+      "High-volume PsExec lateral movement and SMB port 445 sweeps originating from a compromised Level 3.5 dual-homed jump host",
+      "A failed login attempt on a test printer located on the enterprise reception desk",
+      "A scheduled nightly SQL backup script completing with return code 0",
+      "Low CPU utilization on a standalone conference room projector"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Detection Phase: Lateral movement across the IT/OT boundary commonly abuses dual-homed jump hosts via SMB (port 445), PsExec, or WMI. Detecting lateral movement at the Level 3.5 DMZ is critical before ransomware reaches Level 2 HMIs.",
+    "visualData": {
+      "type": "incident_triage",
+      "triageData": {
+        "incidentName": "HISTORIAN LEVEL 3 RANSOMWARE OUTBREAK",
+        "step": "DETECTION",
+        "stepNumber": 1,
+        "totalSteps": 3,
+        "threatLevel": "HIGH",
+        "activeProtocol": "SMBv3 Port 445 / PsExec",
+        "targetAsset": "OSIsoft PI Historian (Level 3)",
+        "purdueZone": "Level 3.5 to Level 3 Conduit",
+        "alertTelemetry": "Mass .locked file renaming detected on \\\\historian01\\data",
+        "plantSafetyHealth": 82
+      }
+    }
+  },
+  {
+    "id": 105,
+    "category": "OT Incident Triage",
+    "type": "incident_triage",
+    "scenarioTitle": "INCIDENT 2: OT HISTORIAN & LEVEL 3 RANSOMWARE OUTBREAK",
+    "step": "STEP 2: CONTAINMENT",
+    "stepNumber": 2,
+    "totalSteps": 3,
+    "purdueLevel": "Level 3 Operations to Level 2 Control Boundary",
+    "threatActor": "BlackCat / ALPHV Ransomware Syndicate",
+    "blastRadius": "CRITICAL",
+    "question": "Ransomware is spreading across Level 3. Which Purdue Model containment barrier must be locked down to prevent ransomware from crossing into Level 2 Supervisory Control (HMIs and SCADA)?",
+    "options": [
+      "Enforce strict firewall rule blocking all L3-to-L2 inbound connections, severing RDP/SMB conduits while preserving air-gapped PLC control",
+      "Connect all Level 2 HMIs directly to public internet so antivirus can download updates",
+      "Pay the ransom demand immediately in Bitcoin and restart the plant with no backups",
+      "Delete all firewall rules so emergency response technicians have unrestricted access"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Containment Phase: Severing L3-to-L2 conduits is the ultimate containment barrier in Purdue architecture. Level 2 PLCs and autonomous controller loops continue running locally even when Level 3 supervisory historians are quarantined.",
+    "visualData": {
+      "type": "incident_triage",
+      "triageData": {
+        "incidentName": "HISTORIAN LEVEL 3 RANSOMWARE OUTBREAK",
+        "step": "CONTAINMENT",
+        "stepNumber": 2,
+        "totalSteps": 3,
+        "threatLevel": "CRITICAL",
+        "activeProtocol": "L3-to-L2 Firewall Lockdown",
+        "targetAsset": "Level 2/3 Inter-Zone Firewall",
+        "purdueZone": "Conduit Level 3 ➔ Level 2",
+        "alertTelemetry": "Firewall Rule #401 enforced: Drop all L3 ingress to L2 HMIs",
+        "plantSafetyHealth": 90
+      }
+    }
+  },
+  {
+    "id": 106,
+    "category": "OT Incident Triage",
+    "type": "incident_triage",
+    "scenarioTitle": "INCIDENT 2: OT HISTORIAN & LEVEL 3 RANSOMWARE OUTBREAK",
+    "step": "STEP 3: REMEDIATION & RESTORATION",
+    "stepNumber": 3,
+    "totalSteps": 3,
+    "purdueLevel": "Level 3 Data Recovery & Validated Restore",
+    "threatActor": "BlackCat / ALPHV Ransomware Syndicate",
+    "blastRadius": "CONTAINED",
+    "question": "Threat eradicated. How do OT engineers restore the Level 3 Historian without risking re-infection or corrupted sensor history in the production line?",
+    "options": [
+      "Restore Historian OS and database from immutable, offline air-gapped backup and deploy unidirection data diodes for telemetry forwarding",
+      "Restore unencrypted files from a shared Google Drive link provided by an external anonymous email",
+      "Disable all endpoint detection and monitoring on the Historian to maximize restoration speed",
+      "Copy system binaries directly from an unquarantined corporate laptop via uninspected USB stick"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Remediation Phase: Immutable air-gapped backups ensure clean data recovery. Utilizing unidirectional security gateways (data diodes) guarantees that operational telemetry flows outwards to enterprise IT without allowing any reverse attack vectors.",
+    "visualData": {
+      "type": "incident_triage",
+      "triageData": {
+        "incidentName": "HISTORIAN LEVEL 3 RANSOMWARE OUTBREAK",
+        "step": "REMEDIATION",
+        "stepNumber": 3,
+        "totalSteps": 3,
+        "threatLevel": "CONTAINED",
+        "activeProtocol": "Air-Gapped Immutable Restore & Data Diode",
+        "targetAsset": "Level 3 OSIsoft PI Historian",
+        "purdueZone": "Level 3 Validated Host",
+        "alertTelemetry": "Historian database restored from offline cold storage; Diode active",
+        "plantSafetyHealth": 100
+      }
+    }
+  },
+  {
+    "id": 107,
+    "category": "OT Incident Triage",
+    "type": "incident_triage",
+    "scenarioTitle": "INCIDENT 3: MODBUS MITM & VALVE SPOOFING INJECTION",
+    "step": "STEP 1: DETECTION",
+    "stepNumber": 1,
+    "totalSteps": 3,
+    "purdueLevel": "Level 1 - Fieldbus & Process Control",
+    "threatActor": "Insider Threat / Compromised Substation RTU",
+    "blastRadius": "HIGH",
+    "question": "A chemical refining unit experiences sudden pressure anomalies. The SOC flags Modbus TCP packets with Function Code 05 (Write Single Coil) overriding emergency release valves. What alerted the SOC analyst to the spoofing attack?",
+    "options": [
+      "OT deep packet inspection (DPI) detecting ARP cache poisoning and Modbus command pulses originating from an unrecognized MAC address",
+      "An increase in inbound spam email messages received by corporate HR recruiters",
+      "A routine Windows update notification appearing on an executive laptop in corporate headquarters",
+      "An employee booking a conference room in Google Calendar"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Detection Phase: Modbus TCP lacks native encryption or authentication. OT Deep Packet Inspection (DPI) monitors validate Function Codes against approved baselines and flag spoofed MAC addresses or unauthorized coil writes.",
+    "visualData": {
+      "type": "incident_triage",
+      "triageData": {
+        "incidentName": "MODBUS MITM & VALVE SPOOFING INJECTION",
+        "step": "DETECTION",
+        "stepNumber": 1,
+        "totalSteps": 3,
+        "threatLevel": "HIGH",
+        "activeProtocol": "Modbus TCP Port 502 (FC05 Write Coil)",
+        "targetAsset": "Level 1 Modicon M580 PLC",
+        "purdueZone": "Level 1 Fieldbus Segment",
+        "alertTelemetry": "DPI Flag: Rogue MAC 00:1A:2B:3C:4D:5E spoofing Master HMI IP",
+        "plantSafetyHealth": 79
+      }
+    }
+  },
+  {
+    "id": 108,
+    "category": "OT Incident Triage",
+    "type": "incident_triage",
+    "scenarioTitle": "INCIDENT 3: MODBUS MITM & VALVE SPOOFING INJECTION",
+    "step": "STEP 2: CONTAINMENT",
+    "stepNumber": 2,
+    "totalSteps": 3,
+    "purdueLevel": "Level 1 Managed Switch Micro-Segmentation",
+    "threatActor": "Insider Threat / Compromised Substation RTU",
+    "blastRadius": "CRITICAL",
+    "question": "The adversary is actively poisoning ARP tables to inject Modbus commands. Which managed industrial switch containment control immediately halts the packet injection?",
+    "options": [
+      "Enable Dynamic ARP Inspection (DAI), DHCP Snooping, and Port Security MAC-locking on the Level 1 industrial managed switch",
+      "Power cycle the industrial switch every 60 seconds to clear the routing cache temporarily",
+      "Broadcast all Modbus traffic openly to the office Wi-Fi network for community analysis",
+      "Disable all network logging on the switch so buffer overruns do not occur"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Containment Phase: Dynamic ARP Inspection (DAI) and 802.1X Port Security at the managed industrial Ethernet switch immediately drop gratuitous ARP packets from unauthorized rogue MAC addresses, halting the MitM spoofing.",
+    "visualData": {
+      "type": "incident_triage",
+      "triageData": {
+        "incidentName": "MODBUS MITM & VALVE SPOOFING INJECTION",
+        "step": "CONTAINMENT",
+        "stepNumber": 2,
+        "totalSteps": 3,
+        "threatLevel": "CRITICAL",
+        "activeProtocol": "Dynamic ARP Inspection (DAI)",
+        "targetAsset": "Stratix / Hirschmann Managed Switch",
+        "purdueZone": "Level 1 Switch Port 12",
+        "alertTelemetry": "Port Security MAC violation: Port 12 set to errdisable state",
+        "plantSafetyHealth": 91
+      }
+    }
+  },
+  {
+    "id": 109,
+    "category": "OT Incident Triage",
+    "type": "incident_triage",
+    "scenarioTitle": "INCIDENT 3: MODBUS MITM & VALVE SPOOFING INJECTION",
+    "step": "STEP 3: REMEDIATION & RESTORATION",
+    "stepNumber": 3,
+    "totalSteps": 3,
+    "purdueLevel": "Level 1 Controller Hardening & Secure Protocols",
+    "threatActor": "Insider Threat / Compromised Substation RTU",
+    "blastRadius": "CONTAINED",
+    "question": "The rogue device is quarantined. To permanently protect this critical refining loop from future cleartext protocol spoofing, which architectural remediation should be deployed according to IEC 62443-4-2?",
+    "options": [
+      "Upgrade to CIP Security or Modbus/TCP Security with TLS X.509 mutual certificate authentication, enforcing ACLs on the Modicon PLC",
+      "Downgrade controllers to serial RS-232 unshielded cables routed outside the physical building perimeter",
+      "Remove all operator passwords and allow anonymous broadcast access to all engineers",
+      "Leave the network on cleartext Modbus without authentication because 'OT is air-gapped anyway'"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Remediation Phase: Upgrading legacy cleartext Modbus to secure industrial protocols (e.g. Modbus Security on TCP 802 or CIP Security with TLS X.509) enforces cryptographic authentication and anti-tamper message integrity across all PLC commands.",
+    "visualData": {
+      "type": "incident_triage",
+      "triageData": {
+        "incidentName": "MODBUS MITM & VALVE SPOOFING INJECTION",
+        "step": "REMEDIATION",
+        "stepNumber": 3,
+        "totalSteps": 3,
+        "threatLevel": "CONTAINED",
+        "activeProtocol": "Modbus Security TLS 802 / CIP Security",
+        "targetAsset": "Modicon M580 Security Coprocessor",
+        "purdueZone": "Level 1 Hardened Conduit",
+        "alertTelemetry": "TLS 1.3 Mutual Authentication enforced; Cleartext 502 dropped",
+        "plantSafetyHealth": 100
+      }
+    }
+  }
+]

@@ -712,6 +712,7 @@ function ProjectorComponent() {
                   Question {currentQuestion.questionIndex + 1} of {currentQuestion.totalQuestions || totalQuestions}
                 </div>
                 <div className={`px-5 py-2 rounded-full text-sm font-extrabold uppercase tracking-wider border shadow-sm ${
+                  currentQuestion.type === 'incident_triage' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-400' :
                   currentQuestion.type === 'riddle' ? 'bg-purple-50 text-purple-700 border-purple-300' :
                   currentQuestion.type === 'crossword' ? 'bg-indigo-50 text-indigo-700 border-indigo-300' :
                   currentQuestion.type === 'fill_in_the_blank' ? 'bg-blue-50 text-blue-700 border-blue-300' :
@@ -794,14 +795,14 @@ function ProjectorComponent() {
             )}
 
             {/* Interactive Question Visual (Widescreen Projector View) */}
-            {((currentQuestion.type && currentQuestion.type !== 'theory') || currentQuestion.imageUrl || currentQuestion.visualData?.imageUrl || (currentQuestion.id && [8, 9, 11].includes(currentQuestion.id))) && (
+            {(currentQuestion.type === 'incident_triage' || currentQuestion.type === 'crossword' || (currentQuestion.type && currentQuestion.type !== 'theory') || currentQuestion.visualData || currentQuestion.imageUrl || currentQuestion.visualData?.imageUrl || (currentQuestion.id && [8, 9, 11].includes(currentQuestion.id))) && (
               <div className="mb-4 shrink-0">
                 <InteractiveQuestionVisual
                   type={currentQuestion.type}
                   imageUrl={currentQuestion.imageUrl || currentQuestion.visualData?.imageUrl}
                   questionId={currentQuestion.id}
                   questionText={currentQuestion.question}
-                  visualData={currentQuestion.visualData}
+                  visualData={currentQuestion.visualData || (currentQuestion.type === 'incident_triage' ? { type: 'incident_triage', triageData: { incidentName: (currentQuestion as any).scenarioTitle || 'OT INCIDENT RESPONSE', step: (currentQuestion as any).step || 'DETECTION', stepNumber: (currentQuestion as any).stepNumber || 1, totalSteps: 3, threatLevel: (currentQuestion as any).blastRadius || 'HIGH', purdueZone: (currentQuestion as any).purdueLevel || 'Level 1/2' } } : null)}
                   revealVisual={revealResult?.revealVisual || (currentQuestion as any).revealVisual}
                   isReveal={gameState === 'REVEAL'}
                   compact={false}

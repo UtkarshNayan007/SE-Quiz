@@ -509,12 +509,12 @@ export default function ShiftWorkerPage() {
               )}
 
               {/* Interactive Visual if provided */}
-              {currentQ.visualData && (
+              {(currentQ.visualData || currentQ.type === 'incident_triage' || currentQ.type === 'crossword') && (
                 <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
                   <InteractiveQuestionVisual
                     type={currentQ.type}
                     questionText={currentQ.question}
-                    visualData={currentQ.visualData}
+                    visualData={currentQ.visualData || (currentQ.type === 'incident_triage' ? { type: 'incident_triage', triageData: { incidentName: (currentQ as any).scenarioTitle || 'OT INCIDENT RESPONSE', step: (currentQ as any).step || 'DETECTION', stepNumber: (currentQ as any).stepNumber || 1, totalSteps: 3, threatLevel: (currentQ as any).blastRadius || 'HIGH', purdueZone: (currentQ as any).purdueLevel || 'Level 1/2' } } : null)}
                     compact={true}
                     isReveal={stage === 'FEEDBACK'}
                   />

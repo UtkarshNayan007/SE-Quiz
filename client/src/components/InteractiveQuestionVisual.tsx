@@ -54,7 +54,20 @@ export interface ImageFinding {
 }
 
 export interface VisualData {
-  type: 'spot_the_difference' | 'picture_mcq' | 'picture_base' | 'memory_check' | 'crossword' | 'fill_in_the_blank' | 'riddle' | 'image';
+  type: 'spot_the_difference' | 'picture_mcq' | 'picture_base' | 'memory_check' | 'crossword' | 'fill_in_the_blank' | 'riddle' | 'image' | 'incident_triage';
+  // OT Incident Triage & Scenario Branching (Cyber Battle)
+  triageData?: {
+    incidentName: string;
+    step: 'DETECTION' | 'CONTAINMENT' | 'REMEDIATION' | string;
+    stepNumber: number;
+    totalSteps: number;
+    threatLevel: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'CONTAINED' | string;
+    activeProtocol?: string;
+    targetAsset?: string;
+    purdueZone?: string;
+    alertTelemetry?: string;
+    plantSafetyHealth?: number;
+  };
   // Spot the Difference
   sceneType?: 'office_delegation' | 'soc_gate' | 'turnstile_tailgate' | 'conference_leak' | 'cafe_eavesdrop' | string;
   sceneTitle?: string;
@@ -870,6 +883,184 @@ export const MemoryCheckVisual: React.FC<{
 };
 
 /* =========================================================================
+   3.5. OT INCIDENT TRIAGE & SCENARIO BRANCHING (CYBER BATTLE VISUAL)
+   ========================================================================= */
+export const OTIncidentTriageVisual: React.FC<{
+  visualData?: VisualData | null;
+  revealVisual?: RevealVisual | null;
+  isReveal?: boolean;
+  compact?: boolean;
+  questionText?: string;
+}> = ({ visualData, revealVisual, isReveal, compact, questionText }) => {
+  const triage = visualData?.triageData || {
+    incidentName: 'OT CYBER INCIDENT SIMULATION',
+    step: 'DETECTION',
+    stepNumber: 1,
+    totalSteps: 3,
+    threatLevel: 'CRITICAL',
+    activeProtocol: 'Industrial Fieldbus / Ethernet',
+    targetAsset: 'Level 1/2 Automation Controller',
+    purdueZone: 'Level 1 - Process Control',
+    alertTelemetry: 'Anomalous command injection detected',
+    plantSafetyHealth: 85
+  };
+
+  const stepNumber = triage.stepNumber || 1;
+  const currentZone = triage.purdueZone || 'Level 1';
+
+  const purdueLevels = [
+    { level: 'Level 4/5', name: 'Enterprise Business (ERP / AD)', desc: 'Corporate IT & Email' },
+    { level: 'Level 3.5', name: 'Industrial DMZ (Firewalls & Jump Host)', desc: 'IT/OT Isolation Conduit' },
+    { level: 'Level 3', name: 'Operations (Historian, MES & EWS)', desc: 'Plant Supervisors' },
+    { level: 'Level 2', name: 'Supervisory Control (HMI & SCADA)', desc: 'Operator Consoles' },
+    { level: 'Level 1', name: 'Basic Control (PLCs, RTUs & SIS)', desc: 'Autonomous Controllers' },
+    { level: 'Level 0', name: 'Process & Field (Pumps, Valves, Actuators)', desc: 'Physical Equipment' },
+  ];
+
+  return (
+    <div className="w-full bg-slate-900 text-white rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl p-4 sm:p-5">
+      {/* Incident Header & Threat Callout */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3.5 border-b border-slate-800">
+        <div className="flex items-center gap-2.5">
+          <span className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center shrink-0">
+            <ShieldAlert className="w-5 h-5 animate-pulse" />
+          </span>
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30">
+              Mode 2 • OT Incident Battle Triage
+            </span>
+            <h4 className="text-sm sm:text-base font-black text-white mt-0.5">
+              {triage.incidentName}
+            </h4>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-black px-2.5 py-1 rounded-full border uppercase ${
+            triage.threatLevel === 'CRITICAL'
+              ? 'bg-red-950/80 text-red-400 border-red-700 animate-pulse'
+              : 'bg-amber-950/80 text-amber-400 border-amber-700'
+          }`}>
+            {triage.threatLevel} THREAT
+          </span>
+        </div>
+      </div>
+
+      {/* 3-Step Incident Chain Progress Tracker */}
+      <div className="grid grid-cols-3 gap-2 my-4">
+        {[
+          { num: 1, title: 'Detection', desc: 'SOC Telemetry' },
+          { num: 2, title: 'Containment', desc: 'Purdue Isolation' },
+          { num: 3, title: 'Remediation', desc: 'Safe DCS Restore' },
+        ].map((s) => {
+          const isActive = stepNumber === s.num;
+          const isPassed = stepNumber > s.num;
+
+          return (
+            <div
+              key={s.num}
+              className={`p-2.5 rounded-xl border text-center transition-all ${
+                isActive
+                  ? 'bg-emerald-950/70 border-[#00E676] text-[#00E676] shadow-md ring-2 ring-[#00E676]/30'
+                  : isPassed
+                  ? 'bg-slate-800/80 border-slate-600 text-slate-300'
+                  : 'bg-slate-950/40 border-slate-800 text-slate-500'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-1.5 text-xs font-black uppercase">
+                {isPassed ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <span>Step {s.num}</span>
+                )}
+                <span className="hidden sm:inline">• {s.title}</span>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-0.5 truncate">{s.desc}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Purdue Model Visual Zone Map */}
+      <div className="my-3 bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-black uppercase text-slate-400 flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-[#00E676]" />
+            Purdue Model Architecture Segmentation
+          </span>
+          <span className="text-[10px] font-bold text-amber-400 font-mono">
+            Focus Zone: {currentZone}
+          </span>
+        </div>
+
+        <div className="space-y-1">
+          {purdueLevels.map((lvl, idx) => {
+            const isTarget = currentZone.toLowerCase().includes(lvl.level.toLowerCase().split(' ')[0]) ||
+                             (lvl.level.includes('Level 1') && currentZone.includes('Level 1')) ||
+                             (lvl.level.includes('Level 3') && currentZone.includes('Level 3'));
+
+            return (
+              <div
+                key={idx}
+                className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between border transition-all ${
+                  isTarget
+                    ? 'bg-red-950/70 border-red-500 text-red-200 font-bold shadow'
+                    : 'bg-slate-900/60 border-slate-800/80 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`font-mono text-[11px] font-black ${isTarget ? 'text-red-400' : 'text-slate-500'}`}>
+                    {lvl.level}
+                  </span>
+                  <span className="text-[11px] font-semibold">{lvl.name}</span>
+                </div>
+                <span className="text-[10px] text-slate-500 hidden sm:inline">{lvl.desc}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Telemetry Alert & Plant Safety Meter */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs">
+        <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+          <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Telemetry Source</span>
+          <span className="font-mono text-emerald-400 font-semibold">{triage.alertTelemetry || 'OT DPI Anomaly Alert'}</span>
+          <div className="text-[10px] text-slate-400 mt-1">Protocol: <span className="font-mono text-white font-bold">{triage.activeProtocol || 'TriStation / Modbus'}</span></div>
+        </div>
+
+        <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-[10px] uppercase font-bold text-slate-400">
+            <span>Plant Safety Integrity</span>
+            <span className="font-mono font-black text-emerald-400">{triage.plantSafetyHealth || 90}% Uptime</span>
+          </div>
+          <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-1.5">
+            <div
+              className="bg-gradient-to-r from-emerald-500 to-[#00E676] h-full transition-all duration-500"
+              style={{ width: `${triage.plantSafetyHealth || 90}%` }}
+            />
+          </div>
+          <span className="text-[9px] text-slate-500 mt-1">Autonomous safety loop operational</span>
+        </div>
+      </div>
+
+      {/* Reveal Impact Banner */}
+      {isReveal && (
+        <div className="mt-3 p-3 bg-emerald-950/60 border border-emerald-500/50 rounded-xl text-xs flex items-start gap-2.5 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-black text-emerald-300 uppercase">Operational Impact & Blast Radius Analysis:</p>
+            <p className="text-slate-200 mt-0.5 leading-relaxed">
+              This response isolates the threat to the target conduit without tripping Level 0 physical actuators or emergency flare systems, achieving containment with 0% unscheduled downtime.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* =========================================================================
    4. CYBER CROSSWORD VISUAL
    ========================================================================= */
 export const CrosswordVisual: React.FC<{
@@ -922,6 +1113,9 @@ export const CrosswordVisual: React.FC<{
       <div className="flex flex-col items-center justify-center py-2">
         <div className="flex flex-wrap justify-center gap-1.5 md:gap-2 max-w-full">
           {letters.map((letter, idx) => {
+            if (letter === ' ') {
+              return <div key={idx} className="w-2.5 sm:w-4" />;
+            }
             const isInitiallyShown = revealedIndices.has(idx);
             const showLetter = isInitiallyShown || isReveal;
             
@@ -1345,6 +1539,17 @@ export const InteractiveQuestionVisual: React.FC<Props> = ({
           revealVisual={revealVisual}
           isReveal={isReveal}
           compact={compact}
+        />
+      );
+
+    case 'incident_triage':
+      return (
+        <OTIncidentTriageVisual
+          visualData={visualData}
+          revealVisual={revealVisual}
+          isReveal={isReveal}
+          compact={compact}
+          questionText={questionText}
         />
       );
 

@@ -341,6 +341,9 @@ export default function HostDashboard() {
     socket.emit('set_game_mode', { roomPin, gameMode: mode }, (res: any) => {
       if (!res?.success) {
         setError(res?.message || 'Failed to update game mode');
+      } else if (res?.totalQuestions) {
+        setTotalQuestions(res.totalQuestions);
+        setConfiguredQuestionCount(res.totalQuestions);
       }
     });
   };
@@ -1443,8 +1446,9 @@ export default function HostDashboard() {
                   </span>
                   {activeQuestion.type && (
                     <span className="inline-block bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-                      {activeQuestion.type === 'riddle' ? '🎭 Cyber Riddle' :
-                       activeQuestion.type === 'crossword' ? '🧩 Cyber Crossword' :
+                      {activeQuestion.type === 'incident_triage' ? '🛡️ OT Incident Triage Battle' :
+                       activeQuestion.type === 'riddle' ? '🎭 Cyber Riddle' :
+                       activeQuestion.type === 'crossword' ? '🧩 Cyber Crossword & Acronym' :
                        activeQuestion.type === 'fill_in_the_blank' ? '✍️ Fill in the Blank' :
                        activeQuestion.type === 'image' ? '📸 Image Scenario' :
                        activeQuestion.type === 'spot_the_difference' ? '🔍 Spot the Difference' :
@@ -1461,14 +1465,14 @@ export default function HostDashboard() {
                   </h3>
                 )}
 
-                {((activeQuestion.type && activeQuestion.type !== 'theory') || activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl || [8, 9, 11].includes(activeQuestion.id)) && (
+                {(activeQuestion.type === 'incident_triage' || activeQuestion.type === 'crossword' || (activeQuestion.type && activeQuestion.type !== 'theory') || activeQuestion.visualData || activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl || [8, 9, 11].includes(activeQuestion.id)) && (
                   <div className="mb-5">
                     <InteractiveQuestionVisual
                       type={activeQuestion.type}
                       imageUrl={activeQuestion.imageUrl || activeQuestion.visualData?.imageUrl}
                       questionId={activeQuestion.id}
                       questionText={activeQuestion.question}
-                      visualData={activeQuestion.visualData}
+                      visualData={activeQuestion.visualData || (activeQuestion.type === 'incident_triage' ? { type: 'incident_triage', triageData: { incidentName: activeQuestion.scenarioTitle || 'OT INCIDENT RESPONSE', step: activeQuestion.step || 'DETECTION', stepNumber: activeQuestion.stepNumber || 1, totalSteps: activeQuestion.totalSteps || 3, threatLevel: activeQuestion.blastRadius || 'HIGH', purdueZone: activeQuestion.purdueLevel || 'Level 1/2' } } : null)}
                       revealVisual={revealResult?.revealVisual || activeQuestion.revealVisual}
                       isReveal={gameState === 'REVEAL'}
                       compact={true}

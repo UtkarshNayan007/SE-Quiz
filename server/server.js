@@ -137,6 +137,29 @@ function loadQuestions() {
 
 loadQuestions();
 
+let incidentTriageQuestions = [];
+let acronymDecoderQuestions = [];
+
+function loadModeQuestions() {
+  try {
+    const triagePath = path.join(__dirname, 'ot_incident_triage_questions.json');
+    if (fs.existsSync(triagePath)) {
+      const raw = JSON.parse(fs.readFileSync(triagePath, 'utf-8'));
+      incidentTriageQuestions = raw.map((q, idx) => normalizeAndEnrichQuestion(q, idx + 1));
+      console.log(`Loaded ${incidentTriageQuestions.length} OT Incident Triage questions`);
+    }
+    const acronymPath = path.join(__dirname, 'industrial_acronym_decoder_questions.json');
+    if (fs.existsSync(acronymPath)) {
+      const raw = JSON.parse(fs.readFileSync(acronymPath, 'utf-8'));
+      acronymDecoderQuestions = raw.map((q, idx) => normalizeAndEnrichQuestion(q, idx + 1));
+      console.log(`Loaded ${acronymDecoderQuestions.length} Industrial Acronym Decoder questions`);
+    }
+  } catch (err) {
+    console.error('Error loading mode questions:', err);
+  }
+}
+loadModeQuestions();
+
 /**
  * Category-balanced randomized question builder.
  * Guarantees:
@@ -146,7 +169,23 @@ loadQuestions();
  * 4. Pure Fisher-Yates randomization within each category pool so every session gets a fresh, dynamic question set.
  * 5. 100% deduplication guarantee across all rounds.
  */
-function buildRoomQuestions(count = 19) {
+function buildRoomQuestions(count = 19, gameMode = 'fastest_finger') {
+  if (gameMode === 'incident_triage') {
+    if (!incidentTriageQuestions || incidentTriageQuestions.length === 0) {
+      loadModeQuestions();
+    }
+    const safeCount = Math.min(Math.max(parseInt(count) || incidentTriageQuestions.length, 1), incidentTriageQuestions.length);
+    return incidentTriageQuestions.slice(0, safeCount);
+  }
+
+  if (gameMode === 'crossword_decoder') {
+    if (!acronymDecoderQuestions || acronymDecoderQuestions.length === 0) {
+      loadModeQuestions();
+    }
+    const safeCount = Math.min(Math.max(parseInt(count) || acronymDecoderQuestions.length, 1), acronymDecoderQuestions.length);
+    return acronymDecoderQuestions.slice(0, safeCount);
+  }
+
   if (!questions || questions.length === 0) {
     loadQuestions();
   }
@@ -596,9 +635,17 @@ app.post('/api/rooms/:pin/mode', (req, res) => {
     const validModes = ['fastest_finger', 'incident_triage', 'crossword_decoder', 'async_shift'];
     if (gameMode && validModes.includes(gameMode)) {
       room.gameMode = gameMode;
-      io.to(pin).emit('game_mode_changed', { gameMode: room.gameMode });
+      const modeQuestions = buildRoomQuestions(room.configuredQuestionCount || 10, gameMode);
+      room.roomQuestions = modeQuestions;
+      room.configuredQuestionCount = modeQuestions.length;
+      io.to(pin).emit('question_limit_updated', {
+        configuredQuestionCount: modeQuestions.length,
+        totalQuestions: modeQuestions.length,
+        gameMode: room.gameMode
+      });
+      io.to(pin).emit('game_mode_changed', { gameMode: room.gameMode, totalQuestions: modeQuestions.length });
       broadcastRoomUpdate(pin);
-      console.log(`[Room ${pin}] Game Mode switched to: ${gameMode}`);
+      console.log(`[Room ${pin}] Game Mode switched to: ${gameMode} (${modeQuestions.length} mode questions loaded)`);
     }
 
     return res.status(200).json({
@@ -1305,11 +1352,11 @@ io.on('connection', (socket) => {
     }
 
     const roomPin = Math.floor(100000 + Math.random() * 900000).toString();
-    const initialQuestionCount = (data && data.questionCount) 
-      ? Math.min(Math.max(parseInt(data.questionCount) || questions.length, 1), questions.length)
-      : questions.length;
-    const roomQuestions = buildRoomQuestions(initialQuestionCount);
     const selectedMode = (data && data.gameMode) || 'fastest_finger';
+    const initialQuestionCount = (data && data.questionCount) 
+      ? Math.min(Math.max(parseInt(data.questionCount) || 19, 1), 30)
+      : 19;
+    const roomQuestions = buildRoomQuestions(initialQuestionCount, selectedMode);
     
     rooms.set(roomPin, {
       roomPin,
@@ -1955,12 +2002,20 @@ io.on('connection', (socket) => {
     const validModes = ['fastest_finger', 'incident_triage', 'crossword_decoder', 'async_shift'];
     if (gameMode && validModes.includes(gameMode)) {
       room.gameMode = gameMode;
-      io.to(roomPin).emit('game_mode_changed', { gameMode: room.gameMode });
+      const modeQuestions = buildRoomQuestions(room.configuredQuestionCount || 10, gameMode);
+      room.roomQuestions = modeQuestions;
+      room.configuredQuestionCount = modeQuestions.length;
+      io.to(roomPin).emit('question_limit_updated', {
+        configuredQuestionCount: modeQuestions.length,
+        totalQuestions: modeQuestions.length,
+        gameMode: room.gameMode
+      });
+      io.to(roomPin).emit('game_mode_changed', { gameMode: room.gameMode, totalQuestions: modeQuestions.length });
       broadcastRoomUpdate(roomPin);
-      console.log(`[Room ${roomPin}] Host switched mode to: ${gameMode}`);
+      console.log(`[Room ${roomPin}] Host switched mode to: ${gameMode} (${modeQuestions.length} mode questions loaded)`);
     }
 
-    if (callback) callback({ success: true, gameMode: room.gameMode });
+    if (callback) callback({ success: true, gameMode: room.gameMode, totalQuestions: room.roomQuestions?.length || 0 });
   });
 
   // Set Question Limit: Host configures how many questions to play (e.g. 5, 10, 15, 20, 30)
@@ -1973,20 +2028,24 @@ io.on('connection', (socket) => {
       return;
     }
 
+    const maxLen = (room.gameMode === 'incident_triage' ? incidentTriageQuestions.length :
+                   room.gameMode === 'crossword_decoder' ? acronymDecoderQuestions.length :
+                   questions.length) || 19;
     const count = parseInt(questionCount);
-    if (isNaN(count) || count < 1 || count > questions.length) {
-      if (callback) callback({ success: false, message: `Question count must be between 1 and ${questions.length}` });
+    if (isNaN(count) || count < 1 || count > maxLen) {
+      if (callback) callback({ success: false, message: `Question count must be between 1 and ${maxLen}` });
       return;
     }
 
-    const roomQuestions = buildRoomQuestions(count);
+    const roomQuestions = buildRoomQuestions(count, room.gameMode);
     room.roomQuestions = roomQuestions;
     room.configuredQuestionCount = roomQuestions.length;
-    console.log(`Room ${roomPin}: Host set question limit to ${count} (generated ${roomQuestions.length} randomized questions)`);
+    console.log(`Room ${roomPin}: Host set question limit to ${count} for mode ${room.gameMode} (generated ${roomQuestions.length} randomized questions)`);
 
     io.to(roomPin).emit('question_limit_updated', {
       configuredQuestionCount: roomQuestions.length,
-      totalQuestions: roomQuestions.length
+      totalQuestions: roomQuestions.length,
+      gameMode: room.gameMode
     });
 
     broadcastRoomUpdate(roomPin);

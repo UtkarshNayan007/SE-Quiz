@@ -1,0 +1,272 @@
+[
+  {
+    "id": 201,
+    "category": "Industrial Acronym Decoder",
+    "type": "crossword",
+    "acronym": "IEC 62443",
+    "question": "Which international cybersecurity consensus standard defines the horizontal security levels (SL 1-4) and security lifecycle requirements for Industrial Automation and Control Systems (IACS)?",
+    "options": [
+      "IEC 62443",
+      "ISO 27001",
+      "PCI DSS 4.0",
+      "HIPAA 1996"
+    ],
+    "correctAnswer": 0,
+    "explanation": "IEC 62443 is the definitive multi-part international standard for Industrial Automation and Control Systems (IACS) cybersecurity, specifying Zones, Conduits, Security Levels (SL-T, SL-A, SL-C), and component hardening.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 1,
+        "direction": "ACROSS",
+        "length": 9,
+        "solutionWord": "IEC 62443",
+        "clue": "Global consensus standard for Industrial Automation & Control Systems (IACS) Security Levels",
+        "revealedIndices": [0, 4, 8],
+        "category": "International Industrial Standard"
+      }
+    }
+  },
+  {
+    "id": 202,
+    "category": "Industrial Acronym Decoder",
+    "type": "crossword",
+    "acronym": "OPC UA",
+    "question": "Which machine-to-machine industrial communication standard operates with native X.509 certificate authentication, AES encryption, and platform-independent binary encoding across IT and OT layers?",
+    "options": [
+      "OPC UA",
+      "FTP PLAIN",
+      "TELNET 23",
+      "SNMP V1"
+    ],
+    "correctAnswer": 0,
+    "explanation": "OPC UA (Open Platform Communications Unified Architecture) is an industrial M2M communication protocol providing rich information modeling with built-in cryptographic security, encryption, and digital certificate signing.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 2,
+        "direction": "ACROSS",
+        "length": 6,
+        "solutionWord": "OPC UA",
+        "clue": "Interoperable M2M protocol with built-in X.509 certificate encryption across IT/OT",
+        "revealedIndices": [0, 4],
+        "category": "Industrial M2M Protocol"
+      }
+    }
+  },
+  {
+    "id": 203,
+    "category": "Industrial Acronym Decoder",
+    "type": "crossword",
+    "acronym": "PURDUE MODEL",
+    "question": "Which foundational hierarchical architecture reference framework stratifies industrial process networks into Levels 0 through 5 to enforce secure zone and conduit segmentation?",
+    "options": [
+      "PURDUE MODEL",
+      "OSI 7 LAYER",
+      "BELL LA PADULA",
+      "BIBA INTEGRITY"
+    ],
+    "correctAnswer": 0,
+    "explanation": "The Purdue Enterprise Reference Architecture (PERA / Purdue Model) partitions industrial and manufacturing facilities into distinct operational tiers (Level 0 Field to Level 5 Enterprise Business) separated by an Industrial DMZ.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 3,
+        "direction": "ACROSS",
+        "length": 12,
+        "solutionWord": "PURDUE MODEL",
+        "clue": "Hierarchical reference framework dividing industrial networks into Levels 0 through 5",
+        "revealedIndices": [0, 4, 7, 11],
+        "category": "Industrial Architecture Framework"
+      }
+    }
+  },
+  {
+    "id": 204,
+    "category": "Industrial Acronym Decoder",
+    "type": "crossword",
+    "acronym": "MODBUS TCP",
+    "question": "Which classic fieldbus protocol communicates over TCP port 502 with Function Codes like 01 (Read Coils) and 03 (Read Holding Registers), originally designed without native authentication?",
+    "options": [
+      "MODBUS TCP",
+      "HTTPS 443",
+      "SSH PORT 22",
+      "LDAPS 636"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Modbus TCP is the ubiquitous de facto industrial protocol developed for PLC communication. Because it was developed before cyber threats emerged, standard Modbus on TCP 502 has no native encryption or authentication.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 4,
+        "direction": "ACROSS",
+        "length": 10,
+        "solutionWord": "MODBUS TCP",
+        "clue": "De facto industrial protocol operating on port 502 with Function Codes for coils & registers",
+        "revealedIndices": [0, 3, 7],
+        "category": "Fieldbus Protocol"
+      }
+    }
+  },
+  {
+    "id": 205,
+    "category": "Industrial Acronym Decoder",
+    "type": "crossword",
+    "acronym": "HISTORIAN",
+    "question": "Which high-performance operational server located in Level 3 ingests and archives millions of time-series process sensor measurements, valve states, and telemetry data?",
+    "options": [
+      "HISTORIAN",
+      "WEB PROXY",
+      "DNS MASTER",
+      "MAIL RELAY"
+    ],
+    "correctAnswer": 0,
+    "explanation": "An Operational Process Historian (e.g., OSIsoft PI, AVEVA Wonderware Historian) is a specialized time-series database optimized for logging continuous analog and digital telemetry across the entire plant lifecycle.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 5,
+        "direction": "ACROSS",
+        "length": 9,
+        "solutionWord": "HISTORIAN",
+        "clue": "Level 3 time-series operational database archiving plant sensor and valve telemetry",
+        "revealedIndices": [0, 4, 8],
+        "category": "OT Database & Server"
+      }
+    }
+  },
+  {
+    "id": 206,
+    "category": "Industrial Acronym Decoder",
+    "type": "crossword",
+    "acronym": "CIP SAFETY",
+    "question": "Which protocol extension provides fail-safe, SIL-rated transport of deterministic emergency stop and safety interlock signals over standard industrial Ethernet without altering physical wiring?",
+    "options": [
+      "CIP SAFETY",
+      "TELNET RAW",
+      "TFTP UDP",
+      "BITTORRENT"
+    ],
+    "correctAnswer": 0,
+    "explanation": "CIP Safety (Common Industrial Protocol Safety) wraps safety data in a dedicated protocol layer, allowing safety devices and standard automation to share the same physical Ethernet cables while maintaining TÜV certification.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 6,
+        "direction": "ACROSS",
+        "length": 10,
+        "solutionWord": "CIP SAFETY",
+        "clue": "Fail-safe protocol extension providing SIL-rated safety interlocks over industrial Ethernet",
+        "revealedIndices": [0, 4, 9],
+        "category": "Safety Protocol Extension"
+      }
+    }
+  },
+  {
+    "id": 207,
+    "category": "Industrial Acronym Decoder",
+    "type": "crossword",
+    "acronym": "TRICONEX",
+    "question": "Which industry-standard Schneider Electric triple-modular redundant (TMR) Safety Instrumented System (SIS) platform is specifically deployed to protect hazardous critical infrastructure plants from catastrophic failure?",
+    "options": [
+      "TRICONEX",
+      "RASPBERRY",
+      "ARDUINO",
+      "CHROMEBOOK"
+    ],
+    "correctAnswer": 0,
+    "explanation": "Schneider Electric Triconex is the premier Triple Modular Redundant (TMR) safety instrumented controller family used worldwide in nuclear, petrochemical, and refining facilities to ensure 100% fail-safe plant emergency shutdowns.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 7,
+        "direction": "ACROSS",
+        "length": 8,
+        "solutionWord": "TRICONEX",
+        "clue": "Triple Modular Redundant (TMR) Safety Instrumented System controller platform",
+        "revealedIndices": [0, 3, 7],
+        "category": "Industrial Safety Hardware"
+      }
+    }
+  },
+  {
+    "id": 208,
+    "category": "Industrial Acronym Decoder",
+    "type": "crossword",
+    "acronym": "AIR GAP",
+    "question": "Which traditional security concept implies complete physical disconnection of an industrial network from all external and untrusted networks, frequently challenged by rogue USBs and maintenance laptops?",
+    "options": [
+      "AIR GAP",
+      "CLOUD EDGE",
+      "WIFI MESH",
+      "PUBLIC WAN"
+    ],
+    "correctAnswer": 0,
+    "explanation": "An 'Air Gap' refers to physical isolation between networks. In modern OT, true air gaps are rare because maintenance laptops, USB devices, vendor telemetry, and transient devices create bridging conduits.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 8,
+        "direction": "ACROSS",
+        "length": 7,
+        "solutionWord": "AIR GAP",
+        "clue": "Physical disconnection of control networks from untrusted external networks",
+        "revealedIndices": [0, 4],
+        "category": "Security Architecture Concept"
+      }
+    }
+  },
+  {
+    "id": 209,
+    "category": "Industrial Acronym Decoder",
+    "type": "crossword",
+    "acronym": "NIST SP 800-82",
+    "question": "Which comprehensive US federal publication provides the authoritative 'Guide to Operational Technology (OT) Security' covering SCADA, DCS, and PLC risk management?",
+    "options": [
+      "NIST SP 800-82",
+      "NIST SP 800-63B",
+      "RFC 1918",
+      "IEEE 802.11"
+    ],
+    "correctAnswer": 0,
+    "explanation": "NIST Special Publication 800-82 (Revision 3) is the official US National Institute of Standards and Technology guide specifically dedicated to securing Industrial Control Systems (ICS) and Operational Technology (OT).",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 9,
+        "direction": "ACROSS",
+        "length": 14,
+        "solutionWord": "NIST SP 800-82",
+        "clue": "Authoritative US federal guide dedicated specifically to Operational Technology (OT) Security",
+        "revealedIndices": [0, 5, 11],
+        "category": "Government OT Guidance"
+      }
+    }
+  },
+  {
+    "id": 210,
+    "category": "Industrial Acronym Decoder",
+    "type": "crossword",
+    "acronym": "SCADA",
+    "question": "Which overarching industrial automation control architecture monitors and orchestrates geographically dispersed field infrastructure such as water pipelines, electrical grids, and oil wells?",
+    "options": [
+      "SCADA",
+      "APACHE",
+      "NGINX",
+      "DOCKER"
+    ],
+    "correctAnswer": 0,
+    "explanation": "SCADA (Supervisory Control and Data Acquisition) systems supervise and control geographically dispersed industrial assets by collecting field data from RTUs/PLCs and presenting telemetry on centralized operator HMIs.",
+    "visualData": {
+      "type": "crossword",
+      "crosswordData": {
+        "clueNumber": 10,
+        "direction": "ACROSS",
+        "length": 5,
+        "solutionWord": "SCADA",
+        "clue": "Supervisory Control & Data Acquisition system governing dispersed field infrastructure",
+        "revealedIndices": [0, 2],
+        "category": "Industrial Automation Architecture"
+      }
+    }
+  }
+]
