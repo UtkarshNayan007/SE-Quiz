@@ -8,8 +8,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Schneider Electric - Cyber Day 2026',
-  description: 'Cyber Day 2026 - Beyond Compliance , Enabling Business.',
+  title: 'Schneider Electric - OT MSS Weekly KT Quiz',
+  description: 'OT MSS Weekly KT Quiz - Knowledge Transfer & Readiness Assessment.',
   icons: {
     icon: '/se-logo.png',
   },

@@ -1,12 +1,12 @@
 /**
- * Client-Side Certificate Generation Engine for Schneider Electric Cyber Day 2026
+ * Client-Side Certificate Generation Engine for Schneider Electric OT MSS Weekly KT Quiz
  * 
  * 100% Client-Side HTML5 Canvas rendering. Zero load on Render backend or Vercel.
  * Theme: White and Green (Schneider Electric Brand #009639 & Cyber Green #00E676)
  * Calligraphy: Beautiful script calligraphy for recipient name & signatures
  * Background: Increased visibility Gen-Z Cyber Awareness Graphics (Shield, Circuit Traces, Binary, Terminal Prompts)
  * Logos: Dual Header - Official Schneider Electric Logo (/se-logo-official.png) & Team CSH Logo (/csh-logo.png)
- * Event: Cyber Day 2026 | "Beyond Compliance. Enabling Business." | 7 October 2026 | Avinya Campus, Bangalore
+ * Event: OT MSS Weekly KT Quiz | "Beyond Compliance. Enabling Business." | Avinya Campus, Bangalore
  */
 
 export interface CertificateData {
@@ -49,7 +49,7 @@ export const LEADERSHIP_PROFILES = [
 
 export function generateVerificationId(name: string, score: number): string {
   let hash = 0;
-  const str = `${name.trim().toLowerCase()}-${score}-cyberday2026`;
+  const str = `${name.trim().toLowerCase()}-${score}-otmssweeklykt`;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
     hash |= 0;
@@ -306,7 +306,7 @@ export async function renderCertificateToCanvas(
   ctx.textAlign = 'left';
 
   const cyberStrings = [
-    '01000011 01011001 01000010 01000101 01010010 // CYBER_DAY_2026',
+    '01000011 01011001 01000010 01000101 01010010 // OT_MSS_WEEKLY_KT',
     '> [SECURITY_POSTURE: 100%_SECURED] // OT_SOC_MSSP_ACTIVE',
     '>> ZERO_TRUST // THREAT_INTELLIGENCE // ACTIVE_DEFENSE',
     'AVINYA_CAMPUS_BANGALORE // 07_OCT_2026 // LIFE_IS_ON',
@@ -394,13 +394,13 @@ export async function renderCertificateToCanvas(
       drawText('CSH', width - 150, logoY + 60, 'bold 18px system-ui', '#FFFFFF');
     }
 
-    // B. CENTER HEADING: CYBER DAY 2026 (Bold Serif - All Caps)
+    // B. CENTER HEADING: OT MSS WEEKLY KT (Bold Serif - All Caps)
     ctx.save();
-    ctx.font = 'bold 46px "Cinzel", "Playfair Display", Georgia, "Times New Roman", serif';
+    ctx.font = 'bold 44px "Cinzel", "Playfair Display", Georgia, "Times New Roman", serif';
     ctx.fillStyle = '#009639';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('CYBER DAY 2026', centerX, 92);
+    ctx.fillText('OT MSS WEEKLY KT', centerX, 92);
 
     // Tagline below heading: "Beyond Compliance. Enabling Business."
     drawText('Beyond Compliance. Enabling Business.', centerX, 134, 'italic 600 18px "Playfair Display", Georgia, serif', '#1E293B');
@@ -510,8 +510,8 @@ export async function renderCertificateToCanvas(
 
     // G. CITATION NARRATIVE
     const citation = isWinner
-      ? 'For demonstrating superior technical precision, rapid incident detection, and exceptional cyber defense problem-solving in the Schneider Electric Cyber Day 2026 OT & SOC Defense Championship.'
-      : 'For successful participation and dedication to cybersecurity excellence in the Schneider Electric Cyber Day 2026 Challenge, demonstrating active commitment to securing critical OT and enterprise environments.';
+      ? 'For demonstrating superior technical precision, rapid incident detection, and exceptional cyber defense problem-solving in the Schneider Electric OT MSS Weekly KT Championship.'
+      : 'For successful participation and dedication to cybersecurity excellence in the Schneider Electric OT MSS Weekly KT Challenge, demonstrating active commitment to securing critical OT and enterprise environments.';
 
     ctx.save();
     ctx.font = '16px "Playfair Display", Georgia, serif';
@@ -632,13 +632,13 @@ export async function renderCertificateToCanvas(
       ctx.drawImage(cshLogoImg, centerX + 60, logoY + 10, cshSize, cshSize);
     }
 
-    // B. HEADING: CYBER DAY 2026 (Bold Serif - All Caps)
+    // B. HEADING: OT MSS WEEKLY KT (Bold Serif - All Caps)
     ctx.save();
-    ctx.font = 'bold 54px "Cinzel", "Playfair Display", Georgia, "Times New Roman", serif';
+    ctx.font = 'bold 50px "Cinzel", "Playfair Display", Georgia, "Times New Roman", serif';
     ctx.fillStyle = '#009639';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('CYBER DAY 2026', centerX, 290);
+    ctx.fillText('OT MSS WEEKLY KT', centerX, 290);
 
     // Tagline
     drawText('Beyond Compliance. Enabling Business.', centerX, 345, 'italic 600 21px "Playfair Display", Georgia, serif', '#1E293B');
@@ -781,8 +781,8 @@ export async function renderCertificateToCanvas(
 
     // Citation
     const citation = isWinner
-      ? 'Recognized for elite tactical excellence, incident response precision, and OT cybersecurity mastery at Cyber Day 2026.'
-      : 'Recognized for dedicated participation and tactical problem solving in critical infrastructure & OT defense at Cyber Day 2026.';
+      ? 'Recognized for elite tactical excellence, incident response precision, and OT cybersecurity mastery at OT MSS Weekly KT.'
+      : 'Recognized for dedicated participation and tactical problem solving in critical infrastructure & OT defense at OT MSS Weekly KT.';
 
     ctx.save();
     ctx.font = '20px "Playfair Display", Georgia, serif';
@@ -899,7 +899,7 @@ export function getLinkedInShareText(data: CertificateData): string {
   const isWinner = data.tier === 'winner';
   const certType = isWinner ? 'Certificate of Excellence' : 'Certificate of Participation';
 
-  return `I am proud to share that I participated in Cyber Day 2026 ("Beyond Compliance. Enabling Business.") organized by Schneider Electric CCSH OT SOC MSSP at Avinya Campus, Bangalore! 🛡️⚡
+  return `I am proud to share that I participated in the OT MSS Weekly KT Quiz ("Beyond Compliance. Enabling Business.") organized by Schneider Electric CCSH OT SOC MSSP at Avinya Campus, Bangalore! 🛡️⚡
 
 Honored to achieve the ${certType} (${data.awardTitle.toUpperCase()}) with a score of ${data.score} pts (${rankStr}). It was an incredible session testing real-world OT, SOC, and Cyber Defense response skills.
 
@@ -908,7 +908,7 @@ A huge thank you to the leadership and organizing team:
 • Abhinav Roy (GM CCSH OT SOC MSSP) - https://www.linkedin.com/in/abhinavroy07/
 • Padmasini Annadanam (Cyber Engineer - CCSH OT SOC MSSP) - https://www.linkedin.com/in/padmasiniannadanam/
 
-#SchneiderElectric #CyberDay2026 #CCSHOTSOC #CyberSecurity #OTSecurity #MSSP #LifeIsOn #CyberDefense #BeyondComplianceEnablingBusiness`;
+#SchneiderElectric #OTMSSWeeklyKT #CCSHOTSOC #CyberSecurity #OTSecurity #MSSP #LifeIsOn #CyberDefense #BeyondComplianceEnablingBusiness`;
 }
 
 /**
@@ -916,12 +916,12 @@ A huge thank you to the leadership and organizing team:
  */
 export function getInstagramShareCaption(data: CertificateData): string {
   const isWinner = data.tier === 'winner';
-  const tag = isWinner ? '🏆 Cyber Day 2026 Winner' : '🛡️ Cyber Day 2026 Defender';
+  const tag = isWinner ? '🏆 OT MSS Weekly KT Winner' : '🛡️ OT MSS Weekly KT Defender';
 
   return `${tag} | Schneider Electric CCSH OT SOC MSSP
 "Beyond Compliance. Enabling Business."
-📅 7 October 2026 | 📍 Avinya Campus, Bangalore
+📍 Avinya Campus, Bangalore
 ${data.awardTitle} • Score: ${data.score} pts
 Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
-#CyberDay2026 #SchneiderElectric #CCSHOTSOC #LifeIsOn #CyberSecurity #OTSecurity`;
+#OTMSSWeeklyKT #SchneiderElectric #CCSHOTSOC #LifeIsOn #CyberSecurity #OTSecurity`;
 }

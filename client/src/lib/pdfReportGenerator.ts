@@ -68,7 +68,7 @@ export function generateLeaderboardPDF(data: PDFReportData): void {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(mutedSlate[0], mutedSlate[1], mutedSlate[2]);
-    doc.text(`Cyber Day 2026 • Official Leaderboard • PIN: ${roomPin}`, margin, 14);
+    doc.text(`OT MSS Weekly KT Quiz • Official Leaderboard • PIN: ${roomPin}`, margin, 14);
 
     doc.setDrawColor(borderSlate[0], borderSlate[1], borderSlate[2]);
     doc.setLineWidth(0.3);
@@ -86,7 +86,7 @@ export function generateLeaderboardPDF(data: PDFReportData): void {
     doc.setFontSize(7.5);
     doc.setTextColor(mutedSlate[0], mutedSlate[1], mutedSlate[2]);
     doc.text(
-      'Schneider Electric • CCSH OT SOC MSSP • Cyber Day 2026 Official Tournament Report',
+      'Schneider Electric • CCSH OT SOC MSSP • OT MSS Weekly KT Official Tournament Report',
       margin,
       footerY + 1
     );
@@ -113,7 +113,7 @@ export function generateLeaderboardPDF(data: PDFReportData): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(darkSlate[0], darkSlate[1], darkSlate[2]);
-  doc.text('Cyber Day 2026', margin, 21);
+  doc.text('OT MSS Weekly KT Quiz', margin, 21);
 
   // Subtitle / Tagline
   doc.setFont('helvetica', 'bold');

@@ -119,7 +119,7 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
 
       const cleanName = toTitleCase(data.name || 'Participant').replace(/[^a-zA-Z0-9]/g, '_');
       const suffix = format === 'story' ? 'Story' : 'Certificate';
-      const filename = `Schneider_Electric_CyberDay2026_${suffix}_${cleanName}.png`;
+      const filename = `Schneider_Electric_OT_MSS_Weekly_KT_${suffix}_${cleanName}.png`;
       const file = new File([blob], filename, { type: 'image/png' });
 
       // 1. Try Native Mobile Web Share API with File (iOS Safari & Android Chrome)
@@ -128,8 +128,8 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
       if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
-            title: 'Schneider Electric Cyber Day 2026 Certificate',
-            text: `Official Cyber Day 2026 Certificate for ${toTitleCase(data.name || 'Participant')}`,
+            title: 'Schneider Electric OT MSS Weekly KT Certificate',
+            text: `Official OT MSS Weekly KT Certificate for ${toTitleCase(data.name || 'Participant')}`,
             files: [file]
           });
           showToast('Select "Save Image" to save directly to your Photos / Camera Roll!');
@@ -233,13 +233,13 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
 
       if (storyBlob) {
         const cleanName = toTitleCase(data.name || 'Participant').replace(/[^a-zA-Z0-9]/g, '_');
-        const filename = `Schneider_Electric_CyberDay2026_Story_${cleanName}.png`;
+        const filename = `Schneider_Electric_OT_MSS_Weekly_KT_Story_${cleanName}.png`;
         const file = new File([storyBlob], filename, { type: 'image/png' });
 
         if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
-              title: 'Schneider Electric Cyber Day 2026 Story',
+              title: 'Schneider Electric OT MSS Weekly KT Story',
               text: caption,
               files: [file]
             });
@@ -296,7 +296,7 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-400 truncate">
-                Schneider Electric CCSH OT SOC MSSP • Cyber Day 2026
+                Schneider Electric CCSH OT SOC MSSP • OT MSS Weekly KT
               </p>
             </div>
           </div>
@@ -361,7 +361,7 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
             {previewUrl ? (
               <img
                 src={previewUrl}
-                alt="Schneider Electric Cyber Day 2026 Certificate"
+                alt="Schneider Electric OT MSS Weekly KT Certificate"
                 className={`max-w-full max-h-[440px] w-auto h-auto object-contain rounded-xl shadow-2xl transition-opacity duration-300 select-none ${
                   isRendering ? 'opacity-30' : 'opacity-100'
                 }`}
@@ -476,7 +476,7 @@ export default function CertificateModal({ isOpen, onClose, data }: CertificateM
             <div className="truncate pr-3">
               <span className="text-slate-400 block text-[10px] uppercase font-bold">Copy Caption for Social Media</span>
               <span className="text-slate-300 truncate block text-[11px] font-mono">
-                {`I am proud to share my Cyber Day 2026 Certificate with Schneider Electric CCSH OT SOC MSSP...`}
+                {`I am proud to share my OT MSS Weekly KT Certificate with Schneider Electric CCSH OT SOC MSSP...`}
               </span>
             </div>
             <button

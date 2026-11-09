@@ -439,7 +439,7 @@ export default function HostDashboard() {
     if (format === 'pdf') {
       generateLeaderboardPDF({
         roomPin: pin,
-        eventName: 'Schneider Electric - Cyber Day 2026',
+        eventName: 'Schneider Electric - OT MSS Weekly KT Quiz',
         exportedAt: new Date().toLocaleString(),
         grandChampion: grandChamp || null,
         top3: resultsData.top3 || [],
@@ -458,7 +458,7 @@ export default function HostDashboard() {
     };
 
     const csvRows: string[][] = [
-      ['# Schneider Electric - Cyber Day 2026 Official Results'],
+      ['# Schneider Electric - OT MSS Weekly KT Quiz Official Results'],
       [`# Room PIN: ${pin}`],
       [`# Export Date: ${new Date().toLocaleString()}`],
       [`# Grand Champion: ${grandChamp?.name || 'TBD'} (#${grandChamp?.badgeNumber || 'N/A'}) - Score: ${grandChamp?.score ?? 0} pts (${grandChamp?.correctCount ?? 0} Correct)`],
@@ -567,7 +567,7 @@ export default function HostDashboard() {
               />
             </div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Admin Access Gate</h1>
-            <p className="text-xs font-bold text-[#009639] dark:text-[#00E676] uppercase tracking-widest mt-1">Cyber Day 2026</p>
+            <p className="text-xs font-bold text-[#009639] dark:text-[#00E676] uppercase tracking-widest mt-1">OT MSS Weekly KT Quiz</p>
           </div>
 
           {authError && (
@@ -661,7 +661,7 @@ export default function HostDashboard() {
           />
           <div className="border-l-2 border-slate-300 dark:border-slate-700 pl-3">
             <h1 className="text-xs sm:text-sm font-black tracking-wider text-[#009639] dark:text-[#00E676] uppercase">
-              Cyber day 2026
+              OT MSS Weekly KT Quiz
             </h1>
             <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wide hidden sm:block">
               Beyond Compliance , Enabling Business.

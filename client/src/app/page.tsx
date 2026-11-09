@@ -65,7 +65,7 @@ export default function LandingPage() {
             />
             <div className="border-l-2 border-slate-200 dark:border-slate-700 pl-3">
               <h1 className="text-xs sm:text-sm font-black tracking-wider text-schneider-brand dark:text-schneider-green uppercase">
-                Cyber day 2026
+                OT MSS Weekly KT Quiz
               </h1>
               <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wide">
                 Beyond Compliance , Enabling Business.

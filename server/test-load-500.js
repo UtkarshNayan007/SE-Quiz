@@ -23,7 +23,7 @@ const THRESHOLDS = {
 };
 
 console.log('================================================================');
-console.log('   CYBER DAY 2026 - ENTERPRISE LOAD & RELIABILITY TEST SUITE    ');
+console.log('   OT MSS WEEKLY KT - ENTERPRISE LOAD & RELIABILITY TEST SUITE    ');
 console.log('================================================================');
 console.log(`Target URL:         ${TARGET_URL}`);
 console.log(`Concurrent Users:   ${NUM_PARTICIPANTS}`);

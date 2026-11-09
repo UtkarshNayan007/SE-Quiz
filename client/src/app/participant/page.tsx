@@ -704,7 +704,7 @@ function ParticipantComponent() {
                 className="h-11 sm:h-13 w-auto object-contain drop-shadow-sm"
               />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Cyber day 2026</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">OT MSS Weekly KT Quiz</h1>
             <p className="text-xs font-bold text-[#009639] dark:text-[#00E676] tracking-wide mt-1">Beyond Compliance , Enabling Business.</p>
           </div>
           
@@ -773,7 +773,7 @@ function ParticipantComponent() {
               className="h-6 sm:h-7 w-auto object-contain drop-shadow-sm shrink-0"
             />
             <div className="min-w-0 border-l border-gray-200 dark:border-slate-700 pl-2">
-              <p className="text-[9px] sm:text-[10px] text-[#009639] dark:text-[#00E676] font-bold uppercase tracking-wider truncate">Cyber day 2026</p>
+              <p className="text-[9px] sm:text-[10px] text-[#009639] dark:text-[#00E676] font-bold uppercase tracking-wider truncate">OT MSS Weekly KT Quiz</p>
               <p className="text-[7.5px] sm:text-[8.5px] text-gray-500 dark:text-slate-400 font-semibold tracking-tight truncate hidden xs:block">Beyond Compliance , Enabling Business.</p>
               <div className="flex items-center gap-1.5 min-w-0">
                 <p className="font-bold text-gray-900 dark:text-white text-sm sm:text-base leading-tight truncate max-w-[90px] xs:max-w-[130px] sm:max-w-[180px]">{name}</p>
@@ -1011,7 +1011,7 @@ function ParticipantComponent() {
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40">
-                              🏆 Cyber Day 2026 Winner
+                              🏆 OT MSS Weekly KT Winner
                             </span>
                             <span className="text-[10px] font-mono text-amber-200/70 truncate">
                               Rank #{winnerTrophy.rank}
@@ -1026,7 +1026,7 @@ function ParticipantComponent() {
                             Virtual Trophy & Podium Honor!
                           </h3>
                           <p className="text-xs text-slate-300 truncate">
-                            {awardTitle} • Cyber Day 2026 by Schneider Electric
+                            {awardTitle} • OT MSS Weekly KT by Schneider Electric
                           </p>
                         </div>
                       </div>
@@ -1073,7 +1073,7 @@ function ParticipantComponent() {
                           Thanks for Playing, Cyber Defender!
                         </h3>
                         <p className="text-[11px] sm:text-xs text-indigo-200/80 truncate">
-                          Schneider Electric Cyber Day 2026 Awareness
+                          Schneider Electric OT MSS Weekly KT Knowledge Transfer
                         </p>
                       </div>
                     </div>

@@ -182,7 +182,7 @@ export default function WinnerTrophyModal({
 
   const handleShareLinkedIn = () => {
     const badgeText = winner.badgeNumber ? ` (Verified Badge #${winner.badgeNumber})` : '';
-    const shareText = `🏆 Proud to announce that I won ${rankTitle}${badgeText} at Schneider Electric Cyber Day 2026! 🛡️⚡
+    const shareText = `🏆 Proud to announce that I won ${rankTitle}${badgeText} at Schneider Electric OT MSS Weekly KT Quiz! 🛡️⚡
 
 Honored to take the podium with a score of ${winner.score} pts in the Fastest Finger First OT & Cyber Security Defense Championship at Avinya Campus, Bangalore.
 
@@ -191,7 +191,7 @@ Special thanks to the leadership and organizing team:
 • Abhinav Roy (GM CCSH OT SOC MSSP) - https://www.linkedin.com/in/abhinavroy07/
 • Padmasini Annadanam (CCSH OT SOC MSSP) - https://www.linkedin.com/in/padmasiniannadanam/
 
-#SchneiderElectric #CyberDay2026 #CCSHOTSOC #CyberSecurity #OTSecurity #MSSP #LifeIsOn #BeyondComplianceEnablingBusiness`;
+#SchneiderElectric #OTMSSWeeklyKT #CCSHOTSOC #CyberSecurity #OTSecurity #MSSP #LifeIsOn #BeyondComplianceEnablingBusiness`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(shareText).catch(() => {});
@@ -206,13 +206,13 @@ Special thanks to the leadership and organizing team:
 
   const handleShareInstagram = async () => {
     const badgeLine = winner.badgeNumber ? `Verified Badge: #${winner.badgeNumber}\n` : '';
-    const caption = `🏆 ${rankTitle} | Cyber Day 2026
+    const caption = `🏆 ${rankTitle} | OT MSS Weekly KT
 Schneider Electric CCSH OT SOC MSSP
 "Beyond Compliance. Enabling Business."
 📍 Avinya Campus, Bangalore
 ${badgeLine}Score: ${winner.score} pts
 Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
-#CyberDay2026 #SchneiderElectric #Champion #CCSHOTSOC #OTSecurity #CyberSecurity`;
+#OTMSSWeeklyKT #SchneiderElectric #Champion #CCSHOTSOC #OTSecurity #CyberSecurity`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(caption).catch(() => {});
@@ -537,9 +537,9 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
                 {/* Gold Engraved Plaque on Plinth */}
                 <rect x="85" y="268" width="150" height="49" rx="6" fill="#0B1329" stroke={trophyTheme.metalGradient[2]} strokeWidth="1.5" />
 
-                {/* MANDATORY ENGRAVING: CYBER DAY 2026 */}
-                <text x="160" y="288" textAnchor="middle" fill={trophyTheme.metalGradient[1]} fontSize="11" fontWeight="900" fontFamily="serif" letterSpacing="0.5">
-                  CYBER DAY 2026
+                {/* MANDATORY ENGRAVING: OT MSS WEEKLY KT */}
+                <text x="160" y="288" textAnchor="middle" fill={trophyTheme.metalGradient[1]} fontSize="10" fontWeight="900" fontFamily="serif" letterSpacing="0.5">
+                  OT MSS WEEKLY KT
                 </text>
 
                 <text x="160" y="306" textAnchor="middle" fill="#00E676" fontSize="10" fontWeight="bold" fontFamily="monospace">
@@ -634,7 +634,7 @@ Mentions: Anoop Varghese | Abhinav Roy | Padmasini Annadanam
           </div>
 
           <p className="text-[10px] text-slate-400">
-            Official award presented for Cyber Day 2026 by Schneider Electric CCSH OT SOC MSSP
+            Official award presented for OT MSS Weekly KT by Schneider Electric CCSH OT SOC MSSP
           </p>
         </div>
       </div>
