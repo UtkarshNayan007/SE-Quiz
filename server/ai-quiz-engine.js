@@ -432,13 +432,44 @@ Please analyze this technical material across all chapters and output ${question
     }
   };
 
-  const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+  // 1. Dynamic Model Discovery via ListModels API
+  let candidateModels = [];
+  try {
+    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      const models = (listData.models || []).filter(m =>
+        Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent')
+      );
+      // Prefer flash models, then pro, then any
+      const flash = models.filter(m => m.name.includes('flash')).map(m => ({ version: 'v1beta', name: m.name.replace(/^models\//, '') }));
+      const pro = models.filter(m => m.name.includes('pro')).map(m => ({ version: 'v1beta', name: m.name.replace(/^models\//, '') }));
+      candidateModels = [...flash, ...pro];
+      console.log(`[AI-Quiz-Engine] Discovered ${candidateModels.length} compatible models via ListModels.`);
+    }
+  } catch (discoveryErr) {
+    console.warn(`[AI-Quiz-Engine] ListModels discovery warning:`, discoveryErr.message);
+  }
+
+  // Fallback candidate list if discovery returned empty
+  if (candidateModels.length === 0) {
+    candidateModels = [
+      { version: 'v1beta', name: 'gemini-1.5-flash-latest' },
+      { version: 'v1beta', name: 'gemini-2.0-flash' },
+      { version: 'v1beta', name: 'gemini-2.0-flash-exp' },
+      { version: 'v1', name: 'gemini-1.5-flash' },
+      { version: 'v1beta', name: 'gemini-1.5-pro-latest' },
+      { version: 'v1', name: 'gemini-pro' }
+    ];
+  }
+
   let lastError = null;
 
-  for (const model of modelsToTry) {
+  for (const item of candidateModels) {
+    const { version, name } = item;
     try {
-      console.log(`[AI-Quiz-Engine] Calling Gemini API model: ${model}...`);
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      console.log(`[AI-Quiz-Engine] Calling Gemini API (${version} / ${name})...`);
+      const url = `https://generativelanguage.googleapis.com/${version}/models/${name}:generateContent?key=${apiKey}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -447,13 +478,13 @@ Please analyze this technical material across all chapters and output ${question
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Gemini API error (${model} - ${response.status}): ${errorText}`);
+        throw new Error(`Gemini API error (${name} - ${response.status}): ${errorText}`);
       }
 
       const result = await response.json();
       const rawContent = result.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!rawContent) {
-        throw new Error(`No content returned from Gemini model ${model}`);
+        throw new Error(`No content returned from Gemini model ${name}`);
       }
 
       let parsed;
@@ -471,7 +502,7 @@ Please analyze this technical material across all chapters and output ${question
         questions: normalized
       };
     } catch (err) {
-      console.warn(`[AI-Quiz-Engine] Failed with model ${model}:`, err.message);
+      console.warn(`[AI-Quiz-Engine] Model ${name} failed:`, err.message);
       lastError = err;
     }
   }
