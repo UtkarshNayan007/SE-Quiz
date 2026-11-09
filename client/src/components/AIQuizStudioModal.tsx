@@ -407,6 +407,18 @@ export default function AIQuizStudioModal({
           {/* TAB 1: UPLOAD FILE */}
           {activeTab === 'upload' && (
             <div className="space-y-5 max-w-3xl mx-auto">
+              <div className="flex items-center justify-between p-3 bg-slate-950/80 border border-emerald-500/20 rounded-xl text-xs text-slate-300 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>100% Document-Grounded:</strong> Questions are extracted strictly from your uploaded report or notes.</span>
+                </div>
+                {!apiKey && (
+                  <span className="text-[11px] text-emerald-400/90 hidden md:inline font-mono">
+                    Smart Extractor Active
+                  </span>
+                )}
+              </div>
+
               <div className="border-2 border-dashed border-slate-700 hover:border-emerald-500/60 bg-slate-950/40 rounded-2xl p-8 text-center transition cursor-pointer relative group">
                 <input
                   type="file"
