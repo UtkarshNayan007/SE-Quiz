@@ -542,6 +542,193 @@ app.post('/api/sessions/save', (req, res) => {
   }
 });
 
+// Mode 4 / Async: Get Room Questions for Shift Workers or Self-Paced Testing
+app.get('/api/rooms/:pin/questions', (req, res) => {
+  try {
+    const { pin } = req.params;
+    const room = rooms.get(pin);
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Room not found. Please verify the 6-digit Room PIN.' });
+    }
+
+    const roomQuestions = (room.roomQuestions && room.roomQuestions.length > 0 ? room.roomQuestions : questions)
+      .slice(0, room.configuredQuestionCount || questions.length);
+
+    // Sanitize question data so correctOptionIndex is not revealed ahead of time
+    const sanitized = roomQuestions.map((q, idx) => ({
+      id: q.id,
+      questionIndex: idx,
+      question: q.question,
+      options: q.options,
+      category: q.category || 'OT Cybersecurity',
+      type: q.type || 'theory',
+      difficulty: q.difficulty || 'medium',
+      scenario: q.scenario || null,
+      step: q.step || null,
+      visualData: q.visualData || (q.imageUrl ? { type: 'image', imageUrl: q.imageUrl } : null),
+      instruction: q.instruction || null
+    }));
+
+    return res.status(200).json({
+      success: true,
+      roomPin: pin,
+      gameMode: room.gameMode || 'fastest_finger',
+      topic: room.topic || 'OT MSS Weekly KT Quiz',
+      totalQuestions: sanitized.length,
+      questions: sanitized
+    });
+  } catch (err) {
+    console.error('Error fetching questions for room:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Set or Switch Room Game Mode
+app.post('/api/rooms/:pin/mode', (req, res) => {
+  try {
+    const { pin } = req.params;
+    const { gameMode } = req.body || {};
+    const room = rooms.get(pin);
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Room not found' });
+    }
+
+    const validModes = ['fastest_finger', 'incident_triage', 'crossword_decoder', 'async_shift'];
+    if (gameMode && validModes.includes(gameMode)) {
+      room.gameMode = gameMode;
+      io.to(pin).emit('game_mode_changed', { gameMode: room.gameMode });
+      broadcastRoomUpdate(pin);
+      console.log(`[Room ${pin}] Game Mode switched to: ${gameMode}`);
+    }
+
+    return res.status(200).json({
+      success: true,
+      roomPin: pin,
+      gameMode: room.gameMode || 'fastest_finger'
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Mode 4: Submit Self-Paced Shift Worker Evaluation
+app.post('/api/rooms/:pin/async-submit', (req, res) => {
+  try {
+    const { pin } = req.params;
+    const { name, badgeNumber, answers } = req.body || {};
+    const room = rooms.get(pin);
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Room not found. Please check your PIN.' });
+    }
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Participant name is required.' });
+    }
+
+    const trimmedName = name.trim().toUpperCase().replace(/[^A-Z\s]/g, '').replace(/\s+/g, ' ');
+    if (trimmedName.length < 2) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid name (at least 2 letters).' });
+    }
+
+    const effectiveBadge = (badgeNumber && String(badgeNumber).trim()) || generateUniqueBadgeNumber(room);
+    const participantId = `shift_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    const roomQuestions = (room.roomQuestions && room.roomQuestions.length > 0 ? room.roomQuestions : questions)
+      .slice(0, room.configuredQuestionCount || questions.length);
+
+    let totalScore = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let totalTimeMs = 0;
+    let fastestTimeMs = Infinity;
+
+    const evaluatedAnswers = (answers || []).map((ans) => {
+      const qIdx = parseInt(ans.questionIndex, 10);
+      const q = roomQuestions[qIdx];
+      if (!q) return null;
+
+      const isCorrect = ans.selectedOption === q.correctOptionIndex;
+      const rawTime = parseInt(ans.timeMs, 10);
+      const timeMs = Math.min(Math.max(!isNaN(rawTime) ? rawTime : 6000, 500), 30000);
+
+      let points = 0;
+      if (isCorrect) {
+        // Speed bonus formula matching live game
+        const timeFraction = 1 - (timeMs / 30000);
+        points = Math.round(500 + 500 * Math.max(0, timeFraction));
+        totalScore += points;
+        correctCount++;
+        if (timeMs < fastestTimeMs) {
+          fastestTimeMs = timeMs;
+        }
+      } else {
+        wrongCount++;
+      }
+
+      totalTimeMs += timeMs;
+
+      return {
+        questionIndex: qIdx,
+        selectedOption: ans.selectedOption,
+        correctOptionIndex: q.correctOptionIndex,
+        isCorrect,
+        points,
+        timeMs,
+        timeFormatted: (timeMs / 1000).toFixed(3) + 's',
+        explanation: q.explanation || (q.optionExplanations && q.optionExplanations[q.correctOptionIndex]) || ''
+      };
+    }).filter(Boolean);
+
+    const participantObj = {
+      participantId,
+      socketId: `shift_${participantId}`,
+      name: trimmedName,
+      badgeNumber: effectiveBadge,
+      score: totalScore,
+      previousScore: totalScore,
+      correctCount,
+      wrongCount,
+      attemptedCount: evaluatedAnswers.length,
+      connected: true,
+      isShiftWorker: true,
+      totalTimeMs,
+      fastestTimeMs: fastestTimeMs === Infinity ? 0 : fastestTimeMs,
+      averageTimeMs: evaluatedAnswers.length > 0 ? Math.round(totalTimeMs / evaluatedAnswers.length) : 0,
+      joinedAt: Date.now()
+    };
+
+    if (!room.participants) {
+      room.participants = new Map();
+    }
+    room.participants.set(participantId, participantObj);
+
+    // Immediately push live update to Host Dashboard and Projector
+    broadcastRoomUpdate(pin);
+
+    const { leaderboard } = calculateLeaderboards(room);
+    const myRankEntry = leaderboard.find(p => p.participantId === participantId);
+
+    console.log(`[Shift Worker Submitted] Room: ${pin}, Name: ${trimmedName}, Score: ${totalScore}, Correct: ${correctCount}/${evaluatedAnswers.length}`);
+
+    return res.status(200).json({
+      success: true,
+      participantId,
+      badgeNumber: effectiveBadge,
+      name: trimmedName,
+      score: totalScore,
+      correctCount,
+      wrongCount,
+      totalQuestions: roomQuestions.length,
+      rank: myRankEntry ? myRankEntry.rank : leaderboard.length,
+      totalParticipants: leaderboard.length,
+      evaluatedAnswers
+    });
+  } catch (err) {
+    console.error('Error in async shift submit:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Helper: Generate collision-free random 3-digit badge number (100-999) per room
 function generateUniqueBadgeNumber(room) {
   if (!room.assignedBadgeNumbers) {
@@ -652,6 +839,7 @@ function calculateLeaderboards(room) {
         wrongCount: p.wrongCount || 0,
         attemptedCount: p.attemptedCount || 0,
         connected: p.connected !== false,
+        isShiftWorker: p.isShiftWorker === true,
         totalTimeMs: p.totalTimeMs,
         totalTimeFormatted: (p.totalTimeMs / 1000).toFixed(3) + 's',
         fastestTimeMs: p.fastestTimeMs === Infinity ? 0 : p.fastestTimeMs,
@@ -769,6 +957,8 @@ function broadcastRoomUpdate(roomPin) {
     // Send lightweight metadata to room (participants & projector)
     io.to(roomPin).emit('room_updated', {
       roomPin: room.roomPin,
+      gameMode: room.gameMode || 'fastest_finger',
+      topic: room.topic || 'OT MSSP Weekly Knowledge Transfer',
       participantCount: totalCount,
       answeredCount: answeredCount,
       unansweredCount: unansweredCount,
@@ -795,12 +985,15 @@ function broadcastRoomUpdate(roomPin) {
         wrongCount: p.wrongCount || 0,
         attemptedCount: p.attemptedCount || 0,
         connected: p.connected !== false,
+        isShiftWorker: p.isShiftWorker === true,
         fastestTimeFormatted: p.fastestTimeMs === Infinity ? '--' : (p.fastestTimeMs / 1000).toFixed(3) + 's',
         totalTimeFormatted: (p.totalTimeMs / 1000).toFixed(3) + 's',
         hasAnsweredCurrent: room.answeredParticipantIds ? (room.answeredParticipantIds.has(p.participantId) || room.answeredParticipantIds.has(p.socketId)) : false
       }));
 
       io.to(room.hostSocketId).emit('host_room_updated', {
+        gameMode: room.gameMode || 'fastest_finger',
+        topic: room.topic || 'OT MSSP Weekly Knowledge Transfer',
         participantCount: participantsList.length,
         answeredCount: answeredCount,
         unansweredCount: unansweredCount,
@@ -1092,6 +1285,8 @@ io.on('connection', (socket) => {
           participantCount: participantsList.length,
           answeredCount,
           unansweredCount,
+          gameMode: existingRoom.gameMode || 'fastest_finger',
+          topic: existingRoom.topic || 'OT MSSP Weekly Knowledge Transfer',
           participants: participantsList,
           gameState: existingRoom.gameState,
           answeringEnded: existingRoom.answeringEnded,
@@ -1114,10 +1309,13 @@ io.on('connection', (socket) => {
       ? Math.min(Math.max(parseInt(data.questionCount) || questions.length, 1), questions.length)
       : questions.length;
     const roomQuestions = buildRoomQuestions(initialQuestionCount);
+    const selectedMode = (data && data.gameMode) || 'fastest_finger';
     
     rooms.set(roomPin, {
       roomPin,
       hostSocketId: socket.id,
+      gameMode: selectedMode,
+      topic: 'OT MSSP Weekly Knowledge Transfer',
       hostDisconnected: false,
       hostDisconnectTimeout: null,
       configuredQuestionCount: roomQuestions.length,
@@ -1141,11 +1339,13 @@ io.on('connection', (socket) => {
     });
 
     socket.join(roomPin);
-    console.log(`Room created: ${roomPin} by authenticated host ${socket.id} (Configured randomized questions: ${roomQuestions.length}/${questions.length})`);
+    console.log(`Room created: ${roomPin} by authenticated host ${socket.id} [Mode: ${selectedMode}] (Configured randomized questions: ${roomQuestions.length}/${questions.length})`);
     
     if (cb) cb({
       success: true,
       roomPin,
+      gameMode: selectedMode,
+      topic: 'OT MSSP Weekly Knowledge Transfer',
       totalQuestions: roomQuestions.length,
       configuredQuestionCount: roomQuestions.length,
       participantCount: 0,
@@ -1740,6 +1940,27 @@ io.on('connection', (socket) => {
     io.to(roomPin).emit('quiz_results_published', publishedData);
     broadcastRoomUpdate(roomPin);
     if (callback) callback({ success: true, publishedData });
+  });
+
+  // Set or switch active game mode
+  socket.on('set_game_mode', (data, callback) => {
+    const { roomPin, gameMode } = data || {};
+    const room = rooms.get(roomPin);
+
+    if (!socket.isHost || !room || room.hostSocketId !== socket.id) {
+      if (callback) callback({ success: false, message: 'Unauthorized: Host privilege required' });
+      return;
+    }
+
+    const validModes = ['fastest_finger', 'incident_triage', 'crossword_decoder', 'async_shift'];
+    if (gameMode && validModes.includes(gameMode)) {
+      room.gameMode = gameMode;
+      io.to(roomPin).emit('game_mode_changed', { gameMode: room.gameMode });
+      broadcastRoomUpdate(roomPin);
+      console.log(`[Room ${roomPin}] Host switched mode to: ${gameMode}`);
+    }
+
+    if (callback) callback({ success: true, gameMode: room.gameMode });
   });
 
   // Set Question Limit: Host configures how many questions to play (e.g. 5, 10, 15, 20, 30)

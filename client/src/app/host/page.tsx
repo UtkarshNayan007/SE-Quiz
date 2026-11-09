@@ -31,7 +31,12 @@ import {
   X,
   BookOpen,
   Download,
-  FileText
+  FileText,
+  Moon,
+  ShieldAlert,
+  Copy,
+  ExternalLink,
+  Activity
 } from 'lucide-react';
 import { InteractiveQuestionVisual } from '../../components/InteractiveQuestionVisual';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -79,6 +84,10 @@ export default function HostDashboard() {
   const [customQuestionInput, setCustomQuestionInput] = useState('');
   const [currentQIndex, setCurrentQIndex] = useState(-1);
   const [activeQuestion, setActiveQuestion] = useState<any>(null);
+  
+  // 4 Tactical KT Training Modes: 'fastest_finger' | 'incident_triage' | 'crossword_decoder' | 'async_shift'
+  const [gameMode, setGameMode] = useState<'fastest_finger' | 'incident_triage' | 'crossword_decoder' | 'async_shift'>('fastest_finger');
+  const [copiedShiftLink, setCopiedShiftLink] = useState(false);
   
   // Game States: 'LOBBY', 'READING', 'ANSWERING', 'REVEAL', 'QUIZ_ENDED', 'RESULTS_PUBLISHED'
   const [gameState, setGameState] = useState('LOBBY');
@@ -137,6 +146,7 @@ export default function HostDashboard() {
         setRoomPin(res.roomPin);
         setTotalQuestions(res.totalQuestions || 19);
         setConfiguredQuestionCount(res.configuredQuestionCount || res.totalQuestions || 19);
+        if (res.gameMode) setGameMode(res.gameMode);
         if (res.participants) setParticipants(deduplicateParticipants(res.participants));
         if (res.participantCount !== undefined) setParticipantCount(res.participantCount);
         if (res.gameState) setGameState(res.gameState);
@@ -200,6 +210,7 @@ export default function HostDashboard() {
     const socket = getSocket();
 
     const handleRoomUpdated = (data: any) => {
+      if (data?.gameMode) setGameMode(data.gameMode);
       if (data?.participantCount !== undefined) setParticipantCount(data.participantCount);
       if (data?.gameState) setGameState(data.gameState);
       if (data?.currentQuestionIndex !== undefined) setCurrentQIndex(data.currentQuestionIndex);
@@ -209,12 +220,17 @@ export default function HostDashboard() {
     };
 
     const handleHostRoomUpdated = (data: any) => {
+      if (data?.gameMode) setGameMode(data.gameMode);
       if (data?.participantCount !== undefined) setParticipantCount(data.participantCount);
       if (data?.participants) setParticipants(deduplicateParticipants(data.participants));
       if (data?.gameState) setGameState(data.gameState);
       if (data?.currentQuestionIndex !== undefined) setCurrentQIndex(data.currentQuestionIndex);
       if (data?.totalQuestions) setTotalQuestions(data.totalQuestions);
       if (data?.configuredQuestionCount) setConfiguredQuestionCount(data.configuredQuestionCount);
+    };
+
+    const handleGameModeChanged = (data: any) => {
+      if (data?.gameMode) setGameMode(data.gameMode);
     };
 
     const handleAnsweringStarted = (data: any) => {
@@ -300,6 +316,7 @@ export default function HostDashboard() {
     socket.on('question_limit_updated', handleQuestionLimitUpdated);
     socket.on('host_quiz_review', handleHostQuizReview);
     socket.on('quiz_results_published', handleQuizResultsPublished);
+    socket.on('game_mode_changed', handleGameModeChanged);
     socket.on('connect', handleConnect);
 
     return () => {
@@ -313,9 +330,29 @@ export default function HostDashboard() {
       socket.off('question_limit_updated', handleQuestionLimitUpdated);
       socket.off('host_quiz_review', handleHostQuizReview);
       socket.off('quiz_results_published', handleQuizResultsPublished);
+      socket.off('game_mode_changed', handleGameModeChanged);
       socket.off('connect', handleConnect);
     };
   }, []);
+
+  const handleSelectMode = (mode: 'fastest_finger' | 'incident_triage' | 'crossword_decoder' | 'async_shift') => {
+    setGameMode(mode);
+    const socket = getSocket();
+    socket.emit('set_game_mode', { roomPin, gameMode: mode }, (res: any) => {
+      if (!res?.success) {
+        setError(res?.message || 'Failed to update game mode');
+      }
+    });
+  };
+
+  const handleCopyShiftLink = () => {
+    if (typeof window === 'undefined') return;
+    const shiftUrl = `${window.location.origin}/shift?pin=${roomPin}`;
+    navigator.clipboard.writeText(shiftUrl).then(() => {
+      setCopiedShiftLink(true);
+      setTimeout(() => setCopiedShiftLink(false), 2500);
+    });
+  };
 
   const handleSetQuestionLimit = (count: number) => {
     const val = Math.min(Math.max(count, 1), 19);
@@ -993,6 +1030,162 @@ export default function HostDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column */}
           <div className="lg:col-span-7 flex flex-col gap-6">
+            {/* Tactical KT Assessment Mode Selector */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-6 border-2 border-slate-200 dark:border-slate-800 transition-colors">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-[#009639] dark:text-[#00E676]" />
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">Assessment & KT Mode</h3>
+                </div>
+                <span className="text-xs font-bold text-[#009639] dark:text-[#00E676] bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/60 uppercase">
+                  Active: {gameMode.replace('_', ' ')}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mb-4">
+                Select how your SOC and OT engineering analysts participate in this weekly technical review:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Mode 1 */}
+                <div
+                  onClick={() => currentQIndex === -1 && handleSelectMode('fastest_finger')}
+                  className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                    gameMode === 'fastest_finger'
+                      ? 'border-[#009639] bg-emerald-50/70 dark:bg-emerald-950/40 shadow-sm ring-2 ring-[#009639]/30'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40'
+                  } ${currentQIndex >= 0 ? 'cursor-not-allowed opacity-80' : ''}`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-black uppercase text-schneider-brand dark:text-[#00E676] flex items-center gap-1">
+                      <Zap className="w-3.5 h-3.5" /> Mode 1 • Live
+                    </span>
+                    {gameMode === 'fastest_finger' && (
+                      <span className="w-2 h-2 rounded-full bg-[#009639] animate-pulse" />
+                    )}
+                  </div>
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white">Fastest Finger First</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                    Synchronous speed-weighted scoring, live gauge dial, podium & confetti.
+                  </p>
+                </div>
+
+                {/* Mode 2 */}
+                <div
+                  onClick={() => currentQIndex === -1 && handleSelectMode('incident_triage')}
+                  className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                    gameMode === 'incident_triage'
+                      ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 shadow-sm ring-2 ring-amber-500/30'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40'
+                  } ${currentQIndex >= 0 ? 'cursor-not-allowed opacity-80' : ''}`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                      <ShieldAlert className="w-3.5 h-3.5" /> Mode 2 • Battle
+                    </span>
+                    {gameMode === 'incident_triage' && (
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    )}
+                  </div>
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white">OT Incident Triage</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                    3-step scenario chain: SOC Detection ➔ Purdue Zone Containment ➔ DCS Restoration.
+                  </p>
+                </div>
+
+                {/* Mode 3 */}
+                <div
+                  onClick={() => currentQIndex === -1 && handleSelectMode('crossword_decoder')}
+                  className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                    gameMode === 'crossword_decoder'
+                      ? 'border-teal-500 bg-teal-50/70 dark:bg-teal-950/40 shadow-sm ring-2 ring-teal-500/30'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40'
+                  } ${currentQIndex >= 0 ? 'cursor-not-allowed opacity-80' : ''}`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-black uppercase text-teal-600 dark:text-teal-400 flex items-center gap-1">
+                      <FileText className="w-3.5 h-3.5" /> Mode 3 • Vocab
+                    </span>
+                    {gameMode === 'crossword_decoder' && (
+                      <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                    )}
+                  </div>
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white">Industrial Acronym Decoder</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                    IEC 62443, NIST SP 800-82, OPC UA, CIP, HMI, RTU, Historian clue decoding.
+                  </p>
+                </div>
+
+                {/* Mode 4 */}
+                <div
+                  onClick={() => currentQIndex === -1 && handleSelectMode('async_shift')}
+                  className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                    gameMode === 'async_shift'
+                      ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 shadow-sm ring-2 ring-indigo-500/30'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40'
+                  } ${currentQIndex >= 0 ? 'cursor-not-allowed opacity-80' : ''}`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                      <Moon className="w-3.5 h-3.5" /> Mode 4 • 24/7
+                    </span>
+                    {gameMode === 'async_shift' && (
+                      <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                    )}
+                  </div>
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white">Shift-Worker Arena</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                    48h self-paced link for night-shift analysts; scores blend into team leaderboard.
+                  </p>
+                </div>
+              </div>
+
+              {/* Mode 4 Asynchronous Shift Dispatch Hub */}
+              {(gameMode === 'async_shift' || participants.some(p => p.isShiftWorker)) && (
+                <div className="mt-4 p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Moon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      <span className="text-xs font-black uppercase text-indigo-900 dark:text-indigo-200">
+                        Shift-Worker Dispatch URL
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                      {participants.filter(p => p.isShiftWorker).length} Shift Analysts Submitted
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={typeof window !== 'undefined' ? `${window.location.origin}/shift?pin=${roomPin}` : `/shift?pin=${roomPin}`}
+                      className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 rounded-xl text-xs font-mono text-slate-800 dark:text-slate-200 select-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyShiftLink}
+                      className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0"
+                    >
+                      {copiedShiftLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedShiftLink ? 'Copied!' : 'Copy Link'}</span>
+                    </button>
+                    <a
+                      href={`/shift?pin=${roomPin}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 rounded-xl transition cursor-pointer"
+                      title="Preview Shift Portal"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
+                  <p className="text-[11px] text-indigo-800/80 dark:text-indigo-300/80 leading-relaxed">
+                    Paste this link in your Shift Handover Log or MS Teams channel. Rotating night-shift SOC analysts can complete the quiz independently.
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Quiz Configuration / Question Count Selector */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-6 border-2 border-emerald-100 dark:border-emerald-900/50 relative overflow-hidden transition-colors">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
@@ -1466,6 +1659,11 @@ export default function HostDashboard() {
                   participants.map((p, idx) => (
                     <div key={p.participantId || p.socketId || idx} className="px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 border bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-slate-200 border-gray-200 dark:border-slate-700">
                       <span>{p.name}</span>
+                      {p.isShiftWorker && (
+                        <span className="font-mono text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/70 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
+                          🌙 Shift
+                        </span>
+                      )}
                       {p.badgeNumber && (
                         <span className="font-mono text-xs font-bold text-gray-600 dark:text-slate-300 bg-white/80 dark:bg-slate-700 px-1.5 py-0.5 rounded border border-gray-300 dark:border-slate-600">
                           #{p.badgeNumber}

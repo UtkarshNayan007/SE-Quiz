@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShieldCheck, Monitor, UserCheck, Play, ArrowRight, Lock } from 'lucide-react';
+import { ShieldCheck, Monitor, UserCheck, Play, ArrowRight, Lock, Moon, Zap, ShieldAlert, FileText, CheckCircle2 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export default function LandingPage() {
   const [pin, setPin] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [joinMode, setJoinMode] = useState<'live' | 'shift'>('live');
 
   const handleJoinParticipant = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,8 +44,14 @@ export default function LandingPage() {
       localStorage.setItem('se_quiz_pin', cleanPin);
       localStorage.setItem('se_quiz_name', cleanName);
     }
-    const url = `/participant?pin=${cleanPin}&name=${encodeURIComponent(cleanName)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+
+    if (joinMode === 'shift') {
+      const url = `/shift?pin=${cleanPin}&name=${encodeURIComponent(cleanName)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      const url = `/participant?pin=${cleanPin}&name=${encodeURIComponent(cleanName)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const handleLaunchProjector = () => {
@@ -76,17 +83,64 @@ export default function LandingPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-6 flex flex-col justify-center my-8">
-        <div className="text-center mb-10">
-          <span className="inline-block bg-schneider-lightgreen dark:bg-emerald-950/70 text-schneider-darkgreen dark:text-emerald-400 border border-transparent dark:border-emerald-800/60 font-bold text-xs px-3 py-1 rounded-full uppercase tracking-wider mb-3">
-            Cyber Security Team Challenge
+      <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center my-6">
+        <div className="text-center mb-8">
+          <span className="inline-block bg-schneider-lightgreen dark:bg-emerald-950/70 text-schneider-darkgreen dark:text-emerald-400 border border-transparent dark:border-emerald-800/60 font-bold text-xs px-3.5 py-1 rounded-full uppercase tracking-wider mb-3">
+            OT MSSP Operational Readiness Arena
           </span>
-          <h2 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
-            Fastest Finger First <span className="text-schneider-green">MCQ Quiz</span>
+          <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+            OT MSS Weekly KT & <span className="text-schneider-green">Readiness Arena</span>
           </h2>
-          <p className="mt-3 text-slate-600 dark:text-slate-300 text-base max-w-lg mx-auto">
-            Zero-latency local multiplayer buzz-in system designed for high-stakes speed and precision.
+          <p className="mt-3 text-slate-600 dark:text-slate-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+            Industrial Cybersecurity Knowledge Testing & Incident Response Simulation — Measuring, validating, and reinforcing weekly technical engineering gains.
           </p>
+        </div>
+
+        {/* 4 Tactical Training Modes Overview */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-left">
+            <div className="flex items-center gap-2 text-schneider-brand dark:text-schneider-green mb-1.5">
+              <Zap className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-wider">Mode 1 • Live</span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white">Fastest Finger First</h4>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+              Synchronous speed-weighted scoring, live dial, podium & confetti.
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-left">
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-1.5">
+              <ShieldAlert className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-wider">Mode 2 • Battle</span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white">OT Incident Triage</h4>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+              3-step scenario: Detection, Purdue containment & DCS restoration.
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-left">
+            <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400 mb-1.5">
+              <FileText className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-wider">Mode 3 • Vocab</span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white">Acronym Decoder</h4>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+              IEC 62443, NIST SP 800-82, OPC UA, CIP, HMI, RTU, Historian clues.
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/60 shadow-sm text-left bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-950/20 dark:to-slate-900">
+            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 mb-1.5">
+              <Moon className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-wider">Mode 4 • 24/7</span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white">Shift-Worker Arena</h4>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+              48h self-paced link with anti-cheat timer for night-shift analysts.
+            </p>
+          </div>
         </div>
 
         {error && (
@@ -99,15 +153,55 @@ export default function LandingPage() {
           {/* Participant Card */}
           <div className="glass-card rounded-2xl p-6 flex flex-col justify-between border border-slate-200 dark:border-slate-800 hover:border-schneider-green dark:hover:border-schneider-green transition-all shadow-lg">
             <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="p-3 bg-emerald-100 dark:bg-emerald-950/60 rounded-xl text-schneider-brand dark:text-schneider-green">
-                  <UserCheck className="w-6 h-6" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 bg-emerald-100 dark:bg-emerald-950/60 rounded-xl text-schneider-brand dark:text-schneider-green">
+                    <UserCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Participant Join</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Play live or enter self-paced shift arena</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">Participant Join</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Play from your mobile phone or desktop</p>
+
+                {/* Live vs Shift Switcher */}
+                <div className="flex p-0.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-[11px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setJoinMode('live')}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      joinMode === 'live'
+                        ? 'bg-white dark:bg-slate-700 text-schneider-brand dark:text-schneider-green shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    Live
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setJoinMode('shift')}
+                    className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition ${
+                      joinMode === 'shift'
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    <Moon className="w-3 h-3" /> Shift
+                  </button>
                 </div>
               </div>
+
+              {joinMode === 'shift' && (
+                <div className="mb-4 p-3 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-xl text-xs text-indigo-800 dark:text-indigo-300">
+                  <span className="font-bold flex items-center gap-1.5">
+                    <Moon className="w-3.5 h-3.5 text-indigo-600" />
+                    Shift-Worker Mode Active (24/7 Self-Paced)
+                  </span>
+                  <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/80 mt-1">
+                    Take the quiz on your own shift. Your final score integrates into the room leaderboard.
+                  </p>
+                </div>
+              )}
 
               <form onSubmit={handleJoinParticipant} className="space-y-4">
                 <div>
@@ -152,9 +246,13 @@ export default function LandingPage() {
 
                 <button
                   type="submit"
-                  className="w-full btn-schneider py-3.5 rounded-xl font-extrabold text-base flex items-center justify-center space-x-2 group mt-2 cursor-pointer"
+                  className={`w-full py-3.5 rounded-xl font-extrabold text-base flex items-center justify-center space-x-2 group mt-2 cursor-pointer transition-all shadow-md active:scale-98 text-white ${
+                    joinMode === 'shift'
+                      ? 'bg-indigo-600 hover:bg-indigo-700'
+                      : 'btn-schneider'
+                  }`}
                 >
-                  <span>Join Game</span>
+                  <span>{joinMode === 'shift' ? 'Enter Shift Arena' : 'Join Live Game'}</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
               </form>
@@ -174,14 +272,14 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3.5">
                 <div className="p-4 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
                   <h4 className="font-bold text-slate-900 dark:text-white text-sm flex items-center space-x-2">
                     <Play className="w-4 h-4 text-schneider-brand dark:text-schneider-green" />
                     <span>Host Control Dashboard</span>
                   </h4>
                   <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 mb-3">
-                    Generates Room PIN, pushes questions, and validates participant answers.
+                    Configures training modes, ingests KT docs with AI, pushes questions, and validates answers.
                   </p>
                   <a
                     href="/host"
@@ -199,7 +297,7 @@ export default function LandingPage() {
                     <span>Projector Screen View</span>
                   </h4>
                   <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 mb-3">
-                    Main big-screen display with live QR code, 30s timer, Top-5 queue & confetti.
+                    Main big-screen display with live QR code, 30s timer, Top-5 queue & podium.
                   </p>
                   <button
                     type="button"
@@ -217,7 +315,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 px-6 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors duration-200">
-        Schneider Electric MSS Cyber Security Event • M2 Mac Local WebSocket Environment
+        Schneider Electric • OT MSSP Knowledge Transfer & Operational Readiness Arena
       </footer>
     </div>
   );

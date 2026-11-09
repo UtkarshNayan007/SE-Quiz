@@ -59,6 +59,7 @@ function ProjectorComponent() {
   const [participantCount, setParticipantCount] = useState(0);
   const participantCountRef = useRef(0);
   const [totalQuestions, setTotalQuestions] = useState(10);
+  const [gameMode, setGameMode] = useState('fastest_finger');
   const [gameState, setGameState] = useState<'LOBBY' | 'RULES' | 'READING' | 'ANSWERING' | 'REVEAL' | 'QUIZ_ENDED' | 'RESULTS_PUBLISHED'>('LOBBY');
   const [showRulesInLobby, setShowRulesInLobby] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
@@ -123,6 +124,7 @@ function ProjectorComponent() {
 
     socket.emit('join_room', { roomPin, name: 'Projector', role: 'projector' }, (res: any) => {
       if (res?.success) {
+        if (res.gameMode) setGameMode(res.gameMode);
         if (res.gameState) setGameState(res.gameState);
         if (res.activeQuestion) setCurrentQuestion(res.activeQuestion);
         if (res.totalQuestions) setTotalQuestions(res.totalQuestions);
@@ -158,6 +160,7 @@ function ProjectorComponent() {
           participantCount: effectiveTotal || prev.participantCount
         }));
       }
+      if (data?.gameMode) setGameMode(data.gameMode);
       if (data.gameState) setGameState(data.gameState);
       if (data.totalQuestions) setTotalQuestions(data.totalQuestions);
       if (data.answeringEnded !== undefined) setIsAnsweringClosed(Boolean(data.answeringEnded));
@@ -265,6 +268,10 @@ function ProjectorComponent() {
       triggerConfettiExplosion();
     });
 
+    socket.on('game_mode_changed', (data: any) => {
+      if (data?.gameMode) setGameMode(data.gameMode);
+    });
+
     socket.on('rules_started', () => {
       setGameState('RULES');
       setShowRulesInLobby(false);
@@ -281,6 +288,7 @@ function ProjectorComponent() {
       socket.off('answer_revealed');
       socket.off('quiz_ended');
       socket.off('quiz_results_published');
+      socket.off('game_mode_changed');
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
     };
   }, [roomPin]);
@@ -363,6 +371,12 @@ function ProjectorComponent() {
           <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 py-1.5 px-4 rounded-full shadow-sm shrink-0">
             <Hash className="w-4 h-4 text-slate-700 dark:text-slate-300" />
             <span className="text-xl lg:text-2xl font-black font-mono tracking-widest text-slate-800 dark:text-white">{roomPin}</span>
+          </div>
+
+          <div className="hidden md:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 py-1.5 px-3.5 rounded-full shrink-0">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              {gameMode === 'incident_triage' ? 'Mode 2: Incident Triage' : gameMode === 'crossword_decoder' ? 'Mode 3: Acronym Decoder' : gameMode === 'async_shift' ? 'Mode 4: Shift Arena' : 'Mode 1: Fastest Finger'}
+            </span>
           </div>
 
           <ThemeToggle showLabel={false} />
