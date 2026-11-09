@@ -438,14 +438,34 @@ Please analyze this technical material across all chapters and output ${question
     const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
     if (listRes.ok) {
       const listData = await listRes.json();
-      const models = (listData.models || []).filter(m =>
-        Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent')
+      const textModels = (listData.models || []).filter(m =>
+        Array.isArray(m.supportedGenerationMethods) &&
+        m.supportedGenerationMethods.includes('generateContent') &&
+        !m.name.includes('-tts') &&
+        !m.name.includes('-audio')
       );
-      // Prefer flash models, then pro, then any
-      const flash = models.filter(m => m.name.includes('flash')).map(m => ({ version: 'v1beta', name: m.name.replace(/^models\//, '') }));
-      const pro = models.filter(m => m.name.includes('pro')).map(m => ({ version: 'v1beta', name: m.name.replace(/^models\//, '') }));
-      candidateModels = [...flash, ...pro];
-      console.log(`[AI-Quiz-Engine] Discovered ${candidateModels.length} compatible models via ListModels.`);
+
+      // Prioritize modern text generation models: gemini-3.8-flash, gemini-flash-lite, gemini-2.0-flash, gemini-flash-latest
+      const priorityOrder = ['gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-1.5-flash-latest'];
+      
+      const prioritized = [];
+      for (const p of priorityOrder) {
+        const found = textModels.find(m => m.name.includes(p));
+        if (found) {
+          prioritized.push({ version: 'v1beta', name: found.name.replace(/^models\//, '') });
+        }
+      }
+
+      // Add remaining flash and pro models
+      for (const m of textModels) {
+        const cleanName = m.name.replace(/^models\//, '');
+        if (!prioritized.some(p => p.name === cleanName)) {
+          prioritized.push({ version: 'v1beta', name: cleanName });
+        }
+      }
+
+      candidateModels = prioritized;
+      console.log(`[AI-Quiz-Engine] Discovered ${candidateModels.length} text models. First choice: ${candidateModels[0]?.name}`);
     }
   } catch (discoveryErr) {
     console.warn(`[AI-Quiz-Engine] ListModels discovery warning:`, discoveryErr.message);
@@ -454,12 +474,11 @@ Please analyze this technical material across all chapters and output ${question
   // Fallback candidate list if discovery returned empty
   if (candidateModels.length === 0) {
     candidateModels = [
-      { version: 'v1beta', name: 'gemini-1.5-flash-latest' },
+      { version: 'v1beta', name: 'gemini-3.8-flash' },
+      { version: 'v1beta', name: 'gemini-flash-lite-latest' },
       { version: 'v1beta', name: 'gemini-2.0-flash' },
-      { version: 'v1beta', name: 'gemini-2.0-flash-exp' },
-      { version: 'v1', name: 'gemini-1.5-flash' },
-      { version: 'v1beta', name: 'gemini-1.5-pro-latest' },
-      { version: 'v1', name: 'gemini-pro' }
+      { version: 'v1beta', name: 'gemini-flash-latest' },
+      { version: 'v1beta', name: 'gemini-1.5-flash-latest' }
     ];
   }
 
