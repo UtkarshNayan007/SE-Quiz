@@ -3,11 +3,10 @@
  * 
  * Supports:
  * - PDF parsing via pdf-parse v2 (with class & stream fallback)
- * - Text / MOM / Summary / Project Report / Markdown ingestion
+ * - Academic & Report Boilerplate Stripping (removes cover pages, student IDs, declaration forms, TOCs)
  * - Document-grounded Gemini 2.5 Flash / 1.5 Flash automated structuring
- * - Dynamic Local NLP Synthesizer (100% derived from the uploaded document text)
- * - Intelligent missing-data synthesis (options, explanations, hints, visual data)
- * - Complete schema normalization
+ * - Dynamic Smart Local NLP Synthesizer with intelligent domain distractors
+ * - Schema normalization for all gamified formats (Riddle, Crossword, Fill-in-the-blank, MCQ)
  */
 
 const pdfParseModule = require('pdf-parse');
@@ -77,6 +76,42 @@ async function extractTextFromBuffer(buffer, mimeType = '', filename = '') {
 }
 
 /**
+ * Filter out academic and institutional boilerplate (title pages, student names, register numbers,
+ * declaration forms, bonafide certificates, table of contents, acknowledgments).
+ */
+function isBoilerplateSentence(s) {
+  if (typeof s !== 'string') return true;
+  const boilerplatePatterns = [
+    /submitted\s+by/i,
+    /under\s+the\s+guidance/i,
+    /department\s+of/i,
+    /institute\s+of/i,
+    /faculty\s+of/i,
+    /school\s+of/i,
+    /declaration\s+form/i,
+    /bonafide\s+certificate/i,
+    /this\s+sheet\s+must\s+be\s+filled/i,
+    /acknowledgement/i,
+    /table\s+of\s+contents/i,
+    /list\s+of\s+(figures|tables|symbols|abbreviations)/i,
+    /\bra\d{10,}\b/i, // SRM student register number pattern (e.g. RA2211030010169)
+    /\b(reg(ister)?|roll)\s*(no|number)[:\s]/i,
+    /to\s+certify\s+that\s+this\s+project/i,
+    /partial\s+fulfillment\s+of/i,
+    /degree\s+of\s+bachelor/i,
+    /gratitude\s+to\s+our/i,
+    /own\s+work\s+declaration/i,
+    /supervisor\s*[:\-]/i,
+    /project\s+coordinator/i,
+    /internal\s+examiner/i,
+    /external\s+examiner/i,
+    /\.{4,}/ // Table of contents dot leaders
+  ];
+
+  return boilerplatePatterns.some(pattern => pattern.test(s));
+}
+
+/**
  * Clean redundant option prefixes (e.g., "A) ", "B. ", "1: ")
  */
 function cleanOptionText(text) {
@@ -85,8 +120,64 @@ function cleanOptionText(text) {
 }
 
 /**
+ * Pre-compiled domain dictionaries for high-quality, category-aware distractors.
+ * If a key term belongs to a known family (databases, ML models, messaging, protocols, frameworks),
+ * we generate natural alternatives instead of repeating generic words.
+ */
+const technicalDomainFamilies = {
+  database: ['MongoDB', 'PostgreSQL', 'Redis', 'Cassandra', 'MySQL', 'DynamoDB', 'SQLite'],
+  mlModels: ['Random Forest', 'XGBoost', 'Convolutional Neural Network (CNN)', 'Support Vector Machine (SVM)', 'LSTM', 'Transformer', 'Decision Tree'],
+  messaging: ['Kafka Streams', 'RabbitMQ', 'ZeroMQ', 'Apache Pulsar', 'AWS SQS', 'MQTT'],
+  frontend: ['React & Next.js', 'Vue.js', 'Angular', 'SvelteKit', 'Flutter', 'FastAPI Web UI'],
+  backend: ['FastAPI & Python', 'Node.js & Express', 'Go Gin Engine', 'Spring Boot', 'Django Framework'],
+  security: ['Role-Based Access Control (RBAC)', 'Mutual TLS (mTLS)', 'OAuth 2.0 & JWT', 'Zero Trust Architecture', 'Multi-Factor Auth (MFA)'],
+  protocols: ['Modbus TCP', 'OPC UA', 'IEC 62443', 'MQTT Protocol', 'HTTPS / REST API', 'gRPC Protocol'],
+  metrics: ['Latency (ms)', 'Throughput (req/sec)', 'Accuracy (%)', 'F1-Score', 'Precision & Recall', 'CPU Utilization']
+};
+
+/**
+ * Generates smart, per-question distractors
+ */
+function generateContextualDistractors(targetTerm, documentTerms = [], questionIndex = 0) {
+  const targetLower = targetTerm.toLowerCase();
+
+  // 1. Try finding a category family match
+  for (const family of Object.values(technicalDomainFamilies)) {
+    const hasMatch = family.some(item => item.toLowerCase().includes(targetLower) || targetLower.includes(item.toLowerCase()));
+    if (hasMatch) {
+      const candidates = family.filter(item => !item.toLowerCase().includes(targetLower) && !targetLower.includes(item.toLowerCase()));
+      // Rotate starting offset using questionIndex so different questions get different alternatives
+      const offset = questionIndex % candidates.length;
+      const rotated = [...candidates.slice(offset), ...candidates.slice(0, offset)];
+      return rotated.slice(0, 3);
+    }
+  }
+
+  // 2. Select distinct terms from document vocabulary, skipping terms close to target
+  const filteredDocTerms = documentTerms.filter(t => {
+    const tLower = t.toLowerCase();
+    return tLower !== targetLower && !targetLower.includes(tLower) && !tLower.includes(targetLower);
+  });
+
+  if (filteredDocTerms.length >= 3) {
+    const offset = (questionIndex * 3) % filteredDocTerms.length;
+    const pool = [...filteredDocTerms.slice(offset), ...filteredDocTerms.slice(0, offset)];
+    return pool.slice(0, 3);
+  }
+
+  // 3. Fallback generic architectural alternatives
+  const genericFallbacks = [
+    'Automated Verification Pipeline',
+    'Distributed Cluster Coordinator',
+    'Asynchronous Event Dispatcher',
+    'High-Performance Query Optimizer',
+    'Fault-Tolerant Replicated Store'
+  ];
+  return genericFallbacks.slice(0, 3);
+}
+
+/**
  * Normalizes and guarantees every question adheres to the client visualData schema.
- * Synthesizes any missing properties automatically.
  */
 function normalizeAndEnrichQuestion(q, index = 1, documentContext = {}) {
   const id = q.id || index;
@@ -98,7 +189,6 @@ function normalizeAndEnrichQuestion(q, index = 1, documentContext = {}) {
     else type = 'theory';
   }
 
-  // Normalize Category
   let category = q.category || '';
   if (!category) {
     if (type === 'riddle') category = 'Technical Riddle';
@@ -110,27 +200,18 @@ function normalizeAndEnrichQuestion(q, index = 1, documentContext = {}) {
 
   let questionText = (q.question || '').trim();
   if (!questionText) {
-    questionText = `Question ${id} on Project Architecture & Concepts`;
+    questionText = `Question ${id} on System Architecture & Implementation`;
   }
 
   // Ensure 4 options
   let options = Array.isArray(q.options) ? q.options.map(cleanOptionText).filter(Boolean) : [];
   if (options.length < 4) {
-    const contextualDistractors = documentContext.keyTerms || [
-      'FastAPI Microservice',
-      'Asynchronous Event Queue',
-      'Relational Schema Model',
-      'Validation Pipeline'
-    ];
-    let distractorIdx = 0;
+    const fallbackDistractors = generateContextualDistractors(options[0] || 'System', documentContext.keyTerms || [], index);
+    for (const d of fallbackDistractors) {
+      if (options.length < 4 && !options.includes(d)) options.push(d);
+    }
     while (options.length < 4) {
-      const candidate = contextualDistractors[distractorIdx % contextualDistractors.length];
-      distractorIdx++;
-      if (!options.includes(candidate)) {
-        options.push(candidate);
-      } else {
-        options.push(`${candidate} Variant ${options.length + 1}`);
-      }
+      options.push(`Architecture Feature ${options.length + 1}`);
     }
   }
   options = options.slice(0, 4);
@@ -147,7 +228,6 @@ function normalizeAndEnrichQuestion(q, index = 1, documentContext = {}) {
     explanation = `${correctOptionText} is the correct implementation choice according to the submitted project report.`;
   }
 
-  // Build / synthesize visualData based on type
   let visualData = q.visualData || {};
   if (!visualData.type) {
     visualData.type = type;
@@ -185,7 +265,6 @@ function normalizeAndEnrichQuestion(q, index = 1, documentContext = {}) {
     visualData.crosswordData.revealedIndices = visualData.crosswordData.revealedIndices || [0, Math.min(solWord.length - 1, 3)];
   }
 
-  // Build / synthesize revealVisual
   let revealVisual = q.revealVisual || {};
   if (!revealVisual.vulnerabilitySummary) {
     revealVisual.vulnerabilitySummary = `${correctOptionText}: ${explanation.substring(0, 160)}`;
@@ -229,14 +308,21 @@ function extractDocumentKeyTerms(text) {
     'other', 'more', 'less', 'well', 'very', 'too', 'only', 'own', 'same', 'so', 'than',
     'just', 'now', 'such', 'how', 'why', 'who', 'whom', 'whose', 'introduction', 'overview',
     'project', 'report', 'paper', 'study', 'system', 'present', 'presents', 'presented',
-    'various', 'different', 'based', 'provide', 'provides', 'order', 'such', 'since'
+    'various', 'different', 'based', 'provide', 'provides', 'order', 'such', 'since',
+    'department', 'communications', 'srm', 'institute', 'science', 'technology', 'declaration',
+    'form', 'sheet', 'filled', 'ticked', 'bonafide', 'certificate', 'utkarsh', 'shashwat', 'chirag',
+    'nayan', 'bhatt', 'jain', 'kanimozhi', 'guide', 'guidance', 'examiner', 'coordinator',
+    'features', 'feature', 'submitted', 'abstract', 'title', 'name', 'names', 'candidates',
+    'candidate', 'work', 'sprint', 'user', 'event', 'first', 'second', 'third', 'fourth'
   ]);
 
   for (const w of words) {
+    // Strictly exclude student registration numbers, IDs, and words containing numbers
+    if (/\d/.test(w)) continue;
     const lower = w.toLowerCase();
-    if (!stopWords.has(lower) && !/^\d+$/.test(w) && w.length >= 4) {
+    if (!stopWords.has(lower) && w.length >= 4) {
       const isCapitalized = /^[A-Z]/.test(w);
-      const isAllUpper = /^[A-Z0-9]+$/.test(w) && w.length >= 2;
+      const isAllUpper = /^[A-Z]+$/.test(w) && w.length >= 2;
       const weight = isAllUpper ? 4 : isCapitalized ? 3 : 1;
       freq[w] = (freq[w] || 0) + weight;
     }
@@ -246,7 +332,8 @@ function extractDocumentKeyTerms(text) {
 }
 
 /**
- * Splits document into meaningful informative sentences
+ * Splits document into meaningful informative sentences, strictly filtering out
+ * academic headers, title pages, student IDs, and declaration sheets.
  */
 function extractDocumentSentences(text) {
   return text
@@ -254,10 +341,8 @@ function extractDocumentSentences(text) {
     .map(s => s.trim().replace(/\s+/g, ' '))
     .filter(s => {
       if (s.length < 35 || s.length > 280) return false;
-      // Filter out table of contents lines (e.g. "Chapter 1 ... 12")
-      if (/\.{4,}|\b\d+\s*$/.test(s)) return false;
-      // Must contain at least 4 words
-      return s.split(' ').length >= 5;
+      if (isBoilerplateSentence(s)) return false;
+      return s.split(' ').length >= 6;
     });
 }
 
@@ -269,20 +354,26 @@ async function generateWithGemini({ text, topic, questionCount = 10, apiKey, dif
   const model = 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+  const cleanText = text
+    .split('\n')
+    .filter(line => !isBoilerplateSentence(line))
+    .join('\n');
+
   const systemInstruction = `You are an expert Educational Assessment and Technical Quiz Engine.
 Your mission is to transform the provided document (such as a final year engineering project report, research thesis, presentation deck, or technical document) into an engaging, gamified quiz.
 
-STRICT DOMAIN GROUNDING RULES:
+STRICT RULES:
 1. Every single question, answer, and explanation MUST be 100% derived from and faithful to the provided document.
-2. DO NOT inject unrelated subjects (such as industrial SCADA, Modbus, or Tailgating) UNLESS the provided text is explicitly about them. If the user provides a project report about Web Development, Machine Learning, Robotics, Databases, or Cloud Computing, generate questions specifically about their project!
-3. Formulate exactly ${questionCount} questions distributed across:
+2. DO NOT include questions about student names, registration numbers, college names, declaration forms, or certificates. Focus STRICTLY on the actual technical architecture, methodology, algorithms, problem statement, datasets, and results of the project!
+3. DO NOT inject unrelated topics (such as industrial SCADA, Modbus, or Tailgating) UNLESS the document is explicitly about them. If the report is about "DigiFence" or "Cyber Defense", generate questions specifically testing the DigiFence architecture, modules, and implementation detailed in the text.
+4. Formulate exactly ${questionCount} questions distributed across:
    - "Multiple Choice Question" (type: "theory"): Testing methodology, architecture choices, dataset, results, or objectives from the text.
-   - "Fill in the Blank" (type: "fill_in_the_blank"): Sentences containing '________' where the blank is an important concept from the report.
-   - "Project Crossword" (type: "crossword"): A single technical keyword (e.g. FASTAPI, RESNET, DATABASE, SENSOR) with a clue summarizing its role in the project.
+   - "Fill in the Blank" (type: "fill_in_the_blank"): Sentences containing '________' where the blank is an important technical concept from the report.
+   - "Project Crossword" (type: "crossword"): A single technical keyword with a clue summarizing its role in the project.
    - "Technical Riddle" (type: "riddle"): A 4-line rhyming enigma clue describing a key algorithm, tool, or component mentioned in the report.
-4. Exactly 4 plausible options for every question (1 correct, 3 realistic distractors within the same domain).
-5. The explanation must reference the rationale and findings from the document.
-6. Output ONLY valid JSON matching the schema. No markdown backticks.`;
+5. Provide 4 distinct, plausible options for every question (1 correct, 3 realistic distractors). DO NOT repeat the same 4 options across multiple questions.
+6. The explanation must reference the rationale and findings from the document.
+7. Output ONLY valid JSON matching the schema. No markdown backticks.`;
 
   const userPrompt = `DOCUMENT TOPIC: ${topic || 'Submitted Project Report'}
 TARGET QUESTION COUNT: ${questionCount}
@@ -290,10 +381,10 @@ DEPTH LEVEL: ${difficulty}
 
 EXTRACTED TEXT FROM UPLOADED DOCUMENT:
 """
-${text.substring(0, 60000)}
+${cleanText.substring(0, 60000)}
 """
 
-Please analyze this text carefully and output ${questionCount} questions strictly derived from the document.`;
+Please analyze this technical material carefully and output ${questionCount} questions strictly derived from the document.`;
 
   const requestBody = {
     contents: [
@@ -349,7 +440,7 @@ Please analyze this text carefully and output ${questionCount} questions strictl
 
 /**
  * Dynamic Content-Grounded NLP Synthesizer (100% Derived from Document Text)
- * Used when no LLM key is provided or offline. Extracts real sentences, terms, and facts directly from the document.
+ * Uses intelligent per-question distractor rotation and natural question synthesis.
  */
 function generateDynamicContentQuiz({ text, topic, questionCount = 10 }) {
   const sentences = extractDocumentSentences(text);
@@ -370,19 +461,16 @@ function generateDynamicContentQuiz({ text, topic, questionCount = 10 }) {
   for (let i = 0; i < count; i++) {
     const sentence = safeSentences[i % safeSentences.length];
     
-    // Strictly pick from clean domain key terms matching this sentence
+    // Pick the most relevant domain key term in this sentence
     const matchedTermsInSentence = safeTerms.filter(t => new RegExp(`\\b${t}\\b`, 'i').test(sentence));
     let termInSentence = matchedTermsInSentence[0] || safeTerms[i % safeTerms.length];
     termInSentence = termInSentence.replace(/[^A-Za-z0-9_-]/g, '');
 
-    // Form distractors strictly from other key terms in the same document
-    const distractors = safeTerms.filter(t => t.toLowerCase() !== termInSentence.toLowerCase()).slice(0, 3);
-    while (distractors.length < 3) {
-      distractors.push(`Feature_${distractors.length + 1}`);
-    }
+    // Form smart per-question distractors (avoiding global repetition)
+    const distractors = generateContextualDistractors(termInSentence, safeTerms, i);
 
     const options = [termInSentence, ...distractors];
-    // Shuffle options so correct answer isn't always at index 0
+    // Shuffle options so correct answer isn't always at the same position
     const correctOption = termInSentence;
     const shuffledOptions = options.sort(() => Math.random() - 0.5);
     const correctIndex = shuffledOptions.indexOf(correctOption);
@@ -399,14 +487,14 @@ function generateDynamicContentQuiz({ text, topic, questionCount = 10 }) {
         question: blankedSentence.includes('________') ? blankedSentence : `${sentence} (Key concept: ________)`,
         options: shuffledOptions,
         correctAnswer: correctIndex >= 0 ? correctIndex : 0,
-        explanation: `According to the document: "${sentence}"`,
+        explanation: `According to the project report: "${sentence}"`,
         visualData: {
           type: 'fill_in_the_blank',
           fillBlankData: {
             prefixText: sentence.split(new RegExp(termInSentence, 'i'))[0] || sentence,
             blankPlaceholder: '[ BLANK ]',
             blank: correctOption,
-            contextBadge: 'Report Technical Specification',
+            contextBadge: 'Technical Specification',
             correctAnswerText: correctOption
           }
         },
@@ -419,15 +507,15 @@ function generateDynamicContentQuiz({ text, topic, questionCount = 10 }) {
     } else if (questionFormat === 2) {
       // Crossword
       const cleanWord = correctOption.replace(/[^A-Za-z]/g, '').toUpperCase();
-      const solWord = cleanWord.length >= 3 && cleanWord.length <= 14 ? cleanWord : 'ANALYSIS';
+      const solWord = cleanWord.length >= 3 && cleanWord.length <= 14 ? cleanWord : 'SECURITY';
       const q = {
         id: i + 1,
         category: 'Project Crossword',
         type: 'crossword',
-        question: `Which ${solWord.length}-letter component or methodology is highlighted in the report: "${sentence.substring(0, 110)}..."?`,
+        question: `Which ${solWord.length}-letter component or concept is described in the report: "${sentence.substring(0, 100)}..."?`,
         options: shuffledOptions,
         correctAnswer: correctIndex >= 0 ? correctIndex : 0,
-        explanation: `In the project report, "${sentence}" relates to ${solWord}.`,
+        explanation: `In the project report, "${sentence}" specifies ${solWord}.`,
         visualData: {
           type: 'crossword',
           crosswordData: {
@@ -451,7 +539,7 @@ function generateDynamicContentQuiz({ text, topic, questionCount = 10 }) {
         id: i + 1,
         category: 'Technical Riddle',
         type: 'riddle',
-        question: `"Defined in the project to fulfill its role;\nI process the data and maintain control.\nFound in the report where the findings reside;\nIdentify the component described inside."`,
+        question: `"An integral part of the project design,\nFulfilling its purpose along the pipeline.\nReferenced in the report with accuracy and care,\nName the system component described right there."`,
         options: shuffledOptions,
         correctAnswer: correctIndex >= 0 ? correctIndex : 0,
         explanation: `The report highlights ${correctOption}: "${sentence}"`,
@@ -459,7 +547,7 @@ function generateDynamicContentQuiz({ text, topic, questionCount = 10 }) {
           type: 'riddle',
           riddleData: {
             title: 'PROJECT ARCHITECTURE ENIGMA',
-            riddleText: `"Defined in the project to fulfill its role;\nI process the data and maintain control.\nFound in the report where the findings reside;\nIdentify the component described inside."`,
+            riddleText: `"An integral part of the project design,\nFulfilling its purpose along the pipeline.\nReferenced in the report with accuracy and care,\nName the system component described right there."`,
             hintCategory: 'Project Methodology',
             hint: `Described in report: "${sentence.substring(0, 80)}..."`,
             enigmaTag: 'TECHNICAL ENIGMA',
@@ -479,7 +567,7 @@ function generateDynamicContentQuiz({ text, topic, questionCount = 10 }) {
         id: i + 1,
         category: 'Multiple Choice Question',
         type: 'theory',
-        question: `According to the submitted report, what is stated regarding ${correctOption}?\n"${sentence.substring(0, 120)}..."`,
+        question: `In the project architecture, which component or methodology addresses the following specification?\n"${sentence.substring(0, 140)}..."`,
         options: shuffledOptions,
         correctAnswer: correctIndex >= 0 ? correctIndex : 0,
         explanation: `As detailed in the document: "${sentence}"`,
@@ -538,7 +626,7 @@ async function processKTAndGenerateQuiz({
       console.warn(`[AI-Quiz-Engine] Gemini generation failed: ${err.message}. Falling back to dynamic document NLP synthesizer.`);
     }
   } else {
-    console.log(`[AI-Quiz-Engine] Generating quiz directly from document text using Dynamic Content Synthesizer...`);
+    console.log(`[AI-Quiz-Engine] No Gemini API key provided. Running Smart Local NLP Synthesizer directly on document text...`);
   }
 
   return generateDynamicContentQuiz({

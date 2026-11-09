@@ -407,16 +407,56 @@ export default function AIQuizStudioModal({
           {/* TAB 1: UPLOAD FILE */}
           {activeTab === 'upload' && (
             <div className="space-y-5 max-w-3xl mx-auto">
-              <div className="flex items-center justify-between p-3 bg-slate-950/80 border border-emerald-500/20 rounded-xl text-xs text-slate-300 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span><strong>100% Document-Grounded:</strong> Questions are extracted strictly from your uploaded report or notes.</span>
+              {/* Engine Status & API Key Banner */}
+              <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-bold text-white">AI Engine Configuration</span>
+                  </div>
+                  {apiKey.trim() ? (
+                    <span className="text-[11px] bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/40 flex items-center gap-1.5 font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Gemini 2.5 Flash Active (Full AI Reasoning)
+                    </span>
+                  ) : (
+                    <span className="text-[11px] bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full border border-slate-700 font-medium">
+                      ⚡ Smart Local Extractor (No API Key Required)
+                    </span>
+                  )}
                 </div>
-                {!apiKey && (
-                  <span className="text-[11px] text-emerald-400/90 hidden md:inline font-mono">
-                    Smart Extractor Active
-                  </span>
-                )}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                    <Key className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Gemini API Key (Optional):</span>
+                  </div>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="flex items-center bg-slate-900 border border-slate-700 px-2.5 py-1 rounded-lg text-xs w-full sm:w-64">
+                      <input
+                        type={showApiKey ? 'text' : 'password'}
+                        placeholder="Paste AI Studio Key for deep reasoning..."
+                        value={apiKey}
+                        onChange={(e) => handleApiKeyChange(e.target.value)}
+                        className="bg-transparent border-none outline-none text-xs w-full text-white placeholder-slate-500 font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="text-slate-500 hover:text-slate-300 ml-1"
+                      >
+                        {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-emerald-400 hover:underline shrink-0"
+                    >
+                      Get Free Key &rarr;
+                    </a>
+                  </div>
+                </div>
               </div>
 
               <div className="border-2 border-dashed border-slate-700 hover:border-emerald-500/60 bg-slate-950/40 rounded-2xl p-8 text-center transition cursor-pointer relative group">
