@@ -36,6 +36,7 @@ import {
 import { InteractiveQuestionVisual } from '../../components/InteractiveQuestionVisual';
 import ThemeToggle from '@/components/ThemeToggle';
 import { generateLeaderboardPDF } from '../../lib/pdfReportGenerator';
+import AIQuizStudioModal from '../../components/AIQuizStudioModal';
 
 const deduplicateParticipants = (list: any[]) => {
   if (!Array.isArray(list)) return [];
@@ -82,6 +83,7 @@ export default function HostDashboard() {
   // Game States: 'LOBBY', 'READING', 'ANSWERING', 'REVEAL', 'QUIZ_ENDED', 'RESULTS_PUBLISHED'
   const [gameState, setGameState] = useState('LOBBY');
   const [countdown, setCountdown] = useState(10);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   
   // Real-time Answering Gauge Data
   const [progressData, setProgressData] = useState<{
@@ -1106,6 +1108,14 @@ export default function HostDashboard() {
                   {gameState === 'LOBBY' && (
                     <>
                       <button
+                        onClick={() => setIsAIModalOpen(true)}
+                        disabled={loading}
+                        className="bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-md active:scale-95 border border-emerald-400/30"
+                      >
+                        <Sparkles className="w-4 h-4 text-emerald-300 animate-pulse" />
+                        <span>AI Quiz Studio</span>
+                      </button>
+                      <button
                         onClick={handleShowRules}
                         disabled={loading}
                         className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-colors shadow"
@@ -1491,6 +1501,18 @@ export default function HostDashboard() {
           </div>
         </div>
       )}
+
+      {/* AI Quiz Studio Modal for KT & PDF Ingestion */}
+      <AIQuizStudioModal
+        isOpen={isAIModalOpen}
+        onClose={() => setIsAIModalOpen(false)}
+        roomPin={roomPin}
+        socket={getSocket()}
+        onQuestionsApplied={(count) => {
+          setConfiguredQuestionCount(count);
+          setTotalQuestions(count);
+        }}
+      />
     </div>
   );
 }

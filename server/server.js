@@ -61,9 +61,15 @@ const corsOptions = {
   optionsSuccessStatus: 204
 };
 
+const multer = require('multer');
+const { processKTAndGenerateQuiz, normalizeAndEnrichQuestion } = require('./ai-quiz-engine');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+
 const app = express();
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 const server = http.createServer(app);
 
@@ -375,6 +381,149 @@ app.get('/', (req, res) => {
       </body>
     </html>
   `);
+});
+
+// --- AI QUIZ GENERATION & INGESTION ENDPOINTS ---
+
+app.post('/api/ai/generate-quiz', upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    const body = req.body || {};
+    const text = body.text || '';
+    const topic = body.topic || 'OT MSSP Weekly Knowledge Transfer';
+    const questionCount = parseInt(body.questionCount, 10) || 10;
+    const apiKey = body.apiKey || (req.headers['x-gemini-key'] || '').trim();
+    const difficulty = body.difficulty || 'balanced';
+
+    console.log(`[API /api/ai/generate-quiz] Request received. Topic: "${topic}", Count: ${questionCount}, File: ${file ? file.originalname : 'none'}`);
+
+    const result = await processKTAndGenerateQuiz({
+      buffer: file ? file.buffer : null,
+      mimeType: file ? file.mimetype : '',
+      filename: file ? file.originalname : '',
+      text,
+      topic,
+      questionCount,
+      apiKey,
+      difficulty
+    });
+
+    return res.status(200).json({
+      success: true,
+      topic: result.topic,
+      count: result.questions.length,
+      questions: result.questions
+    });
+  } catch (err) {
+    console.error('[API /api/ai/generate-quiz] Error:', err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to generate quiz from input'
+    });
+  }
+});
+
+app.post('/api/rooms/:pin/apply-questions', (req, res) => {
+  try {
+    const { pin } = req.params;
+    const { questions: newQuestions, topic } = req.body || {};
+    const room = rooms.get(pin);
+    if (!room) {
+      return res.status(404).json({ success: false, message: 'Room not found' });
+    }
+    if (!Array.isArray(newQuestions) || newQuestions.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid or empty questions array' });
+    }
+
+    const sanitized = newQuestions.map((q, idx) => normalizeAndEnrichQuestion(q, idx + 1));
+    room.roomQuestions = sanitized;
+    room.configuredQuestionCount = sanitized.length;
+    room.topic = topic || room.topic || 'OT MSSP Weekly Quiz';
+
+    io.to(pin).emit('question_limit_updated', {
+      configuredQuestionCount: sanitized.length,
+      totalQuestions: sanitized.length,
+      topic: room.topic
+    });
+
+    broadcastRoomUpdate(pin);
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully applied ${sanitized.length} questions to room ${pin}`,
+      count: sanitized.length
+    });
+  } catch (err) {
+    console.error('Error applying questions to room:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.get('/api/sessions/list', (req, res) => {
+  try {
+    const sessionsDir = path.join(__dirname, 'sessions');
+    if (!fs.existsSync(sessionsDir)) {
+      return res.status(200).json({ sessions: [] });
+    }
+    const files = fs.readdirSync(sessionsDir).filter(f => f.endsWith('.json'));
+    const sessions = files.map(filename => {
+      try {
+        const content = JSON.parse(fs.readFileSync(path.join(sessionsDir, filename), 'utf-8'));
+        return {
+          id: filename.replace('.json', ''),
+          filename,
+          topic: content.topic || 'Untitled Session',
+          count: Array.isArray(content.questions) ? content.questions.length : 0,
+          createdAt: content.createdAt || null
+        };
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+
+    return res.status(200).json({ success: true, sessions });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/sessions/save', (req, res) => {
+  try {
+    const { topic, questions: sessionQuestions, isDefault } = req.body || {};
+    if (!Array.isArray(sessionQuestions) || sessionQuestions.length === 0) {
+      return res.status(400).json({ success: false, message: 'Questions array required' });
+    }
+
+    const sanitized = sessionQuestions.map((q, idx) => normalizeAndEnrichQuestion(q, idx + 1));
+    const sessionId = `kt_${Date.now()}`;
+    const sessionsDir = path.join(__dirname, 'sessions');
+    if (!fs.existsSync(sessionsDir)) {
+      fs.mkdirSync(sessionsDir, { recursive: true });
+    }
+
+    const payload = {
+      id: sessionId,
+      topic: topic || 'Weekly OT MSSP KT',
+      createdAt: new Date().toISOString(),
+      questions: sanitized
+    };
+
+    fs.writeFileSync(path.join(sessionsDir, `${sessionId}.json`), JSON.stringify(payload, null, 2), 'utf-8');
+
+    if (isDefault) {
+      const questionsPath = path.join(__dirname, 'questions.json');
+      fs.writeFileSync(questionsPath, JSON.stringify(sanitized, null, 2), 'utf-8');
+      loadQuestions();
+    }
+
+    return res.status(200).json({
+      success: true,
+      sessionId,
+      message: 'Session saved successfully'
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // Helper: Generate collision-free random 3-digit badge number (100-999) per room
@@ -1605,6 +1754,35 @@ io.on('connection', (socket) => {
 
     broadcastRoomUpdate(roomPin);
     if (callback) callback({ success: true, configuredQuestionCount: roomQuestions.length, totalQuestions: roomQuestions.length });
+  });
+
+  socket.on('apply_custom_questions', ({ roomPin, questions: customQuestions, topic }, callback) => {
+    const room = rooms.get(roomPin);
+    if (!socket.isHost || !room || room.hostSocketId !== socket.id) {
+      if (callback) callback({ success: false, message: 'Unauthorized: Host privilege required' });
+      return;
+    }
+
+    if (!Array.isArray(customQuestions) || customQuestions.length === 0) {
+      if (callback) callback({ success: false, message: 'Invalid questions provided' });
+      return;
+    }
+
+    const sanitized = customQuestions.map((q, idx) => normalizeAndEnrichQuestion(q, idx + 1));
+    room.roomQuestions = sanitized;
+    room.configuredQuestionCount = sanitized.length;
+    room.topic = topic || room.topic || 'OT MSSP Weekly Quiz';
+
+    console.log(`Room ${roomPin}: Host applied ${sanitized.length} custom AI questions (Topic: "${room.topic}")`);
+
+    io.to(roomPin).emit('question_limit_updated', {
+      configuredQuestionCount: sanitized.length,
+      totalQuestions: sanitized.length,
+      topic: room.topic
+    });
+
+    broadcastRoomUpdate(roomPin);
+    if (callback) callback({ success: true, configuredQuestionCount: sanitized.length, totalQuestions: sanitized.length });
   });
 
   socket.on('disconnect', () => {
