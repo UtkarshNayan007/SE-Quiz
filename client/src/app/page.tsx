@@ -73,11 +73,6 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            <img
-              src="/cyber-shield-logo.png"
-              alt="Cyber Security Shield"
-              className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-md transition-transform hover:scale-105"
-            />
             <ThemeToggle showLabel={false} />
           </div>
         </div>

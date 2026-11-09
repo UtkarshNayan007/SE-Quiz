@@ -205,8 +205,8 @@ export function ParticipantRulesGuide({
       <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white p-5 relative">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center p-1.5 shadow-inner">
-              <img src="/cyber-shield-logo.png" alt="Cyber Shield" className="w-full h-full object-contain" />
+            <div className="w-10 h-10 rounded-2xl bg-[#00E676]/10 border border-[#00E676]/20 flex items-center justify-center p-1.5 shadow-inner">
+              <ShieldCheck className="w-6 h-6 text-[#00E676]" />
             </div>
             <div>
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#00E676] uppercase tracking-wider">
@@ -572,11 +572,9 @@ export function ProjectorRulesGuide({
       {/* Presentation Subheader */}
       <div className="flex items-center justify-between mb-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
         <div className="flex items-center gap-3.5">
-          <img
-            src="/cyber-shield-logo.png"
-            alt="OT MSS Weekly KT Quiz"
-            className="w-12 h-12 object-contain drop-shadow-sm"
-          />
+          <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center p-2 shadow-sm">
+            <ShieldCheck className="w-6 h-6 text-[#009639] dark:text-[#00E676]" />
+          </div>
           <div>
             <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
               Tournament Briefing & Rules

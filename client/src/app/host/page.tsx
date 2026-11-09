@@ -669,11 +669,6 @@ export default function HostDashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2.5 md:gap-3 mt-4 md:mt-0 flex-wrap justify-center">
-          <img
-            src="/cyber-shield-logo.png"
-            alt="Cyber Security Shield"
-            className="w-11 h-11 sm:w-13 sm:h-13 object-contain drop-shadow-md"
-          />
           <div className="flex items-center gap-2 bg-[#00E676]/20 dark:bg-emerald-950/60 px-3.5 py-2 rounded-full border border-[#009639]/30 dark:border-emerald-700/50">
             <Users className="w-4 h-4 text-[#009639] dark:text-emerald-400" />
             <span className="font-bold text-xs sm:text-sm text-[#009639] dark:text-emerald-400">{participantCount} Players</span>

@@ -786,11 +786,6 @@ function ParticipantComponent() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <img
-              src="/cyber-shield-logo.png"
-              alt="Cyber Security Shield"
-              className="w-7 h-7 sm:w-8 sm:h-8 object-contain drop-shadow-sm shrink-0"
-            />
             <div className="text-center">
               <p className="text-[10px] sm:text-xs text-gray-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Score</p>
               <p className="font-bold text-amber-600 dark:text-amber-400 text-base sm:text-lg leading-tight">{myScore} <span className="text-[9px] sm:text-[10px] font-medium text-gray-400 dark:text-slate-500">pts</span></p>

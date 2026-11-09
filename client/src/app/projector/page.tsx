@@ -352,12 +352,6 @@ function ProjectorComponent() {
         </div>
 
         <div className="flex items-center gap-2.5 lg:gap-3.5">
-          <img
-            src="/cyber-shield-logo.png"
-            alt="Cyber Security Shield"
-            className="w-10 h-10 lg:w-11 lg:h-11 object-contain drop-shadow-md shrink-0"
-          />
-
           <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 py-1.5 px-3.5 rounded-full shadow-sm shrink-0">
             <HelpCircle className="w-4 h-4 text-[#009639] dark:text-[#00E676]" />
             <span className="text-base lg:text-lg font-bold font-mono text-slate-800 dark:text-white">{totalQuestions}</span>
