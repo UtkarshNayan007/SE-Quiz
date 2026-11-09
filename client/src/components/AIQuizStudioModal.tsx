@@ -116,21 +116,32 @@ export default function AIQuizStudioModal({
       let res;
       if (selectedFile) {
         const formData = new FormData();
-        formData.append('file', selectedFile);
+        if (apiKey.trim()) formData.append('apiKey', apiKey.trim());
         formData.append('topic', topic.trim() || selectedFile.name.replace(/\.[^/.]+$/, ''));
         formData.append('questionCount', String(questionCount));
         formData.append('difficulty', difficulty);
-        if (apiKey.trim()) formData.append('apiKey', apiKey.trim());
         if (pastedText.trim()) formData.append('text', pastedText);
+        formData.append('file', selectedFile);
+
+        const customHeaders: Record<string, string> = {};
+        if (apiKey.trim()) {
+          customHeaders['x-gemini-key'] = apiKey.trim();
+        }
 
         res = await fetch(`${socketUrl}/api/ai/generate-quiz`, {
           method: 'POST',
+          headers: Object.keys(customHeaders).length > 0 ? customHeaders : undefined,
           body: formData
         });
       } else {
+        const customHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (apiKey.trim()) {
+          customHeaders['x-gemini-key'] = apiKey.trim();
+        }
+
         res = await fetch(`${socketUrl}/api/ai/generate-quiz`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: customHeaders,
           body: JSON.stringify({
             text: pastedText,
             topic: topic.trim() || 'OT MSSP Weekly Knowledge Transfer',

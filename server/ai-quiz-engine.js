@@ -76,6 +76,29 @@ async function extractTextFromBuffer(buffer, mimeType = '', filename = '') {
 }
 
 /**
+ * Strips academic front-matter (Cover pages, candidate names, guide names,
+ * bonafide certificates, declaration forms, acknowledgments, table of contents)
+ * and jumps straight to the core technical content (Abstract, Intro, Architecture, Results).
+ */
+function discardBoilerplateFrontMatter(text) {
+  if (typeof text !== 'string') return '';
+  const startMarkers = [
+    /\b(abstract|executive\s+summary)\b/i,
+    /\b(chapter\s*1|section\s*1|1\.\s*introduction)\b/i,
+    /\b(1\.\s*project\s+overview)\b/i,
+    /\b(problem\s+statement)\b/i
+  ];
+  for (const marker of startMarkers) {
+    const match = text.search(marker);
+    if (match !== -1 && match < 25000) {
+      console.log(`[AI-Quiz-Engine] Successfully skipped academic front-matter (${match} characters).`);
+      return text.substring(match);
+    }
+  }
+  return text;
+}
+
+/**
  * Filter out academic and institutional boilerplate (title pages, student names, register numbers,
  * declaration forms, bonafide certificates, table of contents, acknowledgments).
  */
@@ -92,14 +115,20 @@ function isBoilerplateSentence(s) {
     /bonafide\s+certificate/i,
     /this\s+sheet\s+must\s+be\s+filled/i,
     /acknowledgement/i,
+    /grateful\s+to\s+our/i,
+    /gratitude\s+to\s+our/i,
+    /head\s+of\s+the\s+department/i,
+    /faculty\s+advisor/i,
+    /sincere\s+thanks/i,
+    /we\s+thank\s+our/i,
+    /immeasurable\s+gratitude/i,
     /table\s+of\s+contents/i,
     /list\s+of\s+(figures|tables|symbols|abbreviations)/i,
-    /\bra\d{10,}\b/i, // SRM student register number pattern (e.g. RA2211030010169)
+    /\bra\d{10,}\b/i, // Student register number pattern (e.g. RA2211030010169)
     /\b(reg(ister)?|roll)\s*(no|number)[:\s]/i,
     /to\s+certify\s+that\s+this\s+project/i,
     /partial\s+fulfillment\s+of/i,
     /degree\s+of\s+bachelor/i,
-    /gratitude\s+to\s+our/i,
     /own\s+work\s+declaration/i,
     /supervisor\s*[:\-]/i,
     /project\s+coordinator/i,
@@ -347,44 +376,42 @@ function extractDocumentSentences(text) {
 }
 
 /**
- * Intelligent AI synthesis using Gemini 2.5 Flash / 1.5 Flash
- * Strictly grounded in the provided document text (No unrelated domain hallucinations)
+ * Intelligent AI synthesis using Gemini 2.0 Flash / 1.5 Flash
+ * Strictly grounded in the provided document text across all chapters.
  */
 async function generateWithGemini({ text, topic, questionCount = 10, apiKey, difficulty = 'balanced' }) {
-  const model = 'gemini-2.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-  const cleanText = text
+  const cleanText = discardBoilerplateFrontMatter(text)
     .split('\n')
     .filter(line => !isBoilerplateSentence(line))
     .join('\n');
 
   const systemInstruction = `You are an expert Educational Assessment and Technical Quiz Engine.
-Your mission is to transform the provided document (such as a final year engineering project report, research thesis, presentation deck, or technical document) into an engaging, gamified quiz.
+Your mission is to transform the provided document (such as a final year engineering project report, research thesis, or KT presentation) into an engaging, gamified quiz.
 
 STRICT RULES:
-1. Every single question, answer, and explanation MUST be 100% derived from and faithful to the provided document.
-2. DO NOT include questions about student names, registration numbers, college names, declaration forms, or certificates. Focus STRICTLY on the actual technical architecture, methodology, algorithms, problem statement, datasets, and results of the project!
-3. DO NOT inject unrelated topics (such as industrial SCADA, Modbus, or Tailgating) UNLESS the document is explicitly about them. If the report is about "DigiFence" or "Cyber Defense", generate questions specifically testing the DigiFence architecture, modules, and implementation detailed in the text.
-4. Formulate exactly ${questionCount} questions distributed across:
+1. Every single question, answer, and explanation MUST be 100% derived from and faithful to the technical content of the document.
+2. DO NOT include questions about student names, registration numbers, college names, declaration forms, acknowledgments, or certificates. Focus STRICTLY on the actual technical architecture, methodology, algorithms, problem statement, datasets, and results of the project!
+3. CRITICAL: Analyze the ENTIRE document (including introduction, methodology, algorithms, modules, and testing results). DO NOT just take questions from the first page! Distribute questions evenly across the whole report.
+4. DO NOT inject unrelated topics (such as industrial SCADA, Modbus, or Tailgating) UNLESS the document is explicitly about them. If the report is about "DigiFence" or "Cyber Defense", generate questions specifically testing the DigiFence architecture, modules, and implementation detailed in the text.
+5. Formulate exactly ${questionCount} questions distributed across:
    - "Multiple Choice Question" (type: "theory"): Testing methodology, architecture choices, dataset, results, or objectives from the text.
    - "Fill in the Blank" (type: "fill_in_the_blank"): Sentences containing '________' where the blank is an important technical concept from the report.
    - "Project Crossword" (type: "crossword"): A single technical keyword with a clue summarizing its role in the project.
    - "Technical Riddle" (type: "riddle"): A 4-line rhyming enigma clue describing a key algorithm, tool, or component mentioned in the report.
-5. Provide 4 distinct, plausible options for every question (1 correct, 3 realistic distractors). DO NOT repeat the same 4 options across multiple questions.
-6. The explanation must reference the rationale and findings from the document.
-7. Output ONLY valid JSON matching the schema. No markdown backticks.`;
+6. Provide 4 distinct, plausible options for every question (1 correct, 3 realistic distractors). DO NOT repeat the same 4 options across multiple questions.
+7. The explanation must reference the rationale and findings from the document.
+8. Output ONLY valid JSON matching the schema. No markdown backticks.`;
 
   const userPrompt = `DOCUMENT TOPIC: ${topic || 'Submitted Project Report'}
 TARGET QUESTION COUNT: ${questionCount}
 DEPTH LEVEL: ${difficulty}
 
-EXTRACTED TEXT FROM UPLOADED DOCUMENT:
+EXTRACTED TEXT FROM UPLOADED DOCUMENT (UP TO 200,000 CHARACTERS ACROSS ALL CHAPTERS):
 """
-${cleanText.substring(0, 60000)}
+${cleanText.substring(0, 200000)}
 """
 
-Please analyze this technical material carefully and output ${questionCount} questions strictly derived from the document.`;
+Please analyze this technical material across all chapters and output ${questionCount} questions evenly distributed across the document.`;
 
   const requestBody = {
     contents: [
@@ -405,46 +432,62 @@ Please analyze this technical material carefully and output ${questionCount} que
     }
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody)
-  });
+  const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+  let lastError = null;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+  for (const model of modelsToTry) {
+    try {
+      console.log(`[AI-Quiz-Engine] Calling Gemini API model: ${model}...`);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini API error (${model} - ${response.status}): ${errorText}`);
+      }
+
+      const result = await response.json();
+      const rawContent = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawContent) {
+        throw new Error(`No content returned from Gemini model ${model}`);
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(rawContent.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim());
+      } catch (err) {
+        console.error('Failed to parse Gemini JSON output:', rawContent);
+        throw new Error('AI output was not valid JSON: ' + err.message);
+      }
+
+      const rawQuestions = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+      const normalized = rawQuestions.map((q, idx) => normalizeAndEnrichQuestion(q, idx + 1));
+      return {
+        topic: parsed.topic || topic || 'Project Knowledge Assessment',
+        questions: normalized
+      };
+    } catch (err) {
+      console.warn(`[AI-Quiz-Engine] Failed with model ${model}:`, err.message);
+      lastError = err;
+    }
   }
 
-  const result = await response.json();
-  const rawContent = result.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawContent) {
-    throw new Error('No content returned from Gemini model');
-  }
-
-  let parsed;
-  try {
-    parsed = JSON.parse(rawContent.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim());
-  } catch (err) {
-    console.error('Failed to parse Gemini JSON output:', rawContent);
-    throw new Error('AI output was not valid JSON: ' + err.message);
-  }
-
-  const rawQuestions = Array.isArray(parsed) ? parsed : (parsed.questions || []);
-  const normalized = rawQuestions.map((q, idx) => normalizeAndEnrichQuestion(q, idx + 1));
-  return {
-    topic: parsed.topic || topic || 'Project Knowledge Assessment',
-    questions: normalized
-  };
+  throw lastError || new Error('All Gemini models failed');
 }
 
 /**
  * Dynamic Content-Grounded NLP Synthesizer (100% Derived from Document Text)
- * Uses intelligent per-question distractor rotation and natural question synthesis.
+ * Uses intelligent per-question distractor rotation and natural question synthesis
+ * evenly sampled across the entire document length.
  */
 function generateDynamicContentQuiz({ text, topic, questionCount = 10 }) {
-  const sentences = extractDocumentSentences(text);
-  const keyTerms = extractDocumentKeyTerms(text);
+  const cleanDoc = discardBoilerplateFrontMatter(text);
+  const sentences = extractDocumentSentences(cleanDoc);
+  const keyTerms = extractDocumentKeyTerms(cleanDoc);
 
   const count = Math.max(1, Math.min(questionCount, 25));
   const questions = [];
@@ -458,8 +501,12 @@ function generateDynamicContentQuiz({ text, topic, questionCount = 10 }) {
 
   const safeTerms = keyTerms.length >= 4 ? keyTerms : ['Architecture', 'Implementation', 'Optimization', 'Validation', 'Algorithm', 'Database', 'Microservice'];
 
+  // Evenly distribute sampling index across the ENTIRE document length
+  const step = Math.max(1, Math.floor(safeSentences.length / count));
+
   for (let i = 0; i < count; i++) {
-    const sentence = safeSentences[i % safeSentences.length];
+    const sampleIdx = Math.min(i * step, safeSentences.length - 1);
+    const sentence = safeSentences[sampleIdx];
     
     // Pick the most relevant domain key term in this sentence
     const matchedTermsInSentence = safeTerms.filter(t => new RegExp(`\\b${t}\\b`, 'i').test(sentence));
@@ -610,7 +657,7 @@ async function processKTAndGenerateQuiz({
     rawText = `Document Topic: ${topic}\nFocusing on project architecture, technical methodology, experimental evaluation, and key findings.`;
   }
 
-  const effectiveApiKey = apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const effectiveApiKey = (apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
 
   if (effectiveApiKey) {
     try {
@@ -623,10 +670,15 @@ async function processKTAndGenerateQuiz({
         difficulty
       });
     } catch (err) {
-      console.warn(`[AI-Quiz-Engine] Gemini generation failed: ${err.message}. Falling back to dynamic document NLP synthesizer.`);
+      console.error(`[AI-Quiz-Engine] Gemini generation failed: ${err.message}`);
+      if (apiKey) {
+        // Explicit user key provided: do not silently mask the error!
+        throw new Error(`Gemini AI Generation Error: ${err.message}`);
+      }
+      console.warn(`[AI-Quiz-Engine] Falling back to dynamic document NLP synthesizer.`);
     }
   } else {
-    console.log(`[AI-Quiz-Engine] No Gemini API key provided. Running Smart Local NLP Synthesizer directly on document text...`);
+    console.log(`[AI-Quiz-Engine] No Gemini API key provided. Running Smart Local NLP Synthesizer across entire document...`);
   }
 
   return generateDynamicContentQuiz({
