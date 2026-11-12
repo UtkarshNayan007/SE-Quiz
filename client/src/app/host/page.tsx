@@ -127,6 +127,8 @@ export default function HostDashboard() {
     }
 
     const urlPin = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('pin') || '' : '';
+    const urlMode = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('mode') as any) : null;
+    const modeToUse = urlMode || gameMode || 'fastest_finger';
     const savedPin = typeof window !== 'undefined' ? (localStorage.getItem('se_host_room_pin') || sessionStorage.getItem('se_host_room_pin') || '') : '';
     const pinToUse = targetPin !== undefined ? targetPin : (roomPin || urlPin || savedPin);
 
@@ -137,7 +139,7 @@ export default function HostDashboard() {
       setAuthError('Connection timed out. Please check if the server is online and try again.');
     }, 10000);
 
-    socket.emit('create_room', { passcode: inputPasscode, roomPin: pinToUse, questionCount: 19 }, (res: any) => {
+    socket.emit('create_room', { passcode: inputPasscode, roomPin: pinToUse, questionCount: 19, gameMode: modeToUse }, (res: any) => {
       clearTimeout(timeout);
       setLoading(false);
       setIsRestoring(false);
@@ -336,7 +338,17 @@ export default function HostDashboard() {
   }, []);
 
   const handleSelectMode = (mode: 'fastest_finger' | 'incident_triage' | 'crossword_decoder' | 'async_shift') => {
+    if (mode === gameMode) return;
+    if (currentQIndex >= 0) {
+      const ok = typeof window !== 'undefined' ? window.confirm(`Switching training mode to ${mode.replace('_', ' ').toUpperCase()} will reset the current active question and load Question 1 of the new mode. Continue?`) : true;
+      if (!ok) return;
+    }
     setGameMode(mode);
+    setCurrentQIndex(-1);
+    setActiveQuestion(null);
+    setGameState('LOBBY');
+    setRevealResult(null);
+    setIsAnsweringClosed(false);
     const socket = getSocket();
     socket.emit('set_game_mode', { roomPin, gameMode: mode }, (res: any) => {
       if (!res?.success) {
@@ -1051,12 +1063,12 @@ export default function HostDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Mode 1 */}
                 <div
-                  onClick={() => currentQIndex === -1 && handleSelectMode('fastest_finger')}
+                  onClick={() => handleSelectMode('fastest_finger')}
                   className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
                     gameMode === 'fastest_finger'
                       ? 'border-[#009639] bg-emerald-50/70 dark:bg-emerald-950/40 shadow-sm ring-2 ring-[#009639]/30'
                       : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40'
-                  } ${currentQIndex >= 0 ? 'cursor-not-allowed opacity-80' : ''}`}
+                  }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[10px] font-black uppercase text-schneider-brand dark:text-[#00E676] flex items-center gap-1">
@@ -1074,12 +1086,12 @@ export default function HostDashboard() {
 
                 {/* Mode 2 */}
                 <div
-                  onClick={() => currentQIndex === -1 && handleSelectMode('incident_triage')}
+                  onClick={() => handleSelectMode('incident_triage')}
                   className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
                     gameMode === 'incident_triage'
                       ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 shadow-sm ring-2 ring-amber-500/30'
                       : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40'
-                  } ${currentQIndex >= 0 ? 'cursor-not-allowed opacity-80' : ''}`}
+                  }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1">
@@ -1097,12 +1109,12 @@ export default function HostDashboard() {
 
                 {/* Mode 3 */}
                 <div
-                  onClick={() => currentQIndex === -1 && handleSelectMode('crossword_decoder')}
+                  onClick={() => handleSelectMode('crossword_decoder')}
                   className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
                     gameMode === 'crossword_decoder'
                       ? 'border-teal-500 bg-teal-50/70 dark:bg-teal-950/40 shadow-sm ring-2 ring-teal-500/30'
                       : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40'
-                  } ${currentQIndex >= 0 ? 'cursor-not-allowed opacity-80' : ''}`}
+                  }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[10px] font-black uppercase text-teal-600 dark:text-teal-400 flex items-center gap-1">
@@ -1120,12 +1132,12 @@ export default function HostDashboard() {
 
                 {/* Mode 4 */}
                 <div
-                  onClick={() => currentQIndex === -1 && handleSelectMode('async_shift')}
+                  onClick={() => handleSelectMode('async_shift')}
                   className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
                     gameMode === 'async_shift'
                       ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 shadow-sm ring-2 ring-indigo-500/30'
                       : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40'
-                  } ${currentQIndex >= 0 ? 'cursor-not-allowed opacity-80' : ''}`}
+                  }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
@@ -1702,6 +1714,7 @@ export default function HostDashboard() {
         onClose={() => setIsAIModalOpen(false)}
         roomPin={roomPin}
         socket={getSocket()}
+        initialMode={gameMode}
         onQuestionsApplied={(count) => {
           setConfiguredQuestionCount(count);
           setTotalQuestions(count);

@@ -81,6 +81,7 @@ function ParticipantComponent() {
   
   // Game States: 'LOBBY', 'READING', 'ANSWERING', 'REVEAL', 'QUIZ_ENDED', 'RESULTS_PUBLISHED'
   const [gameState, setGameState] = useState('LOBBY');
+  const [gameMode, setGameMode] = useState<string>('fastest_finger');
   const [totalQuestions, setTotalQuestions] = useState(10);
   const [activeQuestion, setActiveQuestion] = useState<any>(null);
   const [countdown, setCountdown] = useState(10);
@@ -421,6 +422,9 @@ function ParticipantComponent() {
       if (roomData?.gameState) {
         setGameState(roomData.gameState);
       }
+      if (roomData?.gameMode) {
+        setGameMode(roomData.gameMode);
+      }
       if (roomData?.totalQuestions) {
         setTotalQuestions(roomData.totalQuestions);
       }
@@ -523,6 +527,10 @@ function ParticipantComponent() {
     };
 
     socket.on('room_updated', handleRoomUpdated);
+    socket.on('game_mode_changed', (data: any) => {
+      if (data?.gameMode) setGameMode(data.gameMode);
+      if (data?.totalQuestions) setTotalQuestions(data.totalQuestions);
+    });
     socket.on('rules_started', handleRulesStarted);
     socket.on('question_pushed', handleQuestionPushed);
     socket.on('answering_started', handleAnsweringStarted);
@@ -537,6 +545,7 @@ function ParticipantComponent() {
 
     return () => {
       socket.off('room_updated', handleRoomUpdated);
+      socket.off('game_mode_changed');
       socket.off('rules_started', handleRulesStarted);
       socket.off('question_pushed', handleQuestionPushed);
       socket.off('answering_started', handleAnsweringStarted);
@@ -803,6 +812,19 @@ function ParticipantComponent() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Active Training Mode Badge */}
+        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] font-bold shadow-xs">
+          <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
+            {gameMode === 'incident_triage' ? '🛡️ Mode 2: OT Incident Triage Battle' :
+             gameMode === 'crossword_decoder' ? '🧩 Mode 3: Acronym Decoder' :
+             gameMode === 'async_shift' ? '🌙 Mode 4: Shift-Worker Arena' :
+             '⚡ Mode 1: Fastest Finger First MCQ'}
+          </span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-[#009639] dark:text-[#00E676] bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/40">
+            {gameState}
+          </span>
         </div>
 
         {/* Error notification */}

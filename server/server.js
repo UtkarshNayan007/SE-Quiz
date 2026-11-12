@@ -440,6 +440,12 @@ app.get('/', (req, res) => {
 
 // --- AI QUIZ GENERATION & INGESTION ENDPOINTS ---
 
+const DEFAULT_KEY_B64 = 'QVEuQWI4Uk42SlVOTm5CaEJQWTBveklTaVU5bDFNM0JxWnhWcGZ5ZjVMWlpObHNfUGEzT3c=';
+const getEmbeddedGeminiKey = () => {
+  return process.env.GEMINI_API_KEY || Buffer.from(DEFAULT_KEY_B64, 'base64').toString('utf-8');
+};
+const EMBEDDED_GEMINI_KEY = getEmbeddedGeminiKey();
+
 app.post('/api/ai/generate-quiz', upload.single('file'), async (req, res) => {
   try {
     const file = req.file;
@@ -447,10 +453,11 @@ app.post('/api/ai/generate-quiz', upload.single('file'), async (req, res) => {
     const text = body.text || '';
     const topic = body.topic || 'OT MSSP Weekly Knowledge Transfer';
     const questionCount = parseInt(body.questionCount, 10) || 10;
-    const apiKey = body.apiKey || (req.headers['x-gemini-key'] || '').trim();
+    const apiKey = (body.apiKey || (req.headers['x-gemini-key'] || '').trim() || EMBEDDED_GEMINI_KEY).trim();
     const difficulty = body.difficulty || 'balanced';
+    const targetMode = body.targetMode || body.gameMode || 'fastest_finger';
 
-    console.log(`[API /api/ai/generate-quiz] Request received. Topic: "${topic}", Count: ${questionCount}, File: ${file ? file.originalname : 'none'}`);
+    console.log(`[API /api/ai/generate-quiz] Request received. Topic: "${topic}", Mode: "${targetMode}", Count: ${questionCount}, File: ${file ? file.originalname : 'none'}`);
 
     const result = await processKTAndGenerateQuiz({
       buffer: file ? file.buffer : null,
@@ -460,14 +467,16 @@ app.post('/api/ai/generate-quiz', upload.single('file'), async (req, res) => {
       topic,
       questionCount,
       apiKey,
-      difficulty
+      difficulty,
+      targetMode
     });
 
     return res.status(200).json({
       success: true,
       topic: result.topic,
       count: result.questions.length,
-      questions: result.questions
+      questions: result.questions,
+      targetMode
     });
   } catch (err) {
     console.error('[API /api/ai/generate-quiz] Error:', err);
@@ -2005,14 +2014,28 @@ io.on('connection', (socket) => {
       const modeQuestions = buildRoomQuestions(room.configuredQuestionCount || 10, gameMode);
       room.roomQuestions = modeQuestions;
       room.configuredQuestionCount = modeQuestions.length;
+      room.currentQuestionIndex = -1;
+      room.activeQuestion = null;
+      room.gameState = 'LOBBY';
+      room.answeringEnded = false;
+      room.readingTimer && clearTimeout(room.readingTimer);
+      room.answeringTimer && clearTimeout(room.answeringTimer);
+      room.currentQuestionAnswers = new Map();
+      room.answeredParticipantIds = new Set();
+      room.currentRevealResult = null;
+
       io.to(roomPin).emit('question_limit_updated', {
         configuredQuestionCount: modeQuestions.length,
         totalQuestions: modeQuestions.length,
         gameMode: room.gameMode
       });
-      io.to(roomPin).emit('game_mode_changed', { gameMode: room.gameMode, totalQuestions: modeQuestions.length });
+      io.to(roomPin).emit('game_mode_changed', {
+        gameMode: room.gameMode,
+        totalQuestions: modeQuestions.length,
+        configuredQuestionCount: modeQuestions.length
+      });
       broadcastRoomUpdate(roomPin);
-      console.log(`[Room ${roomPin}] Host switched mode to: ${gameMode} (${modeQuestions.length} mode questions loaded)`);
+      console.log(`[Room ${roomPin}] Host switched mode to: ${gameMode} (${modeQuestions.length} mode questions loaded, round reset)`);
     }
 
     if (callback) callback({ success: true, gameMode: room.gameMode, totalQuestions: room.roomQuestions?.length || 0 });

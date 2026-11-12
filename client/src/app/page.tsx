@@ -9,6 +9,7 @@ export default function LandingPage() {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [joinMode, setJoinMode] = useState<'live' | 'shift'>('live');
+  const [selectedMode, setSelectedMode] = useState<'fastest_finger' | 'incident_triage' | 'crossword_decoder' | 'async_shift'>('fastest_finger');
 
   const handleJoinParticipant = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +56,9 @@ export default function LandingPage() {
   };
 
   const handleLaunchProjector = () => {
-    const url = pin.trim() && pin.length >= 6 ? `/projector?pin=${pin.trim()}` : '/projector';
+    const url = pin.trim() && pin.length >= 6 
+      ? `/projector?pin=${pin.trim()}&mode=${selectedMode}` 
+      : `/projector?mode=${selectedMode}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -96,51 +99,103 @@ export default function LandingPage() {
           </p>
         </div>
 
-        {/* 4 Tactical Training Modes Overview */}
+        {/* 4 Tactical Training Modes Overview - Interactive Mode Selector */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-left">
-            <div className="flex items-center gap-2 text-schneider-brand dark:text-schneider-green mb-1.5">
-              <Zap className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Mode 1 • Live</span>
+          {/* Mode 1 */}
+          <button
+            type="button"
+            onClick={() => { setSelectedMode('fastest_finger'); setJoinMode('live'); }}
+            className={`p-3.5 rounded-2xl border transition-all text-left cursor-pointer group ${
+              selectedMode === 'fastest_finger'
+                ? 'border-[#009639] bg-emerald-50/80 dark:bg-emerald-950/50 shadow-md ring-2 ring-[#009639]/40'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-schneider-brand dark:text-[#00E676] flex items-center gap-1.5">
+                <Zap className="w-4 h-4" /> Mode 1 • Live
+              </span>
+              {selectedMode === 'fastest_finger' && (
+                <span className="text-[9px] font-bold bg-[#009639] text-white px-1.5 py-0.5 rounded-full">ACTIVE</span>
+              )}
             </div>
             <h4 className="text-xs font-bold text-slate-900 dark:text-white">Fastest Finger First</h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
               Synchronous speed-weighted scoring, live dial, podium & confetti.
             </p>
-          </div>
+          </button>
 
-          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-left">
-            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-1.5">
-              <ShieldAlert className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Mode 2 • Battle</span>
+          {/* Mode 2 */}
+          <button
+            type="button"
+            onClick={() => { setSelectedMode('incident_triage'); setJoinMode('live'); }}
+            className={`p-3.5 rounded-2xl border transition-all text-left cursor-pointer group ${
+              selectedMode === 'incident_triage'
+                ? 'border-amber-500 bg-amber-50/80 dark:bg-amber-950/50 shadow-md ring-2 ring-amber-500/40'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-600'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <ShieldAlert className="w-4 h-4" /> Mode 2 • Battle
+              </span>
+              {selectedMode === 'incident_triage' && (
+                <span className="text-[9px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-full">ACTIVE</span>
+              )}
             </div>
             <h4 className="text-xs font-bold text-slate-900 dark:text-white">OT Incident Triage</h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
               3-step scenario: Detection, Purdue containment & DCS restoration.
             </p>
-          </div>
+          </button>
 
-          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-left">
-            <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400 mb-1.5">
-              <FileText className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Mode 3 • Vocab</span>
+          {/* Mode 3 */}
+          <button
+            type="button"
+            onClick={() => { setSelectedMode('crossword_decoder'); setJoinMode('live'); }}
+            className={`p-3.5 rounded-2xl border transition-all text-left cursor-pointer group ${
+              selectedMode === 'crossword_decoder'
+                ? 'border-teal-500 bg-teal-50/80 dark:bg-teal-950/50 shadow-md ring-2 ring-teal-500/40'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-600'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 flex items-center gap-1.5">
+                <FileText className="w-4 h-4" /> Mode 3 • Vocab
+              </span>
+              {selectedMode === 'crossword_decoder' && (
+                <span className="text-[9px] font-bold bg-teal-500 text-white px-1.5 py-0.5 rounded-full">ACTIVE</span>
+              )}
             </div>
             <h4 className="text-xs font-bold text-slate-900 dark:text-white">Acronym Decoder</h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
               IEC 62443, NIST SP 800-82, OPC UA, CIP, HMI, RTU, Historian clues.
             </p>
-          </div>
+          </button>
 
-          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/60 shadow-sm text-left bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-950/20 dark:to-slate-900">
-            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 mb-1.5">
-              <Moon className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Mode 4 • 24/7</span>
+          {/* Mode 4 */}
+          <button
+            type="button"
+            onClick={() => { setSelectedMode('async_shift'); setJoinMode('shift'); }}
+            className={`p-3.5 rounded-2xl border transition-all text-left cursor-pointer group ${
+              selectedMode === 'async_shift'
+                ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/50 shadow-md ring-2 ring-indigo-500/40'
+                : 'bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-900/60 hover:border-indigo-400'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                <Moon className="w-4 h-4" /> Mode 4 • 24/7
+              </span>
+              {selectedMode === 'async_shift' && (
+                <span className="text-[9px] font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded-full">ACTIVE</span>
+              )}
             </div>
             <h4 className="text-xs font-bold text-slate-900 dark:text-white">Shift-Worker Arena</h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
               48h self-paced link with anti-cheat timer for night-shift analysts.
             </p>
-          </div>
+          </button>
         </div>
 
         {error && (
@@ -282,12 +337,12 @@ export default function LandingPage() {
                     Configures training modes, ingests KT docs with AI, pushes questions, and validates answers.
                   </p>
                   <a
-                    href="/host"
+                    href={`/host?mode=${selectedMode}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold py-2.5 rounded-lg text-sm transition text-center block cursor-pointer"
+                    className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold py-2.5 rounded-lg text-sm transition text-center block cursor-pointer uppercase tracking-wider"
                   >
-                    Open Host Dashboard
+                    Open Host Dashboard ({selectedMode.replace('_', ' ')})
                   </a>
                 </div>
 
