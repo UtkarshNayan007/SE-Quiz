@@ -476,7 +476,8 @@ app.post('/api/ai/generate-quiz', upload.single('file'), async (req, res) => {
       topic: result.topic,
       count: result.questions.length,
       questions: result.questions,
-      targetMode
+      targetMode,
+      warning: result.warning || null
     });
   } catch (err) {
     console.error('[API /api/ai/generate-quiz] Error:', err);

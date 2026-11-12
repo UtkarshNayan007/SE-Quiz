@@ -190,7 +190,11 @@ export default function AIQuizStudioModal({
       setGeneratedQuestions(data.questions || []);
       if (data.topic && !topic) setTopic(data.topic);
       setActiveTab('review');
-      setStatusMessage(`✓ Generated ${data.questions.length} questions tailored for ${targetMode.replace('_', ' ').toUpperCase()}! Review below.`);
+      if (data.warning) {
+        setStatusMessage(data.warning);
+      } else {
+        setStatusMessage(`✓ Generated ${data.questions.length} questions tailored for ${targetMode.replace('_', ' ').toUpperCase()}! Review below.`);
+      }
     } catch (err: any) {
       setErrorMessage(err.message || 'Error communicating with AI quiz engine');
     } finally {
